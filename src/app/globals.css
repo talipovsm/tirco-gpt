@@ -450,7 +450,93 @@
 }
 
 /* ── Reduced motion: полноценный UX без движения ── */
+/* ─────────── Публичная главная (лендинг) ─────────── */
+/* Поток по маршруту: штрих бежит вдоль линии */
+@keyframes landing-flow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+/* Груз движется по маршруту (CSS motion path) */
+@keyframes landing-travel {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+/* Узел: мягкая пульсация кольца */
+@keyframes landing-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  80%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+/* Карточки над картой: едва заметное «парение» */
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.landing-flow {
+  stroke-dasharray: 6 18;
+  animation: landing-flow 2.4s linear infinite;
+}
+.landing-travel {
+  offset-rotate: 0deg;
+  animation: landing-travel var(--travel-duration, 14s) linear infinite;
+  animation-delay: var(--travel-delay, 0s);
+}
+.landing-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: landing-ping 2.8s var(--ease-out) infinite;
+}
+.landing-float {
+  animation: landing-float 7s var(--ease-in-out) infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+/* Появление секций при прокрутке: скрываются только после гидрации и только ниже экрана (без JS — видны сразу) */
+[data-reveal="hidden"] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 520ms var(--ease-out),
+    transform 520ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .landing-flow,
+  .landing-travel,
+  .landing-ping,
+  .landing-float {
+    animation: none !important;
+  }
+  .landing-travel {
+    offset-distance: 62%;
+  }
+  .landing-ping {
+    opacity: 0;
+  }
+  [data-reveal="hidden"] {
+    opacity: 1;
+    transform: none;
+  }
   *,
   *::before,
   *::after {

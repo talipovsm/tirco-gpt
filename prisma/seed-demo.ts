@@ -48,8 +48,10 @@ async function main() {
   }
   try {
     const demo = dbFor("demo");
-    // Документы генератора пишутся последними перед уведомлениями: по ним видно, что прошлый запуск завершился
+    // Документы генератора пишутся последними перед уведомлениями: по ним видно, что прошлый запуск завершился.
+    // Демо-аккаунт текущего домена: база, засеянная до переименования (@cargoflow.demo), загружается заново
     const complete =
+      (await demo.user.count({ where: { email: "shipper@tirco.demo" } })) > 0 &&
       (await demo.fuelTransaction.count()) > 0 &&
       (await demo.orderDocument.count({ where: { storageKey: { startsWith: "demo/documents/" } } })) > 0 &&
       (await demo.notification.count({ where: { title: { startsWith: "Доставка завершена" } } })) > 0;

@@ -214,7 +214,7 @@ export function VerificationBadge({ status, className }: { status: string; class
   return (
     <span
       className={cn("text-success inline-flex items-center gap-0.5 text-xs font-medium", className)}
-      title="Компания прошла проверку CargoFlow"
+      title="Компания прошла проверку Tirco"
     >
       <ShieldCheck className="size-3.5" aria-hidden />
       <span>Проверена</span>

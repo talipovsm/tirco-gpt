@@ -5,9 +5,9 @@ import type { Currency, PaymentTransactionKind } from "@/generated/prisma/enums"
 /**
  * Адаптер платёжного провайдера.
  *
- * CargoFlow НЕ является кошельком и не хранит деньги: резервирование, выплата перевозчику и возврат
+ * Tirco НЕ является кошельком и не хранит деньги: резервирование, выплата перевозчику и возврат
  * выполняются лицензированным провайдером (банк / PSP с эскроу или удержанием средств).
- * CargoFlow отправляет команды с ключом идемпотентности и принимает результат — синхронно или через webhook.
+ * Tirco отправляет команды с ключом идемпотентности и принимает результат — синхронно или через webhook.
  *
  * Реализации:
  *  - sandbox — тестовый режим: операции «успешны» сразу, реальные деньги не движутся (разработка, демо, тесты);
@@ -106,7 +106,7 @@ export function providerByCode(code: string): PaymentProvider | null {
   return PROVIDERS[code] ?? null;
 }
 
-/** Проверка подписи webhook: HMAC-SHA256(body, PAYMENT_WEBHOOK_SECRET) в заголовке X-CargoFlow-Signature. */
+/** Проверка подписи webhook: HMAC-SHA256(body, PAYMENT_WEBHOOK_SECRET) в заголовке X-Tirco-Signature. */
 export function verifyWebhookSignature(body: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
   const expected = createHmac("sha256", secret).update(body).digest("hex");
@@ -129,7 +129,7 @@ export function webhookSecret(base: string, provider: string): string | undefine
 
 /**
  * Проверка подписи входящего webhook.
- * Рекомендуемый формат: X-CargoFlow-Timestamp (unix, секунды) + подпись HMAC-SHA256(`${timestamp}.${body}`) —
+ * Рекомендуемый формат: X-Tirco-Timestamp (unix, секунды) + подпись HMAC-SHA256(`${timestamp}.${body}`) —
  * старые запросы (старше 5 минут) отклоняются, поэтому перехваченный запрос нельзя повторить.
  * Формат без метки времени (HMAC тела) поддерживается для совместимости, пока не задан WEBHOOK_REQUIRE_TIMESTAMP=1.
  */
@@ -139,8 +139,8 @@ export function verifySignedWebhook(
   secret: string,
   now = Date.now(),
 ): { ok: true } | { ok: false; reason: string } {
-  const signature = headers.get("x-cargoflow-signature");
-  const ts = headers.get("x-cargoflow-timestamp");
+  const signature = headers.get("x-tirco-signature");
+  const ts = headers.get("x-tirco-timestamp");
   if (ts) {
     const seconds = Number(ts);
     if (!Number.isFinite(seconds) || Math.abs(now - seconds * 1000) > WEBHOOK_TOLERANCE_MS) return { ok: false, reason: "stale" };

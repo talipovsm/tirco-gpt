@@ -1,5 +1,5 @@
 /**
- * Детерминированный генератор демо-мира CargoFlow (≈100 грузов, 20 машин, 20 водителей, 16 перевозчиков, 40 клиентов).
+ * Детерминированный генератор демо-мира Tirco (≈100 грузов, 20 машин, 20 водителей, 16 перевозчиков, 40 клиентов).
  *
  * Запускается внутри runWithDataMode("demo") после сценариев prisma/seed.ts — пишет только в демо-базу.
  * Одинаковый seed → одинаковые компании, люди, маршруты, суммы и идентификаторы; даты строятся относительно
@@ -168,7 +168,7 @@ async function placeholderPdf(title: string, number: string) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595, 842]);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
-  page.drawText("CargoFlow DEMO DOCUMENT", { x: 50, y: 780, size: 20, font });
+  page.drawText("Tirco DEMO DOCUMENT", { x: 50, y: 780, size: 20, font });
   page.drawText(`${title} - ${number}`, { x: 50, y: 750, size: 12, font });
   page.drawText("Synthetic demo placeholder. Not a real transport document.", { x: 50, y: 725, size: 10, font });
   return Buffer.from(await pdf.save());
@@ -177,7 +177,7 @@ async function placeholderPdf(title: string, number: string) {
 export type DemoWorldSummary = Record<string, number>;
 
 export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}): Promise<DemoWorldSummary> {
-  const r = makeRng(opts.seed ?? "cargoflow-demo");
+  const r = makeRng(opts.seed ?? "tirco-demo");
   const now = opts.now ?? new Date();
   const passwordHash = "!demo-persona:identity-in-real-db";
 
@@ -225,13 +225,13 @@ export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}
       phone: phone(),
       email: `office@${slug(name)}.demo`,
       verificationStatus: r.chance(0.85) ? "VERIFIED" : "PENDING",
-      description: "Вымышленная компания демо-среды CargoFlow.",
+      description: "Вымышленная компания демо-среды Tirco.",
       createdAt: addDays(now, -r.int(60, 400)),
     });
     const uid = r.uuid();
     users.push({
       id: uid,
-      email: `${slug(name)}@clients.cargoflow.demo`,
+      email: `${slug(name)}@clients.tirco.demo`,
       passwordHash,
       firstName: r.pick(OFFICE_NAMES),
       lastName: r.pick(LAST_NAMES),
@@ -257,11 +257,11 @@ export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}
       phone: phone(),
       email: `dispatch@${slug(name)}.demo`,
       verificationStatus: i < 13 ? "VERIFIED" : i === 13 ? "PENDING" : "UNVERIFIED",
-      description: "Вымышленный перевозчик демо-среды CargoFlow.",
+      description: "Вымышленный перевозчик демо-среды Tirco.",
       createdAt: addDays(now, -r.int(90, 700)),
     });
     const uid = r.uuid();
-    users.push({ id: uid, email: `admin.${slug(name)}@carriers.cargoflow.demo`, passwordHash, ...person(), phone: phone() });
+    users.push({ id: uid, email: `admin.${slug(name)}@carriers.tirco.demo`, passwordHash, ...person(), phone: phone() });
     members.push({ companyId: id, userId: uid, role: "CARRIER_ADMIN" });
     return { id, name, adminId: uid };
   });
@@ -297,7 +297,7 @@ export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}
     const driverUserId = r.uuid();
     users.push({
       id: driverUserId,
-      email: `driver${String(i + 1).padStart(2, "0")}@drivers.cargoflow.demo`,
+      email: `driver${String(i + 1).padStart(2, "0")}@drivers.tirco.demo`,
       passwordHash,
       ...p,
       phone: phone(),

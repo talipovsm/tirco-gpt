@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
   const d = toPlain(await adminStats(actor));
   return (
     <>
-      <PageHeader title="Панель администратора" description="Состояние платформы CargoFlow" />
+      <PageHeader title="Панель администратора" description="Состояние платформы Tirco" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard label="Пользователи" value={d.kpi.users} icon={Users} href="/admin/users" />
         <KpiCard label="Компании" value={d.kpi.companies} icon={Building2} href="/admin/companies" />

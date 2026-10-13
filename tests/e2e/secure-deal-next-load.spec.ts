@@ -27,7 +27,7 @@ test.describe.configure({ mode: "serial" });
 
 test("безопасная сделка → выплата → закрытие → следующий рейс", async ({ browser }) => {
   // ── Водитель после доставки сообщает, куда планирует ехать ──
-  const driver = await login(browser, "driver@cargoflow.demo");
+  const driver = await login(browser, "driver@tirco.demo");
   await expect(driver.page.getByTestId("driver-next-step")).toBeVisible();
   await driver.page.getByRole("button", { name: "В Астана" }).click();
   await expectToast(driver.page, /Диспетчер получил ваш план\. Подходящих грузов: [1-9]/);
@@ -35,7 +35,7 @@ test("безопасная сделка → выплата → закрытие 
   await driver.context.close();
 
   // ── Заказчик: оплата обеспечена, подтверждает получение ──
-  const shipper = await login(browser, "shipper@cargoflow.demo");
+  const shipper = await login(browser, "shipper@tirco.demo");
   await shipper.page.goto("/orders?q=CF-O-000004");
   // Список перевозок — split view: строка открывает контекстную панель, из неё — карточка перевозки
   await shipper.page.getByTestId("shipment-row").filter({ hasText: "CF-O-000004" }).first().click();
@@ -63,7 +63,7 @@ test("безопасная сделка → выплата → закрытие 
   await shipper.context.close();
 
   // ── Перевозчик: RBAC и подбор следующего груза ──
-  const carrier = await login(browser, "carrier@cargoflow.demo");
+  const carrier = await login(browser, "carrier@tirco.demo");
   const origin = new URL(carrier.page.url()).origin;
   const denied = await carrier.page.request.post(`/api/orders/${orderId}/secure-deal`, { headers: { origin } });
   expect(denied.status()).toBe(403);

@@ -29,7 +29,7 @@ export function newIdempotencyKey() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** Вызов REST API CargoFlow. Бросает ApiError с понятным сообщением. */
+/** Вызов REST API Tirco. Бросает ApiError с понятным сообщением. */
 export async function api<T>(url: string, opts: Options = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   let body: BodyInit | undefined;

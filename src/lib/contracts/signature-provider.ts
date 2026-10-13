@@ -30,7 +30,7 @@ export interface SignatureProvider {
 
 export class InternalAcceptanceProvider implements SignatureProvider {
   readonly method = "INTERNAL_ACCEPTANCE" as const;
-  readonly displayName = "Внутреннее электронное подтверждение CargoFlow";
+  readonly displayName = "Внутреннее электронное подтверждение Tirco";
   async sign(req: SignatureRequest): Promise<SignatureResult> {
     return { method: this.method, signedAt: new Date(), documentHash: req.documentHash };
   }

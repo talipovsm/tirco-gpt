@@ -70,8 +70,8 @@ function pointAt(km: number) {
 }
 
 export async function seedFuelDemo(ctx: Ctx) {
-  const uOwner = await ctx.createUser("fleet@cargoflow.demo", "Азамат", "Абенов", "+7 701 100 00 01");
-  const uIvan = await ctx.createUser("ivan@cargoflow.demo", "Ivan", "Petrov", "+7 701 100 00 02");
+  const uOwner = await ctx.createUser("fleet@tirco.demo", "Азамат", "Абенов", "+7 701 100 00 01");
+  const uIvan = await ctx.createUser("ivan@tirco.demo", "Ivan", "Petrov", "+7 701 100 00 02");
   const abc = await prisma.company.create({
     data: {
       type: "CARRIER",

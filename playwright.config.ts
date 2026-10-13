@@ -38,7 +38,7 @@ export default defineConfig({
         reuseExistingServer: false,
         env: {
           DATABASE_URL: process.env.TEST_DATABASE_URL ?? "",
-          // Демо-схема тестовой базы (cargoflow_demo рядом с TEST_DATABASE_URL), не демо-база разработки
+          // Демо-схема тестовой базы (tirco_demo рядом с TEST_DATABASE_URL), не демо-база разработки
           DEMO_DATABASE_URL: "",
           APP_URL: baseURL,
           STORAGE_DRIVER: "local",

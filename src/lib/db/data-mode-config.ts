@@ -2,15 +2,34 @@
  * Конфигурация подключений для режимов данных (без server-only: используется и скриптами миграций/seed).
  *
  * REAL — DATABASE_URL (identity, сессии и реальные бизнес-данные).
- * DEMO — DEMO_DATABASE_URL; если не задан — та же СУБД, отдельная схема `cargoflow_demo`
+ * DEMO — DEMO_DATABASE_URL; если не задан — та же СУБД, отдельная схема `tirco_demo`
  *        (полная изоляция таблиц без дополнительной инфраструктуры).
  * Схема берётся из параметра `?schema=` строки подключения (как у Prisma), по умолчанию `public`.
  */
 import type { DataMode } from "./data-mode";
 
-export const DEFAULT_DEMO_SCHEMA = "cargoflow_demo";
+export const DEFAULT_DEMO_SCHEMA = "tirco_demo";
 /** Метки схем (COMMENT ON SCHEMA): seed:demo пишет только в схему с меткой demo. */
-export const SCHEMA_MARKER: Record<DataMode, string> = { real: "cargoflow:real", demo: "cargoflow:demo" };
+export const SCHEMA_MARKER: Record<DataMode, string> = { real: "tirco:real", demo: "tirco:demo" };
+
+/**
+ * Ключ advisory-lock демо-базы: seed:demo держит его всё время загрузки (один seed одновременно),
+ * вход в демо по нему видит, что данные ещё загружаются.
+ */
+export const DEMO_SEED_LOCK = 72_700_001;
+
+/** Метки до переименования проекта (CargoFlow → Tirco): `cargoflow:real` / `cargoflow:demo`. */
+const LEGACY_MARKER_PREFIX = "cargoflow:";
+
+/**
+ * Метка схемы в текущем формате: прежняя `cargoflow:<режим>` считается `tirco:<режим>`;
+ * чужие комментарии (например, «standard public schema») — не метка, `null`.
+ */
+export function normalizeSchemaMarker(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  if (raw.startsWith(LEGACY_MARKER_PREFIX)) return `tirco:${raw.slice(LEGACY_MARKER_PREFIX.length)}`;
+  return raw.startsWith("tirco:") ? raw : null;
+}
 
 export type DbTarget = { connectionString: string; schema: string };
 

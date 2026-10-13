@@ -5,13 +5,13 @@
  *   npx tsx scripts/db-modes.ts status    — куда указывают режимы и какие метки у схем
  *
  * Метка (COMMENT ON SCHEMA) — защита от ошибок конфигурации: seed:demo пишет только в схему с меткой
- * `cargoflow:demo`, а схему с меткой `cargoflow:real` никогда не трогает.
+ * `tirco:demo`, а схему с меткой `tirco:real` никогда не трогает.
  */
 import "dotenv/config";
 import { execFileSync } from "node:child_process";
 import pg from "pg";
 import type { DataMode } from "@/lib/db/data-mode";
-import { dataModeConfig, prismaCliUrl, SCHEMA_MARKER, type DbTarget } from "@/lib/db/data-mode-config";
+import { dataModeConfig, normalizeSchemaMarker, prismaCliUrl, SCHEMA_MARKER, type DbTarget } from "@/lib/db/data-mode-config";
 
 export async function readMarker(t: DbTarget): Promise<string | null> {
   const client = new pg.Client({ connectionString: t.connectionString });
@@ -29,15 +29,13 @@ export async function readMarker(t: DbTarget): Promise<string | null> {
 
 async function writeMarker(t: DbTarget, mode: DataMode) {
   const raw = await readMarker(t);
-  // Метки CargoFlow начинаются с «cargoflow:»; прочие комментарии (например, «standard public schema») не считаются
-  const current = raw?.startsWith("cargoflow:") ? raw : null;
+  // Метки Tirco начинаются с «tirco:» (прежние «cargoflow:» переписываются); прочие комментарии не считаются
+  const current = normalizeSchemaMarker(raw);
   const expected = SCHEMA_MARKER[mode];
   if (current && current !== expected) {
-    throw new Error(
-      `Схема "${t.schema}" помечена как ${current}, а настроена для режима ${mode}. Проверьте DATABASE_URL / DEMO_DATABASE_URL.`,
-    );
+    throw new Error(`Схема "${t.schema}" помечена как ${raw}, а настроена для режима ${mode}. Проверьте DATABASE_URL / DEMO_DATABASE_URL.`);
   }
-  if (current === expected) return;
+  if (raw === expected) return;
   const client = new pg.Client({ connectionString: t.connectionString });
   await client.connect();
   try {

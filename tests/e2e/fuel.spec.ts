@@ -22,7 +22,7 @@ test.describe.configure({ mode: "serial" });
 
 test("топливо: сводка владельца → проверка → расследование; водитель без баланса", async ({ browser }) => {
   // ── Владелец автопарка ──
-  const owner = await login(browser, "fleet@cargoflow.demo");
+  const owner = await login(browser, "fleet@tirco.demo");
   await owner.page.goto("/fuel");
   await expect(owner.page.getByText("DEMO DATA").first()).toBeVisible();
   const kpi = owner.page.getByTestId("fuel-kpi");
@@ -46,7 +46,7 @@ test("топливо: сводка владельца → проверка → �
   await owner.context.close();
 
   // ── Водитель Ivan ──
-  const driver = await login(browser, "ivan@cargoflow.demo");
+  const driver = await login(browser, "ivan@tirco.demo");
   await driver.page.goto("/driver/fuel");
   await expect(driver.page.getByTestId("driver-card")).toContainText("FC-001");
   await expect(driver.page.getByTestId("payment-status")).toContainText("Оплата разрешена");

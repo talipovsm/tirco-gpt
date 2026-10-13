@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { NextRequest } from "next/server";
+import pg from "pg";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentActor, SESSION_COOKIE } from "@/lib/auth/session";
 import { permissionsForRole } from "@/lib/permissions";
 import { runWithDataMode } from "@/lib/db/data-mode";
+import { DEMO_SEED_LOCK, dataModeConfig } from "@/lib/db/data-mode-config";
 import { authDb, dbFor, prisma } from "@/lib/db/prisma";
 import { DEMO_ANCHORS } from "@/server/services/demo-workspace.service";
 import type { CompanyType } from "@/generated/prisma/enums";
@@ -164,7 +166,7 @@ describe("Режимы данных: изоляция и атаки на реж�
     const tampered = req("/api/loads", {
       method: "POST",
       body: { load: loadInput({ title: "Демо-груз" }), publish: false, dataMode: "real" },
-      headers: { "x-data-mode": "real", cookie: "cf_data_mode=real" },
+      headers: { "x-data-mode": "real", cookie: "tirco_data_mode=real" },
     });
     const res = await call(loadsPOST, tampered);
     expect(res.status).toBe(201);
@@ -243,6 +245,40 @@ describe("Режимы данных: изоляция и атаки на реж�
     expect(actor?.dataMode).toBe("demo");
     expect(actor?.active?.role).toBe("SHIPPER");
   });
+
+  /** Держит advisory-lock загрузки демо-данных, как seed:demo, пока выполняется fn. */
+  async function whileDemoSeedRuns(fn: () => Promise<void>) {
+    const lock = new pg.Client({ connectionString: dataModeConfig("demo").connectionString });
+    await lock.connect();
+    try {
+      await lock.query("SELECT pg_advisory_lock($1)", [DEMO_SEED_LOCK]);
+      await fn();
+    } finally {
+      await lock.end();
+    }
+  }
+
+  it("вход в демо во время загрузки демо-данных — 503, демо-база не трогается; после загрузки — вход", async () => {
+    await whileDemoSeedRuns(async () => {
+      const res = await signIn(shipperEmail, "demo");
+      expect(res.status).toBe(503);
+      expect(res.json.error?.code).toBe("SERVICE_UNAVAILABLE");
+      expect(await demo.user.count({ where: { email: shipperEmail } })).toBe(0);
+      expect(await authDb.session.count()).toBe(0);
+    });
+    expect((await signIn(shipperEmail, "demo")).status).toBe(200);
+  });
+
+  it("демо-база пересоздаётся (идёт загрузка) — сессия не теряется и восстанавливается после загрузки", async () => {
+    await signIn(shipperEmail, "demo");
+    await seedDemoAnchors();
+    await whileDemoSeedRuns(async () => {
+      expect(await getCurrentActor()).toBeNull();
+      expect(await demo.companyMember.count()).toBe(0);
+    });
+    expect((await sessionRow()).revokedAt).toBeNull();
+    expect((await getCurrentActor())?.active?.role).toBe("SHIPPER");
+  });
 });
 
 describe("seed:demo не запускается против реальной базы", () => {
@@ -267,23 +303,23 @@ describe("seed:demo не запускается против реальной б
     expect(await authDb.user.count()).toBe(before);
   }, 60_000);
 
-  it("схема без метки cargoflow:demo → остановка", async () => {
-    await authDb.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS cf_unmarked_test`);
+  it("схема без метки tirco:demo → остановка", async () => {
+    await authDb.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS tirco_unmarked_test`);
     try {
       const u = new URL(process.env.DATABASE_URL!);
-      u.searchParams.set("schema", "cf_unmarked_test");
+      u.searchParams.set("schema", "tirco_unmarked_test");
       const r = runSeed(u.toString());
       expect(r.code).toBe(1);
       expect(r.stderr).toContain("ERROR: Demo seed can only run against DEMO database.");
     } finally {
-      await authDb.$executeRawUnsafe(`DROP SCHEMA IF EXISTS cf_unmarked_test CASCADE`);
+      await authDb.$executeRawUnsafe(`DROP SCHEMA IF EXISTS tirco_unmarked_test CASCADE`);
     }
   }, 60_000);
 });
 
 describe("Демо-аккаунт без компаний в реальной базе", () => {
   it("в демо занимает место своего персонажа: компания, роль, профиль водителя, переход в кабинет водителя", async () => {
-    const email = `driver-${Date.now()}@cargoflow.demo`;
+    const email = `driver-${Date.now()}@tirco.demo`;
     const real = await makeUser();
     await authDb.user.update({ where: { id: real.id }, data: { email } });
     const { companyId, driverId } = await runWithDataMode("demo", async () => {
@@ -330,7 +366,7 @@ describe("Удаление демо-данных из реальной базы"
     const demoCo = await makeCompany("SHIPPER", "Demo Co");
     await authDb.company.update({ where: { id: demoCo.id }, data: { registrationNumber: "DEMO-KZ-900001" } });
     const demoUser = await makeUser({ role: "SHIPPER", companyId: demoCo.id });
-    const demoEmail = `shipper-${Date.now()}@cargoflow.demo`;
+    const demoEmail = `shipper-${Date.now()}@tirco.demo`;
     await authDb.user.update({ where: { id: demoUser.id }, data: { email: demoEmail } });
     await authDb.notification.create({ data: { userId: demoUser.id, type: "SYSTEM", title: "demo" } });
 

@@ -147,7 +147,7 @@ export async function getOrCreateAccount(actor: Actor, currency: Currency) {
 }
 
 /**
- * Пополнение топливного счёта. CargoFlow не принимает деньги: владелец фиксирует пополнение, выполненное у провайдера
+ * Пополнение топливного счёта. Tirco не принимает деньги: владелец фиксирует пополнение, выполненное у провайдера
  * топливных карт (номер платёжного поручения). В демо-режиме пополнение помечается как демо.
  */
 export async function topUpAccount(actor: Actor, input: z.output<typeof fuelTopUpSchema>, idempotencyKey: string) {

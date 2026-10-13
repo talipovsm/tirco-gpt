@@ -16,13 +16,13 @@ import type { z } from "zod";
 type Values = z.input<typeof loginSchema>;
 
 const DEMO = [
-  { label: "Грузовладелец", email: "shipper@cargoflow.demo" },
-  { label: "Перевозчик", email: "carrier@cargoflow.demo" },
-  { label: "Экспедитор", email: "forwarder@cargoflow.demo" },
-  { label: "Водитель", email: "driver@cargoflow.demo" },
-  { label: "Автопарк (топливо)", email: "fleet@cargoflow.demo" },
-  { label: "Водитель Ivan", email: "ivan@cargoflow.demo" },
-  { label: "Администратор", email: "admin@cargoflow.demo" },
+  { label: "Грузовладелец", email: "shipper@tirco.demo" },
+  { label: "Перевозчик", email: "carrier@tirco.demo" },
+  { label: "Экспедитор", email: "forwarder@tirco.demo" },
+  { label: "Водитель", email: "driver@tirco.demo" },
+  { label: "Автопарк (топливо)", email: "fleet@tirco.demo" },
+  { label: "Водитель Ivan", email: "ivan@tirco.demo" },
+  { label: "Администратор", email: "admin@tirco.demo" },
 ];
 
 export function LoginForm() {
@@ -47,11 +47,11 @@ export function LoginForm() {
   const isProduction = process.env.NODE_ENV === "production";
   const showDemo = !isProduction || process.env.NEXT_PUBLIC_SHOW_DEMO === "1";
   // В production у администратора нет общеизвестного пароля — кнопку не показываем
-  const demoAccounts = isProduction ? DEMO.filter((d) => d.email !== "admin@cargoflow.demo") : DEMO;
+  const demoAccounts = isProduction ? DEMO.filter((d) => d.email !== "admin@tirco.demo") : DEMO;
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Вход в CargoFlow</h1>
+      <h1 className="text-2xl font-semibold">Вход в Tirco</h1>
       <p className="text-muted-foreground mt-1 text-sm">Цифровая платформа международных грузоперевозок</p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
         <FormError message={error} />

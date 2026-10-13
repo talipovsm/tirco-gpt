@@ -82,7 +82,7 @@ async function latest(vehicleId: string, where: object) {
 }
 
 export const databaseTelematicsProvider: TelematicsProvider = {
-  code: "cargoflow-db",
+  code: "tirco-db",
   title: "Сохранённые показания телематики",
   async getVehicleLocation(vehicleId) {
     const r = await latest(vehicleId, { latitude: { not: null }, longitude: { not: null } });

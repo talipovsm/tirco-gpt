@@ -72,7 +72,7 @@ export function DisputePanel({
       <div className="space-y-3">
         <EmptyState
           title="Споров по перевозке нет"
-          description="Если возникла проблема (задержка, повреждение, документы, оплата) — откройте спор, администратор CargoFlow рассмотрит его."
+          description="Если возникла проблема (задержка, повреждение, документы, оплата) — откройте спор, администратор Tirco рассмотрит его."
           className="py-10"
         />
         {canOpen && <OpenDisputeDialog orderId={orderId} />}

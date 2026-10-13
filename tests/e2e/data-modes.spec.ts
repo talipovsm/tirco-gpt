@@ -6,7 +6,7 @@ import { expect, test, type Browser } from "@playwright/test";
  */
 
 const PASSWORD = "Demo1234!";
-const EMAIL = "shipper@cargoflow.demo";
+const EMAIL = "shipper@tirco.demo";
 
 async function loginIn(browser: Browser, mode: "demo" | "real") {
   const context = await browser.newContext();

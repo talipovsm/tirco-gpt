@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Локальный запуск CargoFlow «в одну команду» — без Docker и без ручной установки PostgreSQL.
+ * Локальный запуск Tirco «в одну команду» — без Docker и без ручной установки PostgreSQL.
  *
  *   npm run setup   — .env, база данных, миграции, демо-данные
  *   npm run local   — запуск базы + приложения на http://localhost:3000
@@ -22,9 +22,9 @@ const EMBEDDED_PORT = 54329;
 const EMBEDDED_URL = (db) => `postgresql://postgres:postgres@localhost:${EMBEDDED_PORT}/${db}?schema=public`;
 const isWin = process.platform === "win32";
 
-const log = (m) => console.log(`\x1b[36m[cargoflow]\x1b[0m ${m}`);
+const log = (m) => console.log(`\x1b[36m[tirco]\x1b[0m ${m}`);
 const fail = (m) => {
-  console.error(`\x1b[31m[cargoflow] ${m}\x1b[0m`);
+  console.error(`\x1b[31m[tirco] ${m}\x1b[0m`);
   process.exit(1);
 };
 
@@ -131,9 +131,9 @@ async function ensureDatabase() {
   }
   await startEmbedded();
   setEnvValue("LOCAL_EMBEDDED_DB", "1");
-  setEnvValue("DATABASE_URL", EMBEDDED_URL("cargoflow"));
-  setEnvValue("TEST_DATABASE_URL", EMBEDDED_URL("cargoflow_test"));
-  await ensureDatabases(EMBEDDED_URL("postgres"), ["cargoflow", "cargoflow_test"]);
+  setEnvValue("DATABASE_URL", EMBEDDED_URL("tirco"));
+  setEnvValue("TEST_DATABASE_URL", EMBEDDED_URL("tirco_test"));
+  await ensureDatabases(EMBEDDED_URL("postgres"), ["tirco", "tirco_test"]);
   return readEnv();
 }
 
@@ -172,7 +172,7 @@ async function dev(mode) {
   const env = await ensureDatabase();
   const args = mode === "start" ? ["next", "start", "-p", "3000"] : ["next", "dev", "-p", "3000"];
   log(`Запуск приложения: http://localhost:3000  (остановка — Ctrl+C)`);
-  log("Демо-вход: shipper@cargoflow.demo / Demo1234! (кнопки ролей — на странице входа)");
+  log("Демо-вход: shipper@tirco.demo / Demo1234! (кнопки ролей — на странице входа)");
   const child = spawn("npx", args, { cwd: ROOT, stdio: "inherit", shell: isWin, env: { ...process.env, ...env } });
   const shutdown = async () => {
     child.kill("SIGINT");

@@ -33,10 +33,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
-  cargoflow_core:
+  tirco_core:
     dependency: "direct main"
     description:
-      path: "../../packages/cargoflow_core"
+      path: "../../packages/tirco_core"
       relative: true
     source: path
     version: "0.0.1"

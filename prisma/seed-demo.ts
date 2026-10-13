@@ -5,19 +5,17 @@
  *   npm run seed:demo:reset   — очистить демо-базу и загрузить заново
  *
  * Защита реальной базы: целевая схема берётся только из конфигурации режима DEMO, должна отличаться
- * от DATABASE_URL и иметь метку `cargoflow:demo` (ставится `scripts/db-modes.ts migrate`). Иначе — остановка.
+ * от DATABASE_URL и иметь метку `tirco:demo` (ставится `scripts/db-modes.ts migrate`). Иначе — остановка.
  * Seed выполняется внутри runWithDataMode("demo"): все сервисы пишут в демо-базу.
  */
 import "dotenv/config";
 import pg from "pg";
 import { runWithDataMode } from "@/lib/db/data-mode";
-import { dataModeConfig, SCHEMA_MARKER } from "@/lib/db/data-mode-config";
+import { DEMO_SEED_LOCK, dataModeConfig, SCHEMA_MARKER } from "@/lib/db/data-mode-config";
 import { dbFor } from "@/lib/db/prisma";
 import { readMarker } from "../scripts/db-modes";
 import { generateDemoWorld } from "./demo/generator";
 import { seedScenarios } from "./seed";
-
-const SEED_LOCK = 72_700_001;
 
 function abort(message: string): never {
   console.error(`ERROR: Demo seed can only run against DEMO database. ${message}`);
@@ -42,7 +40,7 @@ async function main() {
   // Один seed одновременно (несколько контейнеров при деплое): advisory-lock на соединении демо-базы
   const lock = new pg.Client({ connectionString: target.connectionString });
   await lock.connect();
-  const { rows } = await lock.query("SELECT pg_try_advisory_lock($1) AS ok", [SEED_LOCK]);
+  const { rows } = await lock.query("SELECT pg_try_advisory_lock($1) AS ok", [DEMO_SEED_LOCK]);
   if (!rows[0].ok) {
     console.log("[demo-seed] Демо-данные уже загружает другой процесс — пропускаю.");
     await lock.end();
@@ -64,8 +62,8 @@ async function main() {
     await runWithDataMode("demo", async () => {
       console.log(`[demo-seed] Загрузка демо-базы (схема ${target.schema})...`);
       await seedScenarios();
-      console.log("→ Генератор демо-мира (seed «cargoflow-demo»)");
-      const summary = await generateDemoWorld({ seed: process.env.DEMO_SEED_KEY || "cargoflow-demo", now });
+      console.log("→ Генератор демо-мира (seed «tirco-demo»)");
+      const summary = await generateDemoWorld({ seed: process.env.DEMO_SEED_KEY || "tirco-demo", now });
       console.table(summary);
     });
     console.log(`[demo-seed] Демо-данные загружены за ${Math.round((Date.now() - startedAt) / 1000)} с.`);

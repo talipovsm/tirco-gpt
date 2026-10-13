@@ -97,17 +97,17 @@ describe("SEC-010: подпись webhook с меткой времени", async
     const now = Date.now();
     const ts = String(Math.floor(now / 1000));
     expect(
-      verifySignedWebhook(body, headers({ "x-cargoflow-timestamp": ts, "x-cargoflow-signature": sign(`${ts}.${body}`) }), secret, now).ok,
+      verifySignedWebhook(body, headers({ "x-tirco-timestamp": ts, "x-tirco-signature": sign(`${ts}.${body}`) }), secret, now).ok,
     ).toBe(true);
     const old = String(Math.floor((now - 10 * 60_000) / 1000));
     expect(
-      verifySignedWebhook(body, headers({ "x-cargoflow-timestamp": old, "x-cargoflow-signature": sign(`${old}.${body}`) }), secret, now).ok,
+      verifySignedWebhook(body, headers({ "x-tirco-timestamp": old, "x-tirco-signature": sign(`${old}.${body}`) }), secret, now).ok,
     ).toBe(false);
   });
   it("формат без метки времени можно запретить", () => {
     const body = "{}";
     vi.stubEnv("WEBHOOK_REQUIRE_TIMESTAMP", "1");
-    expect(verifySignedWebhook(body, headers({ "x-cargoflow-signature": sign(body) }), secret).ok).toBe(false);
+    expect(verifySignedWebhook(body, headers({ "x-tirco-signature": sign(body) }), secret).ok).toBe(false);
   });
 });
 

@@ -46,13 +46,13 @@ beforeEach(async () => {
 
 describe("Нативные приложения: вход по токену", () => {
   it("приложение получает токен и работает с ним без cookie", async () => {
-    reqHeaders = new Headers({ "content-type": "application/json", "x-cargoflow-client": "native" });
+    reqHeaders = new Headers({ "content-type": "application/json", "x-tirco-client": "native" });
     const login = await call(loginPOST, "POST", "/api/auth/login", { email, password: PASSWORD });
     const token = login.json.data?.token as string;
     expect(token).toMatch(/^[A-Za-z0-9_-]{40,}$/);
 
     jar.clear();
-    reqHeaders = new Headers({ authorization: `Bearer ${token}`, "x-cargoflow-client": "native" });
+    reqHeaders = new Headers({ authorization: `Bearer ${token}`, "x-tirco-client": "native" });
     const me = await call(meGET, "GET", "/api/auth/me");
     expect(me.status).toBe(200);
     expect(me.json.data?.email).toBe(email);
@@ -69,7 +69,7 @@ describe("Нативные приложения: вход по токену", ()
   it("браузер (есть Origin) токен в ответе не получает — только httpOnly cookie", async () => {
     reqHeaders = new Headers({
       "content-type": "application/json",
-      "x-cargoflow-client": "native",
+      "x-tirco-client": "native",
       origin: "http://localhost",
       host: "localhost",
     });
@@ -91,10 +91,10 @@ describe("Приложение водителя: API", () => {
     await prisma.driverProfile.update({ where: { id: sc.driver.id }, data: { passportNumber: "N0000000" } });
     const driverEmail = sc.driverActor.email;
 
-    reqHeaders = new Headers({ "content-type": "application/json", "x-cargoflow-client": "native" });
+    reqHeaders = new Headers({ "content-type": "application/json", "x-tirco-client": "native" });
     const token = (await call(loginPOST, "POST", "/api/auth/login", { email: driverEmail, password: PASSWORD })).json.data?.token as string;
     expect(token).toBeTruthy();
-    reqHeaders = new Headers({ authorization: `Bearer ${token}`, "x-cargoflow-client": "native" });
+    reqHeaders = new Headers({ authorization: `Bearer ${token}`, "x-tirco-client": "native" });
 
     const trip = await call(driverTripGET, "GET", "/api/driver/trip");
     expect(trip.status).toBe(200);
@@ -112,10 +112,10 @@ describe("Приложение водителя: API", () => {
     expect(profiles[0]).not.toHaveProperty("passportNumber");
 
     // Грузовладелец не видит разделы водителя
-    reqHeaders = new Headers({ "content-type": "application/json", "x-cargoflow-client": "native" });
+    reqHeaders = new Headers({ "content-type": "application/json", "x-tirco-client": "native" });
     const shipperToken = (await call(loginPOST, "POST", "/api/auth/login", { email: sc.shipper.email, password: PASSWORD })).json.data
       ?.token as string;
-    reqHeaders = new Headers({ authorization: `Bearer ${shipperToken}`, "x-cargoflow-client": "native" });
+    reqHeaders = new Headers({ authorization: `Bearer ${shipperToken}`, "x-tirco-client": "native" });
     expect((await call(driverTripsGET, "GET", "/api/driver/trips")).status).toBe(403);
     expect((await call(driverProfileGET, "GET", "/api/driver/profile")).status).toBe(403);
   });

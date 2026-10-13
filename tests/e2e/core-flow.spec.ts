@@ -40,7 +40,7 @@ test.describe.configure({ mode: "serial" });
 
 test("полный сценарий цифровой перевозки", async ({ browser }) => {
   const suffix = Date.now().toString().slice(-6);
-  const shipperEmail = `e2e.shipper.${suffix}@cargoflow.test`;
+  const shipperEmail = `e2e.shipper.${suffix}@tirco.test`;
   const shipperPassword = "E2eShipper123";
 
   // ── 1. Регистрация грузовладельца и создание компании ──
@@ -109,7 +109,7 @@ test("полный сценарий цифровой перевозки", async 
   await expect(shipper.getByTestId("route-distance").first()).toHaveAttribute("data-route-source", "ESTIMATE");
 
   // ── 3. Перевозчик видит груз на бирже и предлагает цену ──
-  const { page: carrier } = await login(browser, "carrier@cargoflow.demo");
+  const { page: carrier } = await login(browser, "carrier@tirco.demo");
   await carrier.goto(`/marketplace?q=${loadNumber}`);
   await expect(carrier.getByTestId("load-card").filter({ hasText: loadNumber }).getByTestId("route-distance")).toContainText("км");
   await carrier.getByTestId("load-card").filter({ hasText: loadNumber }).click();
@@ -162,7 +162,7 @@ test("полный сценарий цифровой перевозки", async 
   await expect(carrier.getByRole("heading", { level: 1 })).toContainText("Ожидает загрузки");
 
   // ── 7. Водитель проводит рейс в мобильном интерфейсе ──
-  const { context: driverCtx, page: driver } = await login(browser, "driver@cargoflow.demo", DEMO_PASSWORD, {
+  const { context: driverCtx, page: driver } = await login(browser, "driver@tirco.demo", DEMO_PASSWORD, {
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
@@ -243,8 +243,8 @@ test("полный сценарий цифровой перевозки", async 
 });
 
 test("RBAC защищён на backend (API возвращает 403)", async ({ browser }) => {
-  const { context: shipperCtx } = await login(browser, "shipper@cargoflow.demo");
-  const { context: driverCtx } = await login(browser, "driver@cargoflow.demo");
+  const { context: shipperCtx } = await login(browser, "shipper@tirco.demo");
+  const { context: driverCtx } = await login(browser, "driver@tirco.demo");
   const orders = await (await shipperCtx.request.get("/api/orders?pageSize=50")).json();
   const signed = orders.data.items.find((o: { currentStatus: string }) => o.currentStatus === "CONTRACT_SIGNED");
   expect(signed).toBeTruthy();

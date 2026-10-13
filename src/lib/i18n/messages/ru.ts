@@ -5,7 +5,7 @@
  */
 export const ru = {
   app: {
-    name: "CargoFlow",
+    name: "Tirco",
     tagline: "Цифровая платформа международных грузоперевозок",
   },
   common: {
@@ -95,11 +95,11 @@ export const ru = {
   },
   auth: {
     login: "Вход",
-    loginTitle: "Вход в CargoFlow",
+    loginTitle: "Вход в Tirco",
     loginAction: "Войти",
     loggingIn: "Входим...",
     register: "Регистрация",
-    registerTitle: "Регистрация в CargoFlow",
+    registerTitle: "Регистрация в Tirco",
     email: "Email",
     password: "Пароль",
     passwordRepeat: "Повторите пароль",

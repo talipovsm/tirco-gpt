@@ -9,7 +9,7 @@ import { createSession, destroySession, setActiveCompany } from "@/lib/auth/sess
 import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { runWithDataMode, type DataMode } from "@/lib/db/data-mode";
 import { authDb, dbFor, prisma } from "@/lib/db/prisma";
-import { demoWorkspaceReady, provisionDemoIdentity } from "./demo-workspace.service";
+import { demoNotReadyError, demoWorkspaceReady, provisionDemoIdentity } from "./demo-workspace.service";
 import { AppError, errors } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/notifications/adapters";
@@ -41,7 +41,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       throw errors.forbidden("Это демонстрационный стенд: регистрация новых пользователей отключена.");
     }
     enforceRateLimit("register", meta.ip ?? "anon");
-    if (process.env.NODE_ENV === "production" && input.email.endsWith("@cargoflow.demo")) {
+    if (process.env.NODE_ENV === "production" && (input.email.endsWith("@tirco.demo") || input.email.endsWith("@cargoflow.demo"))) {
       // Домен демо-аккаунтов зарезервирован: такие пользователи считаются демо и могут быть удалены при загрузке демо-данных
       throw errors.validation("Этот email-домен зарезервирован.", { email: ["Используйте рабочий email"] });
     }
@@ -241,22 +241,14 @@ export async function login(input: z.output<typeof loginSchema>, meta: RequestMe
       throw new AppError("UNAUTHORIZED", "Неверный email или пароль.");
     }
     if (user.status === "BLOCKED") {
-      throw new AppError("FORBIDDEN", "Учётная запись заблокирована. Обратитесь в поддержку CargoFlow.");
+      throw new AppError("FORBIDDEN", "Учётная запись заблокирована. Обратитесь в поддержку Tirco.");
     }
     // Режим выбран пользователем при входе и проверяется сервером; дальше он хранится только в серверной сессии.
     const dataMode: DataMode = input.dataMode;
     let companyId: string | null = user.memberships[0]?.companyId ?? null;
     let role: MemberRole | null = user.memberships[0]?.role ?? null;
     if (dataMode === "demo") {
-      if (!(await demoWorkspaceReady())) {
-        throw new AppError(
-          "SERVICE_UNAVAILABLE",
-          "Демо-база ещё не готова (идёт загрузка демо-данных). Попробуйте через несколько минут.",
-          {
-            status: 503,
-          },
-        );
-      }
+      if (!(await demoWorkspaceReady())) throw demoNotReadyError();
       ({ activeCompanyId: companyId, role } = await provisionDemoIdentity(user.id));
     }
     const session = await createSession(user.id, companyId, meta, dataMode);
@@ -305,7 +297,7 @@ export async function requestPasswordReset(email: string, meta: RequestMeta) {
       }),
     ]);
     const link = `${process.env.APP_URL ?? "http://localhost:3000"}/reset-password?token=${token}`;
-    await sendEmail(user.email, "Сброс пароля CargoFlow", `Для установки нового пароля перейдите по ссылке (действует 1 час): ${link}`);
+    await sendEmail(user.email, "Сброс пароля Tirco", `Для установки нового пароля перейдите по ссылке (действует 1 час): ${link}`);
     await audit(
       { userId: user.id, active: null, ip: meta.ip, userAgent: meta.userAgent },
       { action: AuditAction.USER_PASSWORD_RESET_REQUESTED, entityType: "User", entityId: user.id },
@@ -432,15 +424,7 @@ export async function switchDataMode(actor: Actor, dataMode: DataMode, meta: Req
     if (dataMode === actor.dataMode) return { dataMode, redirectTo: homePathFor(actor.active?.role ?? role, actor.isAdmin) };
     let companyId: string | null = realMemberships[0]?.companyId ?? null;
     if (dataMode === "demo") {
-      if (!(await demoWorkspaceReady())) {
-        throw new AppError(
-          "SERVICE_UNAVAILABLE",
-          "Демо-база ещё не готова (идёт загрузка демо-данных). Попробуйте через несколько минут.",
-          {
-            status: 503,
-          },
-        );
-      }
+      if (!(await demoWorkspaceReady())) throw demoNotReadyError();
       ({ activeCompanyId: companyId, role } = await provisionDemoIdentity(actor.userId));
     }
     await destroySession();

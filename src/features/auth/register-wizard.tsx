@@ -84,7 +84,7 @@ export function RegisterWizard({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Регистрация в CargoFlow</h1>
+      <h1 className="text-2xl font-semibold">Регистрация в Tirco</h1>
       <ol className="mt-5 flex items-center gap-2" aria-label="Шаги регистрации">
         {STEPS.map((s, i) => (
           <li key={s} className="flex flex-1 items-center gap-2" aria-current={i === step ? "step" : undefined}>

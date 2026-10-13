@@ -164,22 +164,22 @@ export async function renderContractPdf(input: {
   const { data } = input;
 
   doc.setTitle(`${data.title} № ${data.contractNumber}`);
-  doc.setAuthor("CargoFlow");
+  doc.setAuthor("Tirco");
   doc.setSubject(`Сделка ${data.orderNumber}`);
-  doc.setCreator("CargoFlow MVP");
-  doc.setProducer("CargoFlow");
+  doc.setCreator("Tirco MVP");
+  doc.setProducer("Tirco");
   doc.setCreationDate(new Date(data.createdAt));
 
   const w = new Writer(
     doc,
     font,
     boldFont,
-    `CargoFlow · Договор ${data.contractNumber} · версия ${data.version} · SHA-256: ${input.contentHash.slice(0, 16)}…`,
+    `Tirco · Договор ${data.contractNumber} · версия ${data.version} · SHA-256: ${input.contentHash.slice(0, 16)}…`,
   );
 
   // Шапка
   w.page.drawRectangle({ x: 0, y: A4.h - 6, width: A4.w, height: 6, color: ACCENT });
-  w.page.drawText("CargoFlow", { x: MARGIN, y: w.y - 14, size: 14, font: boldFont, color: ACCENT });
+  w.page.drawText("Tirco", { x: MARGIN, y: w.y - 14, size: 14, font: boldFont, color: ACCENT });
   w.page.drawText("Цифровая платформа международных грузоперевозок", {
     x: MARGIN + 88,
     y: w.y - 13,
@@ -233,7 +233,7 @@ export async function renderContractPdf(input: {
   w.keyValue("Алгоритм", "SHA-256 (текст договора)");
   w.keyValue("Hash", input.contentHash);
   w.text(
-    "Подписание выполнено посредством внутреннего электронного подтверждения платформы CargoFlow и не является квалифицированной электронной подписью. Демонстрационный шаблон должен быть адаптирован юристами под применимое право.",
+    "Подписание выполнено посредством внутреннего электронного подтверждения платформы Tirco и не является квалифицированной электронной подписью. Демонстрационный шаблон должен быть адаптирован юристами под применимое право.",
     { size: 8, color: MUTED },
   );
 

@@ -6,6 +6,7 @@ import { authDb } from "@/lib/db/prisma";
 import { errors, isAppError } from "@/lib/errors";
 import type { DataMode as DbDataMode } from "@/generated/prisma/enums";
 import { buildActor, permissionsForMembership, type Actor, type RequestMeta } from "./actor";
+import { sharedDemoAccount } from "./demo-stand";
 import { generateToken, sha256 } from "./tokens";
 
 export const SESSION_COOKIE = "tirco_session";
@@ -143,9 +144,11 @@ export const getCurrentActor = cache(async (): Promise<Actor | null> => {
   bindRenderDataMode(mode);
   const identity = await authDb.user.findUnique({
     where: { id: session.userId },
-    select: { status: true, deletedAt: true, platformRole: true },
+    select: { email: true, status: true, deletedAt: true, platformRole: true },
   });
   if (!identity || identity.deletedAt || identity.status === "BLOCKED") return null;
+  // Сессия общего демо-аккаунта в реальной базе (выданная до запрета) недействительна: вход откроет демо-базу
+  if (mode === "real" && sharedDemoAccount(identity.email, identity.platformRole)) return null;
 
   return runWithDataMode(mode, async () => {
     const build = () => buildActor(session.userId, { activeCompanyId: session.activeCompanyId, sessionId: session.id, meta: undefined });

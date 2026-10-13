@@ -9,6 +9,7 @@ import { FormGroup, FormRow, rowInput } from "@/components/common/form-group";
 import { Button } from "@/components/ui/button";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { api, errorMessage } from "@/lib/client/api";
+import { DEMO_ADMIN_EMAIL, DEMO_LOGINS, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { t } from "@/lib/i18n";
 import { loginSchema } from "@/lib/validation/auth";
 import { DataModeSelector, useRememberedDataMode } from "./data-mode";
@@ -16,15 +17,7 @@ import type { z } from "zod";
 
 type Values = z.input<typeof loginSchema>;
 
-const DEMO = [
-  { label: "Грузовладелец", email: "shipper@tirco.demo" },
-  { label: "Перевозчик", email: "carrier@tirco.demo" },
-  { label: "Экспедитор", email: "forwarder@tirco.demo" },
-  { label: "Водитель", email: "driver@tirco.demo" },
-  { label: "Автопарк (топливо)", email: "fleet@tirco.demo" },
-  { label: "Водитель Ivan", email: "ivan@tirco.demo" },
-  { label: "Администратор", email: "admin@tirco.demo" },
-];
+const DEMO = [...DEMO_LOGINS.map(({ label, email }) => ({ label, email })), { label: "Администратор", email: DEMO_ADMIN_EMAIL }];
 
 export function LoginForm() {
   const params = useSearchParams();
@@ -48,7 +41,7 @@ export function LoginForm() {
   const isProduction = process.env.NODE_ENV === "production";
   const showDemo = !isProduction || process.env.NEXT_PUBLIC_SHOW_DEMO === "1";
   // В production у администратора нет общеизвестного пароля — кнопку не показываем
-  const demoAccounts = isProduction ? DEMO.filter((d) => d.email !== "admin@tirco.demo") : DEMO;
+  const demoAccounts = isProduction ? DEMO.filter((d) => d.email !== DEMO_ADMIN_EMAIL) : DEMO;
 
   return (
     <div>
@@ -108,7 +101,7 @@ export function LoginForm() {
                   size="sm"
                   onClick={() => {
                     form.setValue("email", d.email);
-                    form.setValue("password", "Demo1234!");
+                    form.setValue("password", DEMO_PASSWORD);
                   }}
                 >
                   {d.label}
@@ -116,7 +109,7 @@ export function LoginForm() {
               ))}
             </div>
           </div>
-          <p className="text-footnote text-muted-foreground mt-1.5 px-4">Пароль для всех: Demo1234!</p>
+          <p className="text-footnote text-muted-foreground mt-1.5 px-4">Пароль для всех: {DEMO_PASSWORD}</p>
         </section>
       )}
     </div>

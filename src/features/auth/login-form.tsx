@@ -102,6 +102,8 @@ export function LoginForm() {
                   onClick={() => {
                     form.setValue("email", d.email);
                     form.setValue("password", DEMO_PASSWORD);
+                    // На демо-стенде общие демо-аккаунты работают только с демо-базой
+                    if (isProduction && d.email !== DEMO_ADMIN_EMAIL) setDataMode("demo");
                   }}
                 >
                   {d.label}

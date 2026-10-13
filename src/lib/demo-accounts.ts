@@ -16,3 +16,8 @@ export const DEMO_LOGINS = [
   { label: "Автопарк (топливо)", email: "fleet@tirco.demo", firstName: "Азамат", lastName: "Абенов", phone: "+7 701 100 00 01" },
   { label: "Водитель Ivan", email: "ivan@tirco.demo", firstName: "Ivan", lastName: "Petrov", phone: "+7 701 100 00 02" },
 ] as const;
+
+/** Email одного из публичных демо-аккаунтов (без администратора). */
+export function isPublicDemoLogin(email: string): boolean {
+  return DEMO_LOGINS.some((a) => a.email === email);
+}

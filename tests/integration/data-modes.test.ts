@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { NextRequest } from "next/server";
 import pg from "pg";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { getCurrentActor, SESSION_COOKIE } from "@/lib/auth/session";
 import { permissionsForRole } from "@/lib/permissions";
@@ -14,6 +14,8 @@ import { ensureDemoLogins } from "@/server/services/demo-logins.service";
 import { DEMO_ANCHORS } from "@/server/services/demo-workspace.service";
 import type { CompanyType } from "@/generated/prisma/enums";
 import { POST as dataModePOST } from "@/app/api/auth/data-mode/route";
+import { POST as passwordPOST } from "@/app/api/auth/password/route";
+import { PATCH as profilePATCH } from "@/app/api/auth/profile/route";
 import { POST as loginPOST } from "@/app/api/auth/login/route";
 import { GET as loadGET } from "@/app/api/loads/[id]/route";
 import { GET as loadsGET, POST as loadsPOST } from "@/app/api/loads/route";
@@ -418,8 +420,7 @@ describe("Демо-стенд: демо-аккаунты для входа в р
     expect((await signInDemo("shipper@tirco.demo")).status).toBe(401);
 
     const result = await ensureDemoLogins();
-    expect(result.created).toEqual(demoEmails);
-    expect(result.passwordReset).toEqual([]);
+    expect(result).toEqual({ created: demoEmails, passwordReset: [], failed: [] });
     const users = await authDb.user.findMany({ where: { email: { in: demoEmails } }, include: { memberships: true } });
     expect(users).toHaveLength(demoEmails.length);
     expect(users.every((u) => u.platformRole === "USER" && u.memberships.length === 0)).toBe(true);
@@ -433,15 +434,71 @@ describe("Демо-стенд: демо-аккаунты для входа в р
   it("повторный запуск ничего не меняет; пароль, изменённый посетителем, возвращается к объявленному", async () => {
     await ensureDemoLogins();
     const before = await authDb.user.findMany({ where: { email: { in: demoEmails } }, orderBy: { email: "asc" } });
-    expect(await ensureDemoLogins()).toEqual({ created: [], passwordReset: [] });
+    expect(await ensureDemoLogins()).toEqual({ created: [], passwordReset: [], failed: [] });
     expect(await authDb.user.findMany({ where: { email: { in: demoEmails } }, orderBy: { email: "asc" } })).toEqual(before);
 
     await authDb.user.update({ where: { email: "carrier@tirco.demo" }, data: { passwordHash: await hashPassword("Changed12345") } });
     const realBefore = await authDb.user.findUniqueOrThrow({ where: { email: shipperEmail } });
-    expect(await ensureDemoLogins()).toEqual({ created: [], passwordReset: ["carrier@tirco.demo"] });
+    expect(await ensureDemoLogins()).toEqual({ created: [], passwordReset: ["carrier@tirco.demo"], failed: [] });
     const carrier = await authDb.user.findUniqueOrThrow({ where: { email: "carrier@tirco.demo" } });
     expect(await verifyPassword(DEMO_PASSWORD, carrier.passwordHash)).toBe(true);
     expect(await authDb.user.findUniqueOrThrow({ where: { email: shipperEmail } })).toEqual(realBefore);
+
+    // Пароль администратора платформы с тем же email не сбрасывается на общеизвестный
+    const adminHash = await hashPassword("OperatorSecret123");
+    await authDb.user.update({
+      where: { email: "forwarder@tirco.demo" },
+      data: { platformRole: "PLATFORM_ADMIN", passwordHash: adminHash },
+    });
+    expect(await ensureDemoLogins()).toEqual({ created: [], passwordReset: [], failed: [] });
+    expect((await authDb.user.findUniqueOrThrow({ where: { email: "forwarder@tirco.demo" } })).passwordHash).toBe(adminHash);
+  });
+
+  describe("на демо-стенде (production, DEMO_SEED=1)", () => {
+    beforeEach(async () => {
+      await ensureDemoLogins();
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DEMO_SEED", "1");
+    });
+    afterEach(() => vi.unstubAllEnvs());
+
+    async function signInAs(email: string, dataMode: "real" | "demo") {
+      jar.clear();
+      return call(loginPOST, req("/api/auth/login", { method: "POST", body: { email, password: DEMO_PASSWORD, dataMode } }));
+    }
+
+    it("общий демо-аккаунт входит только в демо-базу и не переключается в реальную", async () => {
+      const res = await signInAs("carrier@tirco.demo", "real");
+      expect(res.status).toBe(200);
+      expect((res.json.data as unknown as { dataMode: string }).dataMode).toBe("demo");
+      expect((await sessionRow()).dataMode).toBe("DEMO");
+
+      const sw = await call(dataModePOST, req("/api/auth/data-mode", { method: "POST", body: { dataMode: "real" } }));
+      expect(sw.status).toBe(403);
+      expect((await sessionRow()).dataMode).toBe("DEMO");
+    });
+
+    it("пароль и профиль общего демо-аккаунта не меняются", async () => {
+      await signInAs("carrier@tirco.demo", "demo");
+      const before = await authDb.user.findUniqueOrThrow({ where: { email: "carrier@tirco.demo" } });
+      const pw = await call(
+        passwordPOST,
+        req("/api/auth/password", { method: "POST", body: { currentPassword: DEMO_PASSWORD, newPassword: "Changed12345" } }),
+      );
+      expect(pw.status).toBe(403);
+      const profile = await call(
+        profilePATCH,
+        req("/api/auth/profile", { method: "PATCH", body: { firstName: "Взлом", lastName: "Тест", phone: "+7 700 111 22 33" } }),
+      );
+      expect(profile.status).toBe(403);
+      expect(await authDb.user.findUniqueOrThrow({ where: { email: "carrier@tirco.demo" } })).toEqual(before);
+    });
+
+    it("обычный пользователь по-прежнему входит в реальную базу", async () => {
+      const res = await signIn(shipperEmail, "real");
+      expect(res.status).toBe(200);
+      expect((await sessionRow()).dataMode).toBe("REAL");
+    });
   });
 });
 
@@ -471,5 +528,15 @@ describe("Миграция демо-домена CargoFlow → Tirco", () => {
 
     // Повторный запуск ничего не меняет
     expect(await authDb.$executeRawUnsafe(sql)).toBe(0);
+  });
+
+  it("схему демо-базы не трогает: старую демо-базу seed:demo загрузит заново", async () => {
+    const id = await runWithDataMode("demo", async () => {
+      const u = await makeUser();
+      await prisma.user.update({ where: { id: u.id }, data: { email: "shipper@cargoflow.demo" } });
+      return u.id;
+    });
+    expect(await demo.$executeRawUnsafe(sql)).toBe(0);
+    expect((await demo.user.findUniqueOrThrow({ where: { id } })).email).toBe("shipper@cargoflow.demo");
   });
 });

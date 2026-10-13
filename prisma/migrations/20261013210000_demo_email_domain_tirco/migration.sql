@@ -2,11 +2,13 @@
 -- страница входа и seed используют *@tirco.demo, а вход проверяется по реальной базе.
 -- Адрес не меняется, если аккаунт с новым адресом уже есть. Администратор платформы не переименовывается:
 -- у демо-администратора эпохи CargoFlow может быть общеизвестный пароль, а новый адрес указан в документации.
+-- Схема с меткой демо-базы (`cargoflow:demo` / `tirco:demo`) не трогается: старую демо-базу seed:demo загрузит заново.
 UPDATE "User" AS u
 SET "email" = regexp_replace(u."email", '(@|\.)cargoflow\.demo$', '\1tirco.demo'),
     "updatedAt" = CURRENT_TIMESTAMP
 WHERE u."email" ~ '(@|\.)cargoflow\.demo$'
   AND u."platformRole" <> 'PLATFORM_ADMIN'
+  AND coalesce(obj_description(to_regnamespace(current_schema()), 'pg_namespace'), '') NOT LIKE '%:demo'
   AND NOT EXISTS (
     SELECT 1 FROM "User" AS t
     WHERE t."email" = regexp_replace(u."email", '(@|\.)cargoflow\.demo$', '\1tirco.demo')

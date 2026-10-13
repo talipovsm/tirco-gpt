@@ -131,12 +131,13 @@ function readSaved(): DataModeValue | null {
 }
 
 /** Последний выбранный режим входа (удобство; на сервере не используется, режим всегда проверяется сервером). */
-export function useRememberedDataMode(initial: DataModeValue): [DataModeValue, (m: DataModeValue) => void] {
+export function useRememberedDataMode(initial: DataModeValue): [DataModeValue, (m: DataModeValue, remember?: boolean) => void] {
   const saved = React.useSyncExternalStore(subscribe, readSaved, () => null);
   // Если хранилище недоступно (приватный режим), выбор живёт в состоянии компонента
   const [override, setOverride] = React.useState<DataModeValue | null>(null);
-  const update = (m: DataModeValue) => {
+  const update = (m: DataModeValue, remember = true) => {
     setOverride(m);
+    if (!remember) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, m);
     } catch {

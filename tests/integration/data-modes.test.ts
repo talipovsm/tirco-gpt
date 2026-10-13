@@ -15,7 +15,9 @@ import { DEMO_ANCHORS } from "@/server/services/demo-workspace.service";
 import type { CompanyType } from "@/generated/prisma/enums";
 import { POST as dataModePOST } from "@/app/api/auth/data-mode/route";
 import { POST as passwordPOST } from "@/app/api/auth/password/route";
+import { POST as inviteAcceptPOST } from "@/app/api/auth/invite/accept/route";
 import { PATCH as profilePATCH } from "@/app/api/auth/profile/route";
+import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { POST as loginPOST } from "@/app/api/auth/login/route";
 import { GET as loadGET } from "@/app/api/loads/[id]/route";
 import { GET as loadsGET, POST as loadsPOST } from "@/app/api/loads/route";
@@ -492,6 +494,48 @@ describe("Демо-стенд: демо-аккаунты для входа в р
       );
       expect(profile.status).toBe(403);
       expect(await authDb.user.findUniqueOrThrow({ where: { email: "carrier@tirco.demo" } })).toEqual(before);
+    });
+
+    it("любой адрес демо-домена (в т.ч. не с кнопок) — только демо; администратор платформы — без ограничений", async () => {
+      const passwordHash = await hashPassword(DEMO_PASSWORD);
+      await authDb.user.create({ data: { email: "dispatcher@tirco.demo", firstName: "Д", lastName: "Д", passwordHash } });
+      const res = await signInAs("dispatcher@tirco.demo", "real");
+      expect((res.json.data as unknown as { dataMode: string }).dataMode).toBe("demo");
+
+      await authDb.user.create({
+        data: { email: "admin@tirco.demo", firstName: "A", lastName: "A", passwordHash, platformRole: "PLATFORM_ADMIN" },
+      });
+      const admin = await signInAs("admin@tirco.demo", "real");
+      expect((admin.json.data as unknown as { dataMode: string }).dataMode).toBe("real");
+    });
+
+    it("сессия общего демо-аккаунта в реальной базе, выданная до запрета, недействительна", async () => {
+      vi.unstubAllEnvs();
+      await signInAs("shipper@tirco.demo", "real");
+      expect((await getCurrentActor())?.dataMode).toBe("real");
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DEMO_SEED", "1");
+      expect(await getCurrentActor()).toBeNull();
+    });
+
+    it("общий демо-аккаунт не принимает приглашение в компанию реальной базы", async () => {
+      const company = await makeCompany("SHIPPER", "Real Co");
+      const inviter = await makeUser({ role: "SHIPPER", companyId: company.id });
+      const token = generateToken();
+      await authDb.companyInvite.create({
+        data: {
+          companyId: company.id,
+          email: "shipper@tirco.demo",
+          role: "SHIPPER",
+          tokenHash: sha256(token),
+          invitedByUserId: inviter.id,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        },
+      });
+      await signInAs("shipper@tirco.demo", "demo");
+      const res = await call(inviteAcceptPOST, req("/api/auth/invite/accept", { method: "POST", body: { token } }));
+      expect(res.status).toBe(403);
+      expect(await authDb.companyMember.count({ where: { companyId: company.id, user: { email: "shipper@tirco.demo" } } })).toBe(0);
     });
 
     it("обычный пользователь по-прежнему входит в реальную базу", async () => {

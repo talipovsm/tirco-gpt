@@ -8,7 +8,7 @@ import { enforceRateLimit } from "@/lib/auth/rate-limit";
 import { createSession, destroySession, setActiveCompany } from "@/lib/auth/session";
 import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { runWithDataMode, type DataMode } from "@/lib/db/data-mode";
-import { isPublicDemoLogin } from "@/lib/demo-accounts";
+import { demoStand, sharedDemoAccount } from "@/lib/auth/demo-stand";
 import { authDb, dbFor, prisma } from "@/lib/db/prisma";
 import { demoNotReadyError, demoWorkspaceReady, provisionDemoIdentity } from "./demo-workspace.service";
 import { AppError, errors } from "@/lib/errors";
@@ -34,19 +34,6 @@ const inReal = <T>(fn: () => Promise<T>) => runWithDataMode("real", fn);
  */
 export function registrationClosed() {
   return demoStand() && process.env.ALLOW_PUBLIC_REGISTRATION !== "1";
-}
-
-/** Демо-стенд: production с загрузкой демо-данных (DEMO_SEED=1). */
-function demoStand() {
-  return process.env.NODE_ENV === "production" && process.env.DEMO_SEED === "1";
-}
-
-/**
- * Публичный демо-аккаунт демо-стенда (пароль напечатан на странице входа): работает только с демо-базой,
- * а пароль и профиль у него не меняются — иначе любой посетитель писал бы в реальную базу или запирал аккаунт для всех.
- */
-function publicDemoAccount(email: string) {
-  return demoStand() && isPublicDemoLogin(email);
 }
 
 export async function register(input: RegisterInput, meta: RequestMeta) {
@@ -214,6 +201,9 @@ async function consumeInvite(tx: TxClient, token: string, userId: string, email:
 }
 
 export async function acceptInviteForExistingUser(actor: Actor, token: string) {
+  // Общий демо-аккаунт не вступает в компании реальной базы
+  if (sharedDemoAccount(actor.email, actor.isAdmin ? "PLATFORM_ADMIN" : "USER"))
+    throw errors.forbidden("Демо-аккаунт работает только с демо-базой.");
   return inReal(async () => {
     await expireInviteIfNeeded(token);
     const companyId = await prisma.$transaction((tx) =>
@@ -259,7 +249,7 @@ export async function login(input: z.output<typeof loginSchema>, meta: RequestMe
     }
     // Режим выбран пользователем при входе и проверяется сервером; дальше он хранится только в серверной сессии.
     // Публичный демо-аккаунт демо-стенда входит только в демо-базу.
-    const dataMode: DataMode = publicDemoAccount(user.email) ? "demo" : input.dataMode;
+    const dataMode: DataMode = sharedDemoAccount(user.email, user.platformRole) ? "demo" : input.dataMode;
     let companyId: string | null = user.memberships[0]?.companyId ?? null;
     let role: MemberRole | null = user.memberships[0]?.role ?? null;
     if (dataMode === "demo") {
@@ -350,7 +340,7 @@ export async function resetPassword(input: z.output<typeof resetPasswordSchema>,
 export async function changePassword(actor: Actor, input: z.output<typeof changePasswordSchema>) {
   return inReal(async () => {
     const user = await prisma.user.findUniqueOrThrow({ where: { id: actor.userId } });
-    if (publicDemoAccount(user.email)) throw errors.forbidden("У общего демо-аккаунта пароль не меняется.");
+    if (sharedDemoAccount(user.email, user.platformRole)) throw errors.forbidden("У общего демо-аккаунта пароль не меняется.");
     if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
       throw errors.validation("Текущий пароль указан неверно.", { currentPassword: ["Неверный пароль"] });
     }
@@ -381,7 +371,8 @@ export async function changePassword(actor: Actor, input: z.output<typeof change
 
 export async function updateProfile(actor: Actor, input: z.output<typeof profileUpdateSchema>) {
   // Профиль — часть identity: меняется в реальной базе; в демо-режиме синхронно обновляется и зеркальная запись.
-  if (publicDemoAccount(actor.email)) throw errors.forbidden("Профиль общего демо-аккаунта не меняется.");
+  if (sharedDemoAccount(actor.email, actor.isAdmin ? "PLATFORM_ADMIN" : "USER"))
+    throw errors.forbidden("Профиль общего демо-аккаунта не меняется.");
   const user = await inReal(async () => {
     const before = await prisma.user.findUniqueOrThrow({
       where: { id: actor.userId },
@@ -431,7 +422,9 @@ export async function switchCompany(actor: Actor, companyId: string) {
  * Identity та же; сервер создаёт новую сессию с новым режимом (ротация токена) и отзывает текущую.
  */
 export async function switchDataMode(actor: Actor, dataMode: DataMode, meta: RequestMeta) {
-  if (dataMode === "real" && publicDemoAccount(actor.email)) throw errors.forbidden("Демо-аккаунт работает только с демо-базой.");
+  if (dataMode === "real" && sharedDemoAccount(actor.email, actor.isAdmin ? "PLATFORM_ADMIN" : "USER")) {
+    throw errors.forbidden("Демо-аккаунт работает только с демо-базой.");
+  }
   return inReal(async () => {
     const realMemberships = await prisma.companyMember.findMany({
       where: { userId: actor.userId, status: "ACTIVE" },

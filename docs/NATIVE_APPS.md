@@ -1,18 +1,18 @@
-# Нативные приложения CargoFlow
+# Нативные приложения Tirco
 
 Два полноценных нативных приложения на **Flutter** (не WebView): интерфейс рисуется нативно, данные идут через тот же REST API, что и у веб-версии. Бизнес-логика, права и статусы остаются на сервере.
 
-| Приложение             | Платформы                    | Для кого                                                        | Код                              |
-| ---------------------- | ---------------------------- | --------------------------------------------------------------- | -------------------------------- |
-| **CargoFlow**          | Windows, macOS, iOS, Android | грузовладелец, перевозчик (руководитель, диспетчер), экспедитор | `native/apps/cargoflow`          |
-| **CargoFlow Водитель** | iOS, Android                 | водитель                                                        | `native/apps/driver`             |
-| общее ядро             | —                            | API-клиент, сессия, модели, статусы, тема, виджеты              | `native/packages/cargoflow_core` |
+| Приложение         | Платформы                    | Для кого                                                        | Код                          |
+| ------------------ | ---------------------------- | --------------------------------------------------------------- | ---------------------------- |
+| **Tirco**          | Windows, macOS, iOS, Android | грузовладелец, перевозчик (руководитель, диспетчер), экспедитор | `native/apps/tirco`          |
+| **Tirco Водитель** | iOS, Android                 | водитель                                                        | `native/apps/driver`         |
+| общее ядро         | —                            | API-клиент, сессия, модели, статусы, тема, виджеты              | `native/packages/tirco_core` |
 
-Администратор платформы работает в веб-версии; приложение CargoFlow показывает ему подсказку. Водитель, вошедший в CargoFlow, получает ссылку на приложение «Водитель», и наоборот.
+Администратор платформы работает в веб-версии; приложение Tirco показывает ему подсказку. Водитель, вошедший в Tirco, получает ссылку на приложение «Водитель», и наоборот.
 
 ## Что умеет
 
-**CargoFlow** — интерфейс подстраивается под роль (`Actor.workspace`):
+**Tirco** — интерфейс подстраивается под роль (`Actor.workspace`):
 
 - **Операции**: живая карта (OpenStreetMap, flutter_map) + список объектов с состоянием (в пути / прибывает / задержка / ожидание / внимание / завершено), фильтры, вкладки «Объекты / Внимание / События», панель перевозки. Обновляется раз в минуту.
 - **Перевозки**: группы по статусу, поиск, карточка перевозки: маршрут на карте, этапы (journey), документы (CMR / инвойс / упаковочный / POD), подтверждение получения грузовладельцем.
@@ -22,7 +22,7 @@
 - **Профиль**: компания и роль, переключение Демо / Реальная база (с подтверждением), сервер, выход.
 - Поиск по всему (Ctrl/⌘ + K), широкий экран — боковая навигация, телефон — нижняя.
 
-**CargoFlow Водитель**:
+**Tirco Водитель**:
 
 - **Мой рейс**: следующий шаг одной большой кнопкой (та же логика `driverNextStep`, что и в вебе), подтверждение с комментарием, к смене статуса прикладываются координаты.
 - **Геолокация**: разовая отметка и автоматическая передача во время рейса, в том числе в фоне (Android — foreground-служба с уведомлением, iOS — фоновая геолокация с индикатором). Не чаще раза в 5 минут / 300 м.
@@ -33,7 +33,7 @@
 
 ## Как приложения входят в систему
 
-1. `POST /api/auth/login` с заголовком `x-cargoflow-client: native` (и без `Origin`) — сервер возвращает `token` в теле ответа. Браузер токен не получает никогда: у него остаётся httpOnly-cookie.
+1. `POST /api/auth/login` с заголовком `x-tirco-client: native` (и без `Origin`) — сервер возвращает `token` в теле ответа. Браузер токен не получает никогда: у него остаётся httpOnly-cookie.
 2. Токен хранится в защищённом хранилище ОС (Keychain / Android Keystore / Windows Credential Manager) — `flutter_secure_storage`.
 3. Все запросы — с `Authorization: Bearer <token>`. Это та же серверная сессия, что и у браузера: срок, отзыв при выходе, режим данных (Демо / Реальная) хранятся на сервере.
 4. 401 → приложение возвращает на экран входа.
@@ -42,10 +42,10 @@
 
 ## Запуск локально
 
-Нужен Flutter 3.47+ (`flutter doctor`). Сервер CargoFlow — как в README (`npm run dev`, порт 3000).
+Нужен Flutter 3.47+ (`flutter doctor`). Сервер Tirco — как в README (`npm run dev`, порт 3000).
 
 ```bash
-cd native/apps/cargoflow   # или native/apps/driver
+cd native/apps/tirco   # или native/apps/driver
 flutter pub get
 flutter run -d windows     # macos | ios | android | <id устройства>
 ```
@@ -53,14 +53,14 @@ flutter run -d windows     # macos | ios | android | <id устройства>
 Адрес сервера задаётся при сборке и может быть изменён на экране входа («Сервер»):
 
 ```bash
-flutter run --dart-define=CARGOFLOW_API=http://10.0.2.2:3000   # Android-эмулятор → компьютер
-flutter build apk --release --dart-define=CARGOFLOW_API=https://cargoflow.example.com
+flutter run --dart-define=TIRCO_API=http://10.0.2.2:3000   # Android-эмулятор → компьютер
+flutter build apk --release --dart-define=TIRCO_API=https://tirco.example.com
 ```
 
 Подложка карт — тайлы Geoapify (стиль `positron`), ключ задаётся при сборке; без ключа — тайлы OpenStreetMap (только для разработки):
 
 ```bash
-flutter build apk --release --dart-define=CARGOFLOW_API=https://cargoflow.example.com --dart-define=GEOAPIFY_KEY=<публичный ключ карт>
+flutter build apk --release --dart-define=TIRCO_API=https://tirco.example.com --dart-define=GEOAPIFY_KEY=<публичный ключ карт>
 ```
 
 Ключ попадает в приложение, поэтому используйте отдельный публичный ключ Geoapify с ограничениями (по приложению/реферу) — не серверный `GEOAPIFY_API_KEY`. В CI ключ берётся из переменной репозитория `GEOAPIFY_KEY`.
@@ -69,13 +69,13 @@ flutter build apk --release --dart-define=CARGOFLOW_API=https://cargoflow.exampl
 
 В release-сборках Android и iOS разрешён только HTTPS (локальная сеть / `localhost` — только для разработки).
 
-Демо-вход: режим «Демо-база», учётные записи из раздела «Demo accounts» README (например `driver@cargoflow.demo` — для приложения водителя).
+Демо-вход: режим «Демо-база», учётные записи из раздела «Demo accounts» README (например `driver@tirco.demo` — для приложения водителя).
 
 ## Проверки
 
 ```bash
-cd native/packages/cargoflow_core && flutter analyze && flutter test
-cd native/apps/cargoflow && flutter analyze && flutter test
+cd native/packages/tirco_core && flutter analyze && flutter test
+cd native/apps/tirco && flutter analyze && flutter test
 cd native/apps/driver && flutter analyze && flutter test
 ```
 
@@ -85,14 +85,14 @@ cd native/apps/driver && flutter analyze && flutter test
 
 Workflow `.github/workflows/native.yml` запускается при изменениях в `native/**` или вручную (Actions → Native apps → Run workflow):
 
-| Артефакт                                        | Что внутри                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------------- |
-| `android-cargoflow`, `android-driver`           | APK (release, подпись debug-ключом — для установки на тестовые устройства) |
-| `ios-cargoflow-unsigned`, `ios-driver-unsigned` | `Runner.app` без подписи                                                   |
-| `macos-cargoflow`                               | `CargoFlow.app` (без нотаризации)                                          |
-| `windows-cargoflow`                             | папка с `cargoflow.exe` и DLL                                              |
+| Артефакт                                    | Что внутри                                                                 |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| `android-tirco`, `android-driver`           | APK (release, подпись debug-ключом — для установки на тестовые устройства) |
+| `ios-tirco-unsigned`, `ios-driver-unsigned` | `Runner.app` без подписи                                                   |
+| `macos-tirco`                               | `Tirco.app` (без нотаризации)                                              |
+| `windows-tirco`                             | папка с `tirco.exe` и DLL                                                  |
 
-Адрес API для сборок — переменная репозитория `CARGOFLOW_API` (Settings → Secrets and variables → Actions → Variables). Секреты в код и в workflow не записываются.
+Адрес API для сборок — переменная репозитория `TIRCO_API` (Settings → Secrets and variables → Actions → Variables). Секреты в код и в workflow не записываются.
 
 ## Что нужно для публикации в магазины (не сделано)
 

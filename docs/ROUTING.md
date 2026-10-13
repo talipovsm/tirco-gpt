@@ -57,7 +57,7 @@ npm run routes:backfill -- --mode real --force       # пересчитать в
 
 ## Навигаторы водителя
 
-`src/lib/geo/navigators.ts` (веб) и `native/packages/cargoflow_core/lib/src/domain/navigators.dart` (приложение):
+`src/lib/geo/navigators.ts` (веб) и `native/packages/tirco_core/lib/src/domain/navigators.dart` (приложение):
 
 | Навигатор | Приложение                                                                                                   | Веб                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |

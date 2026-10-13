@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "kz.cargoflow.cargoflow_driver"
+    namespace = "kz.tirco.tirco_driver"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "kz.cargoflow.cargoflow_driver"
+        applicationId = "kz.tirco.tirco_driver"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

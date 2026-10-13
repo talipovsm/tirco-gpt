@@ -1,7 +1,7 @@
-# CargoFlow: установка всего необходимого и запуск (Windows 10/11)
+# Tirco: установка всего необходимого и запуск (Windows 10/11)
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
-function Say($m) { Write-Host "[cargoflow] $m" -ForegroundColor Cyan }
+function Say($m) { Write-Host "[tirco] $m" -ForegroundColor Cyan }
 
 function Test-Node {
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $false }

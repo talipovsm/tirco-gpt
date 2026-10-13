@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:cargoflow_core/cargoflow_core.dart';
-import 'package:cargoflow_driver/main.dart';
-import 'package:cargoflow_driver/services/location.dart';
-import 'package:cargoflow_driver/services/navigator.dart';
-import 'package:cargoflow_driver/services/outbox.dart';
+import 'package:tirco_core/tirco_core.dart';
+import 'package:tirco_driver/main.dart';
+import 'package:tirco_driver/services/location.dart';
+import 'package:tirco_driver/services/navigator.dart';
+import 'package:tirco_driver/services/outbox.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,7 +21,7 @@ const _orderId = '00000000-0000-0000-0000-000000000042';
 
 final _me = {
   'userId': 'u-driver',
-  'email': 'driver@cargoflow.demo',
+  'email': 'driver@tirco.demo',
   'fullName': 'Водитель Демо',
   'isAdmin': false,
   'dataMode': 'demo',
@@ -159,9 +159,9 @@ void main() {
     await tester.pumpAndSettle();
     api.baseUrl = 'http://test';
 
-    expect(find.text('CargoFlow Водитель'), findsWidgets);
+    expect(find.text('Tirco Водитель'), findsWidgets);
     await tester.tap(find.text('Демо-база'));
-    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'driver@cargoflow.demo');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'driver@tirco.demo');
     await tester.enterText(find.widgetWithText(TextFormField, 'Пароль'), 'Demo1234!');
     await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
     await tester.pump();
@@ -232,7 +232,7 @@ void navigatorTests() {
     await tester.pumpAndSettle();
     api.baseUrl = 'http://test';
     await tester.tap(find.text('Демо-база'));
-    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'driver@cargoflow.demo');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'driver@tirco.demo');
     await tester.enterText(find.widgetWithText(TextFormField, 'Пароль'), 'Demo1234!');
     await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
     await tester.pump();

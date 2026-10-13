@@ -67,7 +67,7 @@ export function CommandTrigger({ onOpen, className }: { onOpen: () => void; clas
 }
 
 /**
- * Командная строка CargoFlow (⌘K / Ctrl+K): поиск объектов (перевозки, грузы, компании, машины),
+ * Командная строка Tirco (⌘K / Ctrl+K): поиск объектов (перевозки, грузы, компании, машины),
  * переход по разделам и быстрые действия. Клавиатура: ↑/↓ — выбор, Enter — открыть, Esc — закрыть.
  */
 export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: boolean; onOpenChange: (open: boolean) => void }) {

@@ -8,7 +8,7 @@ import type { DataMode as DbDataMode } from "@/generated/prisma/enums";
 import { buildActor, permissionsForMembership, type Actor, type RequestMeta } from "./actor";
 import { generateToken, sha256 } from "./tokens";
 
-export const SESSION_COOKIE = "cf_session";
+export const SESSION_COOKIE = "tirco_session";
 
 function ttlMs() {
   const days = Number(process.env.SESSION_TTL_DAYS ?? 14);
@@ -40,8 +40,8 @@ export function clientIpFrom(forwarded: string | null, realIp: string | null, ho
   return realIp?.trim() || list[0] || null;
 }
 
-/** Заголовок нативных приложений CargoFlow. */
-export const NATIVE_CLIENT_HEADER = "x-cargoflow-client";
+/** Заголовок нативных приложений Tirco. */
+export const NATIVE_CLIENT_HEADER = "x-tirco-client";
 
 /**
  * Нативный клиент: заголовок приложения и нет Origin. Браузер (в том числе скрипт на странице) всегда

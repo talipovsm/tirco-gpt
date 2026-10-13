@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:cargoflow_core/cargoflow_core.dart';
+import 'package:tirco_core/tirco_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,7 +13,7 @@ class NavigatorLauncher {
         _launch = launch ?? ((u) => launchUrl(u, mode: LaunchMode.externalApplication)),
         ios = ios ?? Platform.isIOS;
 
-  static const prefKey = 'cargoflow.driver.navigator';
+  static const prefKey = 'tirco.driver.navigator';
   final Future<bool> Function(Uri) _canLaunch;
   final Future<bool> Function(Uri) _launch;
   final bool ios;

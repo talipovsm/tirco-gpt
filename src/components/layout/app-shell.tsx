@@ -29,7 +29,7 @@ export function Logo({ className, dark, compact }: { className?: string; dark?: 
       <span className="bg-primary grid size-8 shrink-0 place-items-center rounded-md text-white">
         <Truck className="size-4.5" aria-hidden />
       </span>
-      {!compact && <span className={cn("text-base", dark ? "text-white" : "text-foreground")}>CargoFlow</span>}
+      {!compact && <span className={cn("text-base", dark ? "text-white" : "text-foreground")}>Tirco</span>}
     </span>
   );
 }
@@ -214,12 +214,12 @@ export function AppShell({
           collapsed ? "w-16 px-3" : "w-56 px-3",
         )}
         data-collapsed={collapsed || undefined}
-        aria-label="Навигация CargoFlow"
+        aria-label="Навигация Tirco"
       >
         <Link
           href={home}
           className={cn("mb-4 flex min-h-10 items-center rounded-md", collapsed ? "justify-center" : "px-1.5")}
-          aria-label="CargoFlow — операции"
+          aria-label="Tirco — операции"
         >
           <Logo dark compact={collapsed} />
         </Link>
@@ -271,7 +271,7 @@ export function AppShell({
         >
           <Menu className="size-5" />
         </button>
-        <Link href={home} className="rounded-md lg:hidden" aria-label="CargoFlow — на главную">
+        <Link href={home} className="rounded-md lg:hidden" aria-label="Tirco — на главную">
           <Logo compact />
         </Link>
         {searchable && (

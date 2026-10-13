@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/invite"];
-const SESSION_COOKIE = "cf_session";
+const SESSION_COOKIE = "tirco_session";
 
 /**
  * Proxy: быстрый редирект неавторизованных пользователей и security-заголовки.

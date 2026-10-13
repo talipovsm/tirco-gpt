@@ -58,7 +58,7 @@ class S3StorageAdapter implements StorageAdapter {
     return this.clientPromise;
   }
   private get bucket() {
-    return process.env.S3_BUCKET || "cargoflow";
+    return process.env.S3_BUCKET || "tirco";
   }
   async put(key: string, data: Buffer, contentType: string) {
     const { PutObjectCommand } = await import("@aws-sdk/client-s3");

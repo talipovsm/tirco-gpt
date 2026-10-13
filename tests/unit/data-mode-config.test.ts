@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dataModeConfig, DEFAULT_DEMO_SCHEMA, parseDbUrl, prismaCliUrl, sameTarget } from "@/lib/db/data-mode-config";
+import {
+  dataModeConfig,
+  DEFAULT_DEMO_SCHEMA,
+  normalizeSchemaMarker,
+  parseDbUrl,
+  prismaCliUrl,
+  sameTarget,
+} from "@/lib/db/data-mode-config";
 
-const REAL = "postgresql://app:secret@db.local:5432/cargoflow";
+const REAL = "postgresql://app:secret@db.local:5432/tirco";
 
 describe("Конфигурация режимов данных", () => {
   it("REAL — DATABASE_URL, схема public по умолчанию", () => {
@@ -17,13 +24,13 @@ describe("Конфигурация режимов данных", () => {
   it("DEMO_DATABASE_URL указывает на реальную базу → ошибка (даже с другими учётными данными или ?schema=public)", () => {
     expect(() => dataModeConfig("demo", { DATABASE_URL: REAL, DEMO_DATABASE_URL: REAL })).toThrow();
     expect(() =>
-      dataModeConfig("demo", { DATABASE_URL: REAL, DEMO_DATABASE_URL: "postgresql://other:pw@db.local/cargoflow?schema=public" }),
+      dataModeConfig("demo", { DATABASE_URL: REAL, DEMO_DATABASE_URL: "postgresql://other:pw@db.local/tirco?schema=public" }),
     ).toThrow();
     expect(() => dataModeConfig("demo", { DATABASE_URL: `${REAL}?schema=main`, DEMO_DATABASE_URL: `${REAL}?schema=main` })).toThrow();
   });
 
   it("отдельная демо-база допускается", () => {
-    const t = dataModeConfig("demo", { DATABASE_URL: REAL, DEMO_DATABASE_URL: "postgresql://app:secret@db.local:5432/cargoflow_demo" });
+    const t = dataModeConfig("demo", { DATABASE_URL: REAL, DEMO_DATABASE_URL: "postgresql://app:secret@db.local:5432/tirco_demo" });
     expect(t.schema).toBe("public");
     expect(sameTarget(t, parseDbUrl(REAL))).toBe(false);
   });
@@ -37,6 +44,14 @@ describe("Конфигурация режимов данных", () => {
   });
 
   it("prismaCliUrl добавляет схему", () => {
-    expect(prismaCliUrl({ connectionString: REAL, schema: "cargoflow_demo" })).toContain("schema=cargoflow_demo");
+    expect(prismaCliUrl({ connectionString: REAL, schema: "tirco_demo" })).toContain("schema=tirco_demo");
+  });
+
+  it("метки схем: прежние cargoflow:* читаются как tirco:*, чужие комментарии — не метка", () => {
+    expect(normalizeSchemaMarker("cargoflow:real")).toBe("tirco:real");
+    expect(normalizeSchemaMarker("cargoflow:demo")).toBe("tirco:demo");
+    expect(normalizeSchemaMarker("tirco:demo")).toBe("tirco:demo");
+    expect(normalizeSchemaMarker("standard public schema")).toBeNull();
+    expect(normalizeSchemaMarker(null)).toBeNull();
   });
 });

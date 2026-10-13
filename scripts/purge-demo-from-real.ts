@@ -4,7 +4,7 @@
  *   npx tsx --conditions=react-server scripts/purge-demo-from-real.ts           — сухой прогон: что будет удалено
  *   npx tsx --conditions=react-server scripts/purge-demo-from-real.ts --apply   — удалить (одна транзакция)
  *
- * Удаляются демо-компании (регистрационный номер `DEMO-…` и только демо-участники `*cargoflow.demo`) со всеми
+ * Удаляются демо-компании (регистрационный номер `DEMO-…` и только демо-участники `*tirco.demo`) со всеми
  * их данными: грузы, ставки, перевозки, договоры, документы (и файлы в хранилище), машины, водители, топливо,
  * платежи, отзывы. У демо-аккаунтов удаляются уведомления и сессии.
  *
@@ -18,7 +18,8 @@ import { dataModeConfig, SCHEMA_MARKER } from "@/lib/db/data-mode-config";
 import { storage } from "@/lib/storage/storage";
 import { readMarker } from "./db-modes";
 
-const DEMO_EMAIL = `(u.email LIKE '%@cargoflow.demo' OR u.email LIKE '%.cargoflow.demo')`;
+// cargoflow.demo — демо-домен до переименования проекта: такие пользователи тоже демо
+const DEMO_EMAIL = `(u.email LIKE '%@tirco.demo' OR u.email LIKE '%.tirco.demo' OR u.email LIKE '%@cargoflow.demo' OR u.email LIKE '%.cargoflow.demo')`;
 const DEMO_COMPANIES = `
   SELECT c.id FROM "Company" c
   WHERE c."registrationNumber" LIKE 'DEMO-%'

@@ -41,7 +41,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       throw errors.forbidden("Это демонстрационный стенд: регистрация новых пользователей отключена.");
     }
     enforceRateLimit("register", meta.ip ?? "anon");
-    if (process.env.NODE_ENV === "production" && input.email.endsWith("@cargoflow.demo")) {
+    if (process.env.NODE_ENV === "production" && (input.email.endsWith("@tirco.demo") || input.email.endsWith("@cargoflow.demo"))) {
       // Домен демо-аккаунтов зарезервирован: такие пользователи считаются демо и могут быть удалены при загрузке демо-данных
       throw errors.validation("Этот email-домен зарезервирован.", { email: ["Используйте рабочий email"] });
     }
@@ -241,7 +241,7 @@ export async function login(input: z.output<typeof loginSchema>, meta: RequestMe
       throw new AppError("UNAUTHORIZED", "Неверный email или пароль.");
     }
     if (user.status === "BLOCKED") {
-      throw new AppError("FORBIDDEN", "Учётная запись заблокирована. Обратитесь в поддержку CargoFlow.");
+      throw new AppError("FORBIDDEN", "Учётная запись заблокирована. Обратитесь в поддержку Tirco.");
     }
     // Режим выбран пользователем при входе и проверяется сервером; дальше он хранится только в серверной сессии.
     const dataMode: DataMode = input.dataMode;
@@ -305,7 +305,7 @@ export async function requestPasswordReset(email: string, meta: RequestMeta) {
       }),
     ]);
     const link = `${process.env.APP_URL ?? "http://localhost:3000"}/reset-password?token=${token}`;
-    await sendEmail(user.email, "Сброс пароля CargoFlow", `Для установки нового пароля перейдите по ссылке (действует 1 час): ${link}`);
+    await sendEmail(user.email, "Сброс пароля Tirco", `Для установки нового пароля перейдите по ссылке (действует 1 час): ${link}`);
     await audit(
       { userId: user.id, active: null, ip: meta.ip, userAgent: meta.userAgent },
       { action: AuditAction.USER_PASSWORD_RESET_REQUESTED, entityType: "User", entityId: user.id },

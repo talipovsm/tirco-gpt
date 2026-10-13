@@ -1,7 +1,7 @@
 import type { StyleSpecification } from "maplibre-gl";
 
 /**
- * Базовый стиль карт CargoFlow (по приоритету):
+ * Базовый стиль карт Tirco (по приоритету):
  * 1. NEXT_PUBLIC_MAP_STYLE_URL — свой векторный стиль;
  * 2. NEXT_PUBLIC_GEOAPIFY_KEY — векторный стиль Geoapify «positron» (светло-серый, приглушённый:
  *    подложка не спорит со статусами на карте);

@@ -336,7 +336,7 @@ export function SecureDealPanel({ orderId, view }: { orderId: string; view: Secu
             </div>
           )}
           <p className="text-muted-foreground text-xs">
-            CargoFlow не хранит деньги и данные банковских карт: средства резервирует и перечисляет платёжный провайдер, платформа фиксирует
+            Tirco не хранит деньги и данные банковских карт: средства резервирует и перечисляет платёжный провайдер, платформа фиксирует
             условия, статусы и журнал операций.
           </p>
         </CardContent>

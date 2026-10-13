@@ -1,1 +1,1 @@
-CREATE DATABASE cargoflow_test;
+CREATE DATABASE tirco_test;

@@ -4,10 +4,10 @@ import type { FuelLevelSource } from "@/generated/prisma/enums";
 import type { FuelCardLimits } from "./limits";
 
 /**
- * Integration Layer модуля Fleet Fuel Control. Бизнес-логика CargoFlow не зависит от конкретного поставщика.
+ * Integration Layer модуля Fleet Fuel Control. Бизнес-логика Tirco не зависит от конкретного поставщика.
  *
  *  - FuelCardProvider — выпуск, блокировка и лимиты топливных карт (процессинг топливных карт / банк).
- *    CargoFlow хранит только безопасный идентификатор карты у провайдера и последние 4 цифры — никаких номеров, PIN, CVV.
+ *    Tirco хранит только безопасный идентификатор карты у провайдера и последние 4 цифры — никаких номеров, PIN, CVV.
  *  - TelematicsProvider — позиция, уровень топлива (CAN/J1939 или отдельный датчик), расход, одометр, двигатель.
  *    Каждый показатель возвращается со статусом AVAILABLE / NOT_AVAILABLE: если устройство его не передаёт, значение не выдумывается.
  *  - GPS — существующий TrackingProvider (src/lib/tracking/provider.ts) и отметки водителя в приложении.
@@ -83,7 +83,7 @@ export interface TelematicsProvider {
 }
 
 /**
- * Внешний провайдер телематики, который CargoFlow опрашивает сам (pull).
+ * Внешний провайдер телематики, который Tirco опрашивает сам (pull).
  * Полученные показания сохраняются через TelemetryService.ingest — дальше работает общий TelematicsProvider на базе БД.
  */
 export interface TelematicsPullProvider {

@@ -164,7 +164,7 @@ describe("Режимы данных: изоляция и атаки на реж�
     const tampered = req("/api/loads", {
       method: "POST",
       body: { load: loadInput({ title: "Демо-груз" }), publish: false, dataMode: "real" },
-      headers: { "x-data-mode": "real", cookie: "cf_data_mode=real" },
+      headers: { "x-data-mode": "real", cookie: "tirco_data_mode=real" },
     });
     const res = await call(loadsPOST, tampered);
     expect(res.status).toBe(201);
@@ -267,23 +267,23 @@ describe("seed:demo не запускается против реальной б
     expect(await authDb.user.count()).toBe(before);
   }, 60_000);
 
-  it("схема без метки cargoflow:demo → остановка", async () => {
-    await authDb.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS cf_unmarked_test`);
+  it("схема без метки tirco:demo → остановка", async () => {
+    await authDb.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS tirco_unmarked_test`);
     try {
       const u = new URL(process.env.DATABASE_URL!);
-      u.searchParams.set("schema", "cf_unmarked_test");
+      u.searchParams.set("schema", "tirco_unmarked_test");
       const r = runSeed(u.toString());
       expect(r.code).toBe(1);
       expect(r.stderr).toContain("ERROR: Demo seed can only run against DEMO database.");
     } finally {
-      await authDb.$executeRawUnsafe(`DROP SCHEMA IF EXISTS cf_unmarked_test CASCADE`);
+      await authDb.$executeRawUnsafe(`DROP SCHEMA IF EXISTS tirco_unmarked_test CASCADE`);
     }
   }, 60_000);
 });
 
 describe("Демо-аккаунт без компаний в реальной базе", () => {
   it("в демо занимает место своего персонажа: компания, роль, профиль водителя, переход в кабинет водителя", async () => {
-    const email = `driver-${Date.now()}@cargoflow.demo`;
+    const email = `driver-${Date.now()}@tirco.demo`;
     const real = await makeUser();
     await authDb.user.update({ where: { id: real.id }, data: { email } });
     const { companyId, driverId } = await runWithDataMode("demo", async () => {
@@ -330,7 +330,7 @@ describe("Удаление демо-данных из реальной базы"
     const demoCo = await makeCompany("SHIPPER", "Demo Co");
     await authDb.company.update({ where: { id: demoCo.id }, data: { registrationNumber: "DEMO-KZ-900001" } });
     const demoUser = await makeUser({ role: "SHIPPER", companyId: demoCo.id });
-    const demoEmail = `shipper-${Date.now()}@cargoflow.demo`;
+    const demoEmail = `shipper-${Date.now()}@tirco.demo`;
     await authDb.user.update({ where: { id: demoUser.id }, data: { email: demoEmail } });
     await authDb.notification.create({ data: { userId: demoUser.id, type: "SYSTEM", title: "demo" } });
 

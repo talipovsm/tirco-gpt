@@ -25,7 +25,7 @@ import {
 import { t } from "@/lib/i18n";
 
 /** Cookie со свёрнутым/развёрнутым сайдбаром (читается сервером — без сдвига раскладки). */
-export const SIDEBAR_COOKIE = "cf_sidebar";
+export const SIDEBAR_COOKIE = "tirco_sidebar";
 
 export type NavKind = "customer" | "forwarder" | "carrier" | "driver" | "admin" | "none";
 export type NavItem = {

@@ -9,7 +9,7 @@ import { ingestFromDevice } from "@/server/services/telemetry.service";
 
 /**
  * Приём показаний от телематического провайдера/устройства (GPS, двигатель, одометр, уровень топлива CAN/датчик).
- * Подпись: X-CargoFlow-Signature = hex(HMAC-SHA256(тело, TELEMATICS_WEBHOOK_SECRET)). Дубликаты показаний игнорируются.
+ * Подпись: X-Tirco-Signature = hex(HMAC-SHA256(тело, TELEMATICS_WEBHOOK_SECRET)). Дубликаты показаний игнорируются.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {
   // Внешние провайдеры работают с реальными данными; демо-режим использует встроенные симуляторы.

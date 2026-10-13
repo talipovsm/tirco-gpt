@@ -45,7 +45,7 @@ export class EmailNotificationAdapter implements NotificationAdapter {
     const url = n.link ? `${process.env.APP_URL ?? ""}${n.link}` : "";
     logger.info("email.dev", {
       to: maskEmail(n.email),
-      subject: `CargoFlow: ${n.title}`,
+      subject: `Tirco: ${n.title}`,
       text: redactSecrets(`${n.body ?? ""} ${url}`.trim()),
     });
   }

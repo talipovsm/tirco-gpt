@@ -177,7 +177,7 @@ export function ContractPanel({
         <CardHeader>
           <CardTitle>Электронное подписание документа</CardTitle>
           <p className="text-muted-foreground text-xs">
-            Внутреннее электронное подтверждение CargoFlow. Не является квалифицированной электронной подписью.
+            Внутреннее электронное подтверждение Tirco. Не является квалифицированной электронной подписью.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

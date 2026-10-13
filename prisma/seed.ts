@@ -1,5 +1,5 @@
 /**
- * CargoFlow — демо-данные для локальной разработки.
+ * Tirco — демо-данные для локальной разработки.
  *
  * Сделки проводятся через реальный сервисный слой (транзакции, state machine, аудит,
  * уведомления, договоры с hash), а затем исторические даты сдвигаются в прошлое.
@@ -35,7 +35,7 @@ import { createMovement } from "@/server/services/next-load.service";
 import { seedFuelDemo } from "./seed-fuel";
 
 export const DEMO_PASSWORD = "Demo1234!";
-const META = { ip: "127.0.0.1", userAgent: "cargoflow-seed" };
+const META = { ip: "127.0.0.1", userAgent: "tirco-seed" };
 const DAY = 24 * 60 * 60_000;
 
 // Минимальный валидный PNG (1×1)
@@ -275,7 +275,10 @@ async function main() {
   }
   // Seed очищает базу: запускается только на пустой базе или базе с демо-данными (в любом окружении),
   // чтобы случайный запуск с DATABASE_URL боевой базы не стёр реальные данные
-  const realUsers = await prisma.user.count({ where: { NOT: { email: { endsWith: "@cargoflow.demo" } } } });
+  // @cargoflow.demo — демо-домен до переименования проекта (базы, засеянные раньше)
+  const realUsers = await prisma.user.count({
+    where: { NOT: [{ email: { endsWith: "@tirco.demo" } }, { email: { endsWith: "@cargoflow.demo" } }] },
+  });
   if (realUsers > 0 && process.env.SEED_FORCE !== "1") {
     throw new Error(
       `В базе ${realUsers} пользователей не из демо — seed их удалит. Если это действительно тестовая база, запустите с SEED_FORCE=1.`,
@@ -302,15 +305,15 @@ export async function seedScenarios() {
   });
 
   console.log("→ Пользователи и компании");
-  const uShipper = await user("shipper@cargoflow.demo", "Алия", "Демоева", "+7 700 000 00 01");
-  const uCarrier = await user("carrier@cargoflow.demo", "Ержан", "Тестов", "+7 700 000 00 02");
-  const uDispatcher = await user("dispatcher@cargoflow.demo", "Марина", "Диспетчерова", "+7 700 000 00 03");
-  const uForwarder = await user("forwarder@cargoflow.demo", "Олег", "Экспедиторов", "+7 900 000 00 04");
-  const uDriver = await user("driver@cargoflow.demo", "Demo", "Driver", "+7 700 000 00 05");
-  const uDriver2 = await user("driver2@cargoflow.demo", "Нурлан", "Рейсов", "+7 700 000 00 06");
-  const uCarrier2 = await user("carrier2@cargoflow.demo", "Ли", "Демо", "+86 138 0000 0007");
+  const uShipper = await user("shipper@tirco.demo", "Алия", "Демоева", "+7 700 000 00 01");
+  const uCarrier = await user("carrier@tirco.demo", "Ержан", "Тестов", "+7 700 000 00 02");
+  const uDispatcher = await user("dispatcher@tirco.demo", "Марина", "Диспетчерова", "+7 700 000 00 03");
+  const uForwarder = await user("forwarder@tirco.demo", "Олег", "Экспедиторов", "+7 900 000 00 04");
+  const uDriver = await user("driver@tirco.demo", "Demo", "Driver", "+7 700 000 00 05");
+  const uDriver2 = await user("driver2@tirco.demo", "Нурлан", "Рейсов", "+7 700 000 00 06");
+  const uCarrier2 = await user("carrier2@tirco.demo", "Ли", "Демо", "+86 138 0000 0007");
   const adminPassword = demoAdminPassword();
-  const uAdmin = await user("admin@cargoflow.demo", "Demo", "Admin", "+7 700 000 00 99", "PLATFORM_ADMIN", adminPassword.password);
+  const uAdmin = await user("admin@tirco.demo", "Demo", "Admin", "+7 700 000 00 99", "PLATFORM_ADMIN", adminPassword.password);
 
   const shipperCo = await prisma.company.create({
     data: {
@@ -528,7 +531,7 @@ export async function seedScenarios() {
       licenseExpiry: new Date(Date.now() + 300 * DAY),
     },
   });
-  const cnDriverUser = await user("driver3@cargoflow.demo", "Ван", "Демо", "+86 138 0000 0009");
+  const cnDriverUser = await user("driver3@tirco.demo", "Ван", "Демо", "+86 138 0000 0009");
   await prisma.companyMember.create({ data: { companyId: carrier2Co.id, userId: cnDriverUser.id, role: "DRIVER" } });
   const cnDriver = await prisma.driverProfile.create({
     data: {
@@ -1034,16 +1037,16 @@ export async function seedScenarios() {
 
   console.log("\n✓ Демо-данные созданы. Пароль демо-аккаунтов:", DEMO_PASSWORD, "· администратор:", adminPassword.note);
   console.table([
-    { role: "SHIPPER", email: "shipper@cargoflow.demo", company: "Demo Cargo Kazakhstan" },
-    { role: "CARRIER_ADMIN", email: "carrier@cargoflow.demo", company: "Demo Trans Logistics" },
-    { role: "CARRIER_DISPATCHER", email: "dispatcher@cargoflow.demo", company: "Demo Trans Logistics" },
-    { role: "FORWARDER", email: "forwarder@cargoflow.demo", company: "Demo Forwarding" },
-    { role: "DRIVER (доставил в Алматы)", email: "driver@cargoflow.demo", company: "Demo Trans Logistics" },
-    { role: "DRIVER (в рейсе)", email: "driver2@cargoflow.demo", company: "Demo Trans Logistics" },
-    { role: "CARRIER_ADMIN", email: "carrier2@cargoflow.demo", company: "Demo Silk Road Carriers" },
-    { role: "CARRIER_ADMIN (топливо)", email: "fleet@cargoflow.demo", company: "ABC Logistics" },
-    { role: "DRIVER (топливо)", email: "ivan@cargoflow.demo", company: "ABC Logistics" },
-    { role: "PLATFORM_ADMIN", email: "admin@cargoflow.demo", company: "—" },
+    { role: "SHIPPER", email: "shipper@tirco.demo", company: "Demo Cargo Kazakhstan" },
+    { role: "CARRIER_ADMIN", email: "carrier@tirco.demo", company: "Demo Trans Logistics" },
+    { role: "CARRIER_DISPATCHER", email: "dispatcher@tirco.demo", company: "Demo Trans Logistics" },
+    { role: "FORWARDER", email: "forwarder@tirco.demo", company: "Demo Forwarding" },
+    { role: "DRIVER (доставил в Алматы)", email: "driver@tirco.demo", company: "Demo Trans Logistics" },
+    { role: "DRIVER (в рейсе)", email: "driver2@tirco.demo", company: "Demo Trans Logistics" },
+    { role: "CARRIER_ADMIN", email: "carrier2@tirco.demo", company: "Demo Silk Road Carriers" },
+    { role: "CARRIER_ADMIN (топливо)", email: "fleet@tirco.demo", company: "ABC Logistics" },
+    { role: "DRIVER (топливо)", email: "ivan@tirco.demo", company: "ABC Logistics" },
+    { role: "PLATFORM_ADMIN", email: "admin@tirco.demo", company: "—" },
   ]);
 }
 

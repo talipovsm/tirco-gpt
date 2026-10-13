@@ -8,8 +8,8 @@ import { fuelProviderEventSchema } from "@/lib/validation/fuel";
 import { handleProviderEvent } from "@/server/services/fuel-transaction.service";
 
 /**
- * Процессинг топливных карт → CargoFlow: запрос авторизации (ответ: разрешить/отклонить по лимитам), завершение, отмена, возврат.
- * Подпись: X-CargoFlow-Signature = hex(HMAC-SHA256(тело, FUEL_CARD_WEBHOOK_SECRET)). Повторная доставка безопасна.
+ * Процессинг топливных карт → Tirco: запрос авторизации (ответ: разрешить/отклонить по лимитам), завершение, отмена, возврат.
+ * Подпись: X-Tirco-Signature = hex(HMAC-SHA256(тело, FUEL_CARD_WEBHOOK_SECRET)). Повторная доставка безопасна.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {
   // Внешние провайдеры работают с реальными данными; демо-режим использует встроенные симуляторы.

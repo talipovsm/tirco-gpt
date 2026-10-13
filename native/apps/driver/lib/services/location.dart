@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:cargoflow_core/cargoflow_core.dart';
+import 'package:tirco_core/tirco_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +26,7 @@ String locationAccessText(LocationAccess a) => switch (a) {
 class LocationService extends ChangeNotifier {
   LocationService(this.outbox, {this.minInterval = const Duration(minutes: 5), this.distanceFilterMeters = 300, this.locate});
 
-  static const _autoKey = 'cargoflow.driver.autoTracking';
+  static const _autoKey = 'tirco.driver.autoTracking';
   final Outbox outbox;
   final Duration minInterval;
   final int distanceFilterMeters;
@@ -168,7 +168,7 @@ class LocationService extends ChangeNotifier {
         distanceFilter: distanceFilterMeters,
         intervalDuration: minInterval,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'CargoFlow Водитель',
+          notificationTitle: 'Tirco Водитель',
           notificationText: 'Передаём местоположение по текущему рейсу',
           notificationChannelName: 'Местоположение рейса',
           enableWakeLock: true,

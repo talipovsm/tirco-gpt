@@ -4,9 +4,9 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "CargoFlow — цифровые международные грузоперевозки", template: "%s · CargoFlow" },
+  title: { default: "Tirco — цифровые международные грузоперевозки", template: "%s · Tirco" },
   description: "Единая платформа: грузы, ставки, договоры, водители, трекинг и документы международных перевозок.",
-  applicationName: "CargoFlow",
+  applicationName: "Tirco",
 };
 
 export const viewport: Viewport = {

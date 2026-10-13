@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cargoflow_core/cargoflow_core.dart';
+import 'package:tirco_core/tirco_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,7 +43,7 @@ class PendingOp {
 class Outbox extends ChangeNotifier {
   Outbox(this.api);
 
-  static const _storageKey = 'cargoflow.driver.outbox';
+  static const _storageKey = 'tirco.driver.outbox';
   final ApiClient api;
   final List<PendingOp> _items = [];
   bool _flushing = false;

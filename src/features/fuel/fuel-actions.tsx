@@ -105,7 +105,7 @@ export function IssueCardDialog({ vehicles, drivers }: { vehicles: Opt[]; driver
           <DialogHeader>
             <DialogTitle>Новая топливная карта</DialogTitle>
             <DialogDescription>
-              Карта выпускается у провайдера топливных карт. CargoFlow хранит только идентификатор карты у провайдера и последние 4 цифры —
+              Карта выпускается у провайдера топливных карт. Tirco хранит только идентификатор карты у провайдера и последние 4 цифры —
               номер, PIN и CVV не хранятся.
             </DialogDescription>
           </DialogHeader>
@@ -338,7 +338,7 @@ export function TopUpDialog({ demo }: { demo: boolean }) {
             <DialogDescription>
               {demo
                 ? "Демо-режим: пополнение фиксируется без реального перевода денег."
-                : "CargoFlow не принимает деньги. Зафиксируйте пополнение, выполненное у провайдера топливных карт, с номером платёжного поручения."}
+                : "Tirco не принимает деньги. Зафиксируйте пополнение, выполненное у провайдера топливных карт, с номером платёжного поручения."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-[1fr_110px] gap-3">

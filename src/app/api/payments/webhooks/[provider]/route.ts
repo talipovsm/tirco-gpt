@@ -8,8 +8,8 @@ import { providerWebhookSchema } from "@/lib/validation/order";
 import { handleProviderWebhook } from "@/server/services/secure-deal.service";
 
 /**
- * Webhook платёжного провайдера: результат операции (по ключу идемпотентности CargoFlow).
- * Подпись: X-CargoFlow-Signature = hex(HMAC-SHA256(тело запроса, PAYMENT_WEBHOOK_SECRET)).
+ * Webhook платёжного провайдера: результат операции (по ключу идемпотентности Tirco).
+ * Подпись: X-Tirco-Signature = hex(HMAC-SHA256(тело запроса, PAYMENT_WEBHOOK_SECRET)).
  * Повторная доставка того же результата безопасна — операция применяется один раз.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {

@@ -5,7 +5,7 @@
  *   npm run seed:demo:reset   — очистить демо-базу и загрузить заново
  *
  * Защита реальной базы: целевая схема берётся только из конфигурации режима DEMO, должна отличаться
- * от DATABASE_URL и иметь метку `cargoflow:demo` (ставится `scripts/db-modes.ts migrate`). Иначе — остановка.
+ * от DATABASE_URL и иметь метку `tirco:demo` (ставится `scripts/db-modes.ts migrate`). Иначе — остановка.
  * Seed выполняется внутри runWithDataMode("demo"): все сервисы пишут в демо-базу.
  */
 import "dotenv/config";
@@ -64,8 +64,8 @@ async function main() {
     await runWithDataMode("demo", async () => {
       console.log(`[demo-seed] Загрузка демо-базы (схема ${target.schema})...`);
       await seedScenarios();
-      console.log("→ Генератор демо-мира (seed «cargoflow-demo»)");
-      const summary = await generateDemoWorld({ seed: process.env.DEMO_SEED_KEY || "cargoflow-demo", now });
+      console.log("→ Генератор демо-мира (seed «tirco-demo»)");
+      const summary = await generateDemoWorld({ seed: process.env.DEMO_SEED_KEY || "tirco-demo", now });
       console.table(summary);
     });
     console.log(`[demo-seed] Демо-данные загружены за ${Math.round((Date.now() - startedAt) / 1000)} с.`);

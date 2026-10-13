@@ -1,6 +1,6 @@
-# CargoFlow
+# Tirco
 
-**CargoFlow** — SaaS-платформа для цифровизации международных автомобильных грузоперевозок (Китай — Казахстан — Центральная Азия — Россия и любые другие страны).
+**Tirco** — SaaS-платформа для цифровизации международных автомобильных грузоперевозок (Китай — Казахстан — Центральная Азия — Россия и любые другие страны).
 
 В одном месте участники перевозки:
 
@@ -20,7 +20,7 @@ Docker и ручная установка PostgreSQL **не нужны**: скр
    - **macOS:** `start-mac.command` (если macOS блокирует: правый клик → «Открыть»)
    - **Linux:** `bash start-linux.sh`
 3. Первый запуск займёт 2–5 минут. Откроется http://localhost:3000.
-   Вход: `shipper@cargoflow.demo` / `Demo1234!` (на странице входа есть кнопки для всех ролей).
+   Вход: `shipper@tirco.demo` / `Demo1234!` (на странице входа есть кнопки для всех ролей).
 
 Повторные запуски — тот же файл (быстро, данные сохраняются в `.local/pgdata`). Остановка — `Ctrl+C` в окне терминала.
 
@@ -46,7 +46,7 @@ Docker и ручная установка PostgreSQL **не нужны**: скр
 
 <sub>Скриншоты сняты на локальных демо-данных (`npm run db:seed`) без подложки карты: среда съёмки не имела доступа к тайлам. С `NEXT_PUBLIC_GEOAPIFY_KEY` под маршрутами отображается карта.</sub>
 
-## 1. Что такое CargoFlow
+## 1. Что такое Tirco
 
 | Роль                                           | Что делает                                                                                                                                                     |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -59,8 +59,8 @@ Docker и ручная установка PostgreSQL **не нужны**: скр
 
 ### Нативные приложения
 
-- **CargoFlow** (Windows, macOS, iOS, Android) — для грузовладельцев, перевозчиков и экспедиторов: живая карта операций, перевозки, грузы, биржа, автопарк, события.
-- **CargoFlow Водитель** (iOS, Android) — рейс, следующий шаг одной кнопкой, фоновая геолокация, фото и CMR с камеры, офлайн-очередь.
+- **Tirco** (Windows, macOS, iOS, Android) — для грузовладельцев, перевозчиков и экспедиторов: живая карта операций, перевозки, грузы, биржа, автопарк, события.
+- **Tirco Водитель** (iOS, Android) — рейс, следующий шаг одной кнопкой, фоновая геолокация, фото и CMR с камеры, офлайн-очередь.
 
 Flutter, полноценный нативный интерфейс (не WebView), тот же API. Код — `native/`, описание и сборка — [docs/NATIVE_APPS.md](docs/NATIVE_APPS.md).
 
@@ -84,11 +84,11 @@ Flutter, полноценный нативный интерфейс (не WebVie
 ## 4. Installation
 
 ```bash
-git clone <repo> cargoflow && cd cargoflow
+git clone <repo> tirco && cd tirco
 cp .env.example .env            # при необходимости поправьте значения
-docker compose up -d            # PostgreSQL (+ БД cargoflow_test) и MinIO
+docker compose up -d            # PostgreSQL (+ БД tirco_test) и MinIO
 npm install                     # postinstall выполнит prisma generate
-npm run db:migrate:all          # миграции реальной и демо-базы (схема cargoflow_demo)
+npm run db:migrate:all          # миграции реальной и демо-базы (схема tirco_demo)
 npm run db:seed                 # сценарии в реальной базе разработки (ОЧИЩАЕТ её!)
 npm run seed:demo               # демо-база: ≈100 грузов, 20 машин, 40 клиентов (только DEMO)
 npm run dev                     # http://localhost:3000
@@ -101,7 +101,7 @@ npm run dev                     # http://localhost:3000
 | Переменная                                 | Назначение                                                                                                                                                                                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `DATABASE_URL`                             | строка подключения PostgreSQL                                                                                                                                                                                                                    |
-| `DEMO_DATABASE_URL`                        | демо-база (режим «🧪 Демо-база» при входе); пусто — та же СУБД, схема `cargoflow_demo`. Подробно — [docs/DATABASE_MODES.md](docs/DATABASE_MODES.md)                                                                                              |
+| `DEMO_DATABASE_URL`                        | демо-база (режим «🧪 Демо-база» при входе); пусто — та же СУБД, схема `tirco_demo`. Подробно — [docs/DATABASE_MODES.md](docs/DATABASE_MODES.md)                                                                                                  |
 | `TEST_DATABASE_URL`                        | **отдельная** БД для integration/E2E тестов (она очищается!)                                                                                                                                                                                     |
 | `APP_URL`                                  | публичный URL приложения (ссылки в письмах, проверка Origin)                                                                                                                                                                                     |
 | `APP_SECRET`                               | зарезервировано для будущих подписанных ссылок (сейчас не используется)                                                                                                                                                                          |
@@ -129,13 +129,13 @@ npm run dev                     # http://localhost:3000
 
 ## 6. PostgreSQL setup
 
-Через Docker: `docker compose up -d postgres` — создаёт `cargoflow` и `cargoflow_test` (`docker/postgres-init.sql`).
+Через Docker: `docker compose up -d postgres` — создаёт `tirco` и `tirco_test` (`docker/postgres-init.sql`).
 
 Без Docker:
 
 ```sql
-CREATE DATABASE cargoflow;
-CREATE DATABASE cargoflow_test;
+CREATE DATABASE tirco;
+CREATE DATABASE tirco_test;
 ```
 
 ## 7. Prisma migration
@@ -206,18 +206,18 @@ npm run build && npm start
 
 Пароль для всех: **`Demo1234!`** (только локальная среда; на странице входа есть кнопки быстрого заполнения).
 
-| Роль                              | Email                       | Компания                |
-| --------------------------------- | --------------------------- | ----------------------- |
-| Грузовладелец                     | `shipper@cargoflow.demo`    | Demo Cargo Kazakhstan   |
-| Перевозчик (руководитель)         | `carrier@cargoflow.demo`    | Demo Trans Logistics    |
-| Диспетчер                         | `dispatcher@cargoflow.demo` | Demo Trans Logistics    |
-| Экспедитор                        | `forwarder@cargoflow.demo`  | Demo Forwarding         |
-| Водитель (доставил груз в Алматы) | `driver@cargoflow.demo`     | Demo Trans Logistics    |
-| Водитель (сейчас в рейсе)         | `driver2@cargoflow.demo`    | Demo Trans Logistics    |
-| Второй перевозчик (на проверке)   | `carrier2@cargoflow.demo`   | Demo Silk Road Carriers |
-| Автопарк: руководитель (топливо)  | `fleet@cargoflow.demo`      | ABC Logistics           |
-| Водитель Ivan (топливная карта)   | `ivan@cargoflow.demo`       | ABC Logistics           |
-| Администратор                     | `admin@cargoflow.demo`      | —                       |
+| Роль                              | Email                   | Компания                |
+| --------------------------------- | ----------------------- | ----------------------- |
+| Грузовладелец                     | `shipper@tirco.demo`    | Demo Cargo Kazakhstan   |
+| Перевозчик (руководитель)         | `carrier@tirco.demo`    | Demo Trans Logistics    |
+| Диспетчер                         | `dispatcher@tirco.demo` | Demo Trans Logistics    |
+| Экспедитор                        | `forwarder@tirco.demo`  | Demo Forwarding         |
+| Водитель (доставил груз в Алматы) | `driver@tirco.demo`     | Demo Trans Logistics    |
+| Водитель (сейчас в рейсе)         | `driver2@tirco.demo`    | Demo Trans Logistics    |
+| Второй перевозчик (на проверке)   | `carrier2@tirco.demo`   | Demo Silk Road Carriers |
+| Автопарк: руководитель (топливо)  | `fleet@tirco.demo`      | ABC Logistics           |
+| Водитель Ivan (топливная карта)   | `ivan@tirco.demo`       | ABC Logistics           |
+| Администратор                     | `admin@tirco.demo`      | —                       |
 
 ### Демо-сценарий «с нуля» (как в E2E)
 
@@ -254,7 +254,7 @@ Seed создаёт сценарий из ТЗ (комиссия платфор�
 
 **Принципы**
 
-- CargoFlow **не банк и не хранит данные карт**: ни номера, ни PIN, ни CVV. В базе — только токен провайдера (`providerCardId`, наружу не отдаётся) и последние 4 цифры. Деньги на топливном счёте (`FuelAccount`) — учёт в журнале `FuelAccountEntry` (append-only, суммы в минимальных единицах, `balance ≥ 0`, `0 ≤ reserved ≤ balance` — CHECK в БД).
+- Tirco **не банк и не хранит данные карт**: ни номера, ни PIN, ни CVV. В базе — только токен провайдера (`providerCardId`, наружу не отдаётся) и последние 4 цифры. Деньги на топливном счёте (`FuelAccount`) — учёт в журнале `FuelAccountEntry` (append-only, суммы в минимальных единицах, `balance ≥ 0`, `0 ≤ reserved ≤ balance` — CHECK в БД).
 - Все лимиты и права проверяются **на сервере**. Водитель не видит баланс компании и суммы — только «Оплата разрешена / не разрешена», остаток литров на сегодня и (если разрешено) уровень в баке.
 - Несоответствие — **сигнал для проверки, а не обвинение**: тексты нейтральные («Обнаружено потенциальное несоответствие… Требуется проверка»), решение принимает владелец.
 - Демо-данные и симулятор АЗС всегда помечены **DEMO DATA**. Если данных нет — показывается «нет данных», а не выдуманные цифры.
@@ -290,7 +290,7 @@ Seed создаёт сценарий из ТЗ (комиссия платфор�
 
 **API:** `GET /api/fuel/dashboard`, `/api/fuel/fleet`, `GET|PATCH /api/fuel/vehicles/:id`, `/api/fuel/vehicles/:id/telemetry`, `GET|POST /api/fuel/accounts` (пополнение, `Idempotency-Key`), `GET|POST /api/fuel/cards`, `/api/fuel/cards/:id/{status,limits,assign}`, `GET|POST /api/fuel/transactions` (симулятор, demo), `/api/fuel/transactions/:id[/action]`, `/api/fuel/anomalies[/:id[/review]]`, `/api/fuel/investigations[/:id[/comments|attachments|transactions]]`, `/api/orders/:id/fuel`, `GET|POST /api/driver/fuel`, webhooks `POST /api/integrations/fuel-cards/:provider/webhook` и `POST /api/integrations/telematics/:provider/ingest` (HMAC-SHA256).
 
-**Демо (seed):** `fleet@cargoflow.demo` — ABC Logistics, MAN TGX `123ABC` (бак 1 000 л, норма 31 л/100 км, демо-CAN), водитель Ivan (`ivan@cargoflow.demo`), рейс Алматы → Москва, карта `FC-001` (300 л за заправку), 4 заправки на 850 л (250 + 300 + 150 + 150), уровень сейчас 487 л, 2 потенциальных несоответствия: уровень вырос на 24 л при заправке 150 л и АЗС в 84 км от GPS.
+**Демо (seed):** `fleet@tirco.demo` — ABC Logistics, MAN TGX `123ABC` (бак 1 000 л, норма 31 л/100 км, демо-CAN), водитель Ivan (`ivan@tirco.demo`), рейс Алматы → Москва, карта `FC-001` (300 л за заправку), 4 заправки на 850 л (250 + 300 + 150 + 150), уровень сейчас 487 л, 2 потенциальных несоответствия: уровень вырос на 24 л при заправке 150 л и АЗС в 84 км от GPS.
 
 ## Next Load / Следующий рейс
 
@@ -311,7 +311,7 @@ API: `GET /api/next-load` (автопарк и позиции), `POST /api/next-
 
 ## Secure Deal / Безопасная сделка
 
-**Принцип:** CargoFlow — не кошелёк и не хранит деньги. Платформа отвечает за сумму, условия выплаты, статусы, события, документы, подтверждение доставки, споры и журнал; движение средств выполняет **лицензированный платёжный провайдер / банк** через адаптер `src/lib/payments/provider.ts`. Данные банковских карт не хранятся и не проходят через CargoFlow.
+**Принцип:** Tirco — не кошелёк и не хранит деньги. Платформа отвечает за сумму, условия выплаты, статусы, события, документы, подтверждение доставки, споры и журнал; движение средств выполняет **лицензированный платёжный провайдер / банк** через адаптер `src/lib/payments/provider.ts`. Данные банковских карт не хранятся и не проходят через Tirco.
 
 **Поток:** Load → Bid → Order → **Secure payment** → Contract → Vehicle → Driver → Loading → In transit → Border → Delivery → Documents → Shipper confirmation → **Payment release** → Closed → **Next load**.
 
@@ -371,13 +371,13 @@ PAYMENT_DISPUTED ──(ADMIN)──► RESERVED (перевозка продо�
 
 Плановая задача выполняется встроенным планировщиком каждые `JOB_SECURE_DEAL_INTERVAL_MIN` минут (по умолчанию 10 в production), либо внешним cron: `POST /api/system/jobs/secure-deal` c заголовком `Authorization: Bearer $CRON_SECRET`, либо кнопкой «Обработать истёкшие сроки» в админ-панели. Задача: автоподтверждение по истечении срока, повтор выплат по подтверждённым получениям, переотправка зависших операций провайдера (с тем же ключом идемпотентности), доисполнение решений по спорам, обслуживание БД (истёкшие планы и карты, очистка служебных записей).
 
-**Подпись webhook** (платежи, топливные карты, телематика): `X-CargoFlow-Timestamp` (unix-секунды) и `X-CargoFlow-Signature = hex(HMAC-SHA256("<timestamp>.<тело>", секрет))`; запросы старше 5 минут отклоняются. Секрет можно задать отдельно для провайдера: `PAYMENT_WEBHOOK_SECRET_<PROVIDER>` (иначе общий). Устаревший формат без метки времени принимается, пока не задан `WEBHOOK_REQUIRE_TIMESTAMP=1`.
+**Подпись webhook** (платежи, топливные карты, телематика): `X-Tirco-Timestamp` (unix-секунды) и `X-Tirco-Signature = hex(HMAC-SHA256("<timestamp>.<тело>", секрет))`; запросы старше 5 минут отклоняются. Секрет можно задать отдельно для провайдера: `PAYMENT_WEBHOOK_SECRET_<PROVIDER>` (иначе общий). Устаревший формат без метки времени принимается, пока не задан `WEBHOOK_REQUIRE_TIMESTAMP=1`.
 
 API: `GET|POST /api/orders/:id/secure-deal`, `POST /api/orders/:id/secure-deal/cancel`, `GET /api/admin/payments`, `POST /api/admin/payments/:id/{release,refund}`, `POST /api/admin/payment-transactions/:id/{confirm,retry}`, `POST /api/admin/jobs/secure-deal`, `POST /api/system/jobs/secure-deal`, `POST /api/payments/webhooks/:provider`.
 
 ### Перед подключением реальных платежей
 
-- Нужен лицензированный партнёр (банк / PSP с эскроу, номинальным счётом или удержанием средств) — CargoFlow не должен сам принимать и держать деньги клиентов: это требует лицензии платёжной организации (в РК — регулирование НБРК, в РФ — 161-ФЗ, в КНР — PBoC) и AML/KYC-процедур.
+- Нужен лицензированный партнёр (банк / PSP с эскроу, номинальным счётом или удержанием средств) — Tirco не должен сам принимать и держать деньги клиентов: это требует лицензии платёжной организации (в РК — регулирование НБРК, в РФ — 161-ФЗ, в КНР — PBoC) и AML/KYC-процедур.
 - Договоры: оферта безопасной сделки (условия резервирования, срок проверки, автоподтверждение, порядок споров), агентская схема комиссии, налоговые последствия (НДС на комиссию, документы для бухгалтерии сторон).
 - Трансграничные расчёты: валютный контроль, конвертация, санкционные ограничения, сроки зачисления и комиссии банков.
 - Решения администратора по спорам — внутренний регламент, а не арбитраж; при несогласии стороны идут в суд/арбитраж по договору.

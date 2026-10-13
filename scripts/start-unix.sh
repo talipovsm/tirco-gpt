@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# CargoFlow: установка всего необходимого и запуск (macOS / Linux).
+# Tirco: установка всего необходимого и запуск (macOS / Linux).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-say() { printf "\033[36m[cargoflow]\033[0m %s\n" "$1"; }
+say() { printf "\033[36m[tirco]\033[0m %s\n" "$1"; }
 
 need_node() {
   command -v node >/dev/null 2>&1 || return 0

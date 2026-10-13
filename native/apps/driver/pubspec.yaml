@@ -1,5 +1,5 @@
-name: cargoflow_driver
-description: "CargoFlow Водитель"
+name: tirco_driver
+description: "Tirco Водитель"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -40,8 +40,8 @@ dependencies:
   intl: ^0.20.3
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
-  cargoflow_core:
-    path: ../../packages/cargoflow_core
+  tirco_core:
+    path: ../../packages/tirco_core
   shared_preferences: ^2.5.5
   url_launcher: ^6.3.2
   flutter_secure_storage: ^11.2.0

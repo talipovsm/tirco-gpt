@@ -1,4 +1,4 @@
-import 'package:cargoflow_core/cargoflow_core.dart';
+import 'package:tirco_core/tirco_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -11,7 +11,7 @@ import 'services/location.dart';
 import 'services/navigator.dart';
 import 'services/outbox.dart';
 
-/// CargoFlow Водитель — нативное приложение для iOS и Android: текущий рейс, этапы,
+/// Tirco Водитель — нативное приложение для iOS и Android: текущий рейс, этапы,
 /// автоматическая передача местоположения, фото груза / пломбы / CMR, офлайн-очередь отметок.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,9 +46,9 @@ class DriverApp extends StatelessWidget {
         Provider<NavigatorLauncher>(create: (_) => navigator ?? NavigatorLauncher()),
       ],
       child: MaterialApp(
-        title: 'CargoFlow Водитель',
+        title: 'Tirco Водитель',
         debugShowCheckedModeBanner: false,
-        theme: cargoflowTheme(),
+        theme: tircoTheme(),
         locale: const Locale('ru'),
         supportedLocales: const [Locale('ru')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -71,7 +71,7 @@ class DriverGate extends StatelessWidget {
         SessionStatus.signedOut => LoginScreen(
             key: const ValueKey('login'),
             session: session,
-            appTitle: 'CargoFlow Водитель',
+            appTitle: 'Tirco Водитель',
             appSubtitle: 'Рейс, этапы, местоположение и документы — в одном приложении',
           ),
         SessionStatus.signedIn => session.actor!.workspace == Workspace.driver
@@ -81,7 +81,7 @@ class DriverGate extends StatelessWidget {
                 body: EmptyView(
                   icon: Icons.badge_outlined,
                   title: 'Приложение для водителей',
-                  text: 'Эта учётная запись не водитель. Грузовладельцам, перевозчикам и экспедиторам — приложение «CargoFlow».',
+                  text: 'Эта учётная запись не водитель. Грузовладельцам, перевозчикам и экспедиторам — приложение «Tirco».',
                   action: 'Выйти',
                   onAction: session.logout,
                 ),

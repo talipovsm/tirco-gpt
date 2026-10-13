@@ -230,7 +230,7 @@ export async function inviteMember(actor: Actor, companyId: string, input: z.out
   const link = `${process.env.APP_URL ?? "http://localhost:3000"}/invite/${token}`;
   await sendEmail(
     input.email,
-    `Приглашение в ${company.legalName} на CargoFlow`,
+    `Приглашение в ${company.legalName} на Tirco`,
     `Вас пригласили в компанию ${company.legalName}. Перейдите по ссылке: ${link}`,
   );
   // Ссылка возвращается один раз — в БД хранится только hash токена

@@ -1,4 +1,4 @@
-# Production-образ CargoFlow (Next.js + Prisma). Миграции: npx prisma migrate deploy
+# Production-образ Tirco (Next.js + Prisma). Миграции: npx prisma migrate deploy
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json prisma.config.ts ./

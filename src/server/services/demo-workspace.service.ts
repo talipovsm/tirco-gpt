@@ -29,7 +29,7 @@ const ANCHOR_FOR: Record<MemberRole, keyof typeof DEMO_ANCHORS> = {
 /** Заведомо непригодный для входа хеш: в демо-базе пароль не хранится и не проверяется. */
 const NO_PASSWORD = "!demo-mirror:identity-in-real-db";
 
-const displacedEmail = (userId: string) => `displaced+${userId}@demo.cargoflow.invalid`;
+const displacedEmail = (userId: string) => `displaced+${userId}@demo.tirco.invalid`;
 
 /** Демо-база готова к работе: миграции применены и ключевые компании загружены. */
 export async function demoWorkspaceReady(): Promise<boolean> {
@@ -129,7 +129,7 @@ export async function provisionDemoIdentity(userId: string): Promise<{ activeCom
             where: {
               carrierCompanyId: companyId,
               currentStatus: { in: ["IN_TRANSIT", "LOADED", "AT_LOADING", "WAITING_FOR_LOADING", "DRIVER_ASSIGNED"] },
-              driver: { user: { email: { endsWith: "cargoflow.demo" } } },
+              driver: { user: { email: { endsWith: "tirco.demo" } } },
             },
             orderBy: { createdAt: "asc" },
           });

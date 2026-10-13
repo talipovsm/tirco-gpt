@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { NextRequest } from "next/server";
+import pg from "pg";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentActor, SESSION_COOKIE } from "@/lib/auth/session";
 import { permissionsForRole } from "@/lib/permissions";
 import { runWithDataMode } from "@/lib/db/data-mode";
+import { DEMO_SEED_LOCK, dataModeConfig } from "@/lib/db/data-mode-config";
 import { authDb, dbFor, prisma } from "@/lib/db/prisma";
 import { DEMO_ANCHORS } from "@/server/services/demo-workspace.service";
 import type { CompanyType } from "@/generated/prisma/enums";
@@ -242,6 +244,40 @@ describe("Режимы данных: изоляция и атаки на реж�
     const actor = await getCurrentActor();
     expect(actor?.dataMode).toBe("demo");
     expect(actor?.active?.role).toBe("SHIPPER");
+  });
+
+  /** Держит advisory-lock загрузки демо-данных, как seed:demo, пока выполняется fn. */
+  async function whileDemoSeedRuns(fn: () => Promise<void>) {
+    const lock = new pg.Client({ connectionString: dataModeConfig("demo").connectionString });
+    await lock.connect();
+    try {
+      await lock.query("SELECT pg_advisory_lock($1)", [DEMO_SEED_LOCK]);
+      await fn();
+    } finally {
+      await lock.end();
+    }
+  }
+
+  it("вход в демо во время загрузки демо-данных — 503, демо-база не трогается; после загрузки — вход", async () => {
+    await whileDemoSeedRuns(async () => {
+      const res = await signIn(shipperEmail, "demo");
+      expect(res.status).toBe(503);
+      expect(res.json.error?.code).toBe("SERVICE_UNAVAILABLE");
+      expect(await demo.user.count({ where: { email: shipperEmail } })).toBe(0);
+      expect(await authDb.session.count()).toBe(0);
+    });
+    expect((await signIn(shipperEmail, "demo")).status).toBe(200);
+  });
+
+  it("демо-база пересоздаётся (идёт загрузка) — сессия не теряется и восстанавливается после загрузки", async () => {
+    await signIn(shipperEmail, "demo");
+    await seedDemoAnchors();
+    await whileDemoSeedRuns(async () => {
+      expect(await getCurrentActor()).toBeNull();
+      expect(await demo.companyMember.count()).toBe(0);
+    });
+    expect((await sessionRow()).revokedAt).toBeNull();
+    expect((await getCurrentActor())?.active?.role).toBe("SHIPPER");
   });
 });
 

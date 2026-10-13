@@ -9,7 +9,7 @@ import { createSession, destroySession, setActiveCompany } from "@/lib/auth/sess
 import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { runWithDataMode, type DataMode } from "@/lib/db/data-mode";
 import { authDb, dbFor, prisma } from "@/lib/db/prisma";
-import { demoWorkspaceReady, provisionDemoIdentity } from "./demo-workspace.service";
+import { demoNotReadyError, demoWorkspaceReady, provisionDemoIdentity } from "./demo-workspace.service";
 import { AppError, errors } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/notifications/adapters";
@@ -248,15 +248,7 @@ export async function login(input: z.output<typeof loginSchema>, meta: RequestMe
     let companyId: string | null = user.memberships[0]?.companyId ?? null;
     let role: MemberRole | null = user.memberships[0]?.role ?? null;
     if (dataMode === "demo") {
-      if (!(await demoWorkspaceReady())) {
-        throw new AppError(
-          "SERVICE_UNAVAILABLE",
-          "Демо-база ещё не готова (идёт загрузка демо-данных). Попробуйте через несколько минут.",
-          {
-            status: 503,
-          },
-        );
-      }
+      if (!(await demoWorkspaceReady())) throw demoNotReadyError();
       ({ activeCompanyId: companyId, role } = await provisionDemoIdentity(user.id));
     }
     const session = await createSession(user.id, companyId, meta, dataMode);
@@ -432,15 +424,7 @@ export async function switchDataMode(actor: Actor, dataMode: DataMode, meta: Req
     if (dataMode === actor.dataMode) return { dataMode, redirectTo: homePathFor(actor.active?.role ?? role, actor.isAdmin) };
     let companyId: string | null = realMemberships[0]?.companyId ?? null;
     if (dataMode === "demo") {
-      if (!(await demoWorkspaceReady())) {
-        throw new AppError(
-          "SERVICE_UNAVAILABLE",
-          "Демо-база ещё не готова (идёт загрузка демо-данных). Попробуйте через несколько минут.",
-          {
-            status: 503,
-          },
-        );
-      }
+      if (!(await demoWorkspaceReady())) throw demoNotReadyError();
       ({ activeCompanyId: companyId, role } = await provisionDemoIdentity(actor.userId));
     }
     await destroySession();

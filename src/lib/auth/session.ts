@@ -159,7 +159,13 @@ export const getCurrentActor = cache(async (): Promise<Actor | null> => {
       }
       // Демо-база пересоздана после входа — восстанавливаем рабочее пространство пользователя
       const { provisionDemoIdentity } = await import("@/server/services/demo-workspace.service");
-      await provisionDemoIdentity(session.userId);
+      try {
+        await provisionDemoIdentity(session.userId);
+      } catch (notReady) {
+        // Демо-база ещё загружается: сессия сохраняется, после загрузки пространство восстановится
+        if (isAppError(notReady)) return null;
+        throw notReady;
+      }
       try {
         actor = await build();
       } catch (again) {

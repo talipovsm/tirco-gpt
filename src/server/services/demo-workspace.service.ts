@@ -1,6 +1,8 @@
 import "server-only";
 import type { MemberRole } from "@/generated/prisma/enums";
+import { DEMO_SEED_LOCK } from "@/lib/db/data-mode-config";
 import { authDb, dbFor } from "@/lib/db/prisma";
+import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
 /**
@@ -31,11 +33,33 @@ const NO_PASSWORD = "!demo-mirror:identity-in-real-db";
 
 const displacedEmail = (userId: string) => `displaced+${userId}@demo.tirco.invalid`;
 
-/** Демо-база готова к работе: миграции применены и ключевые компании загружены. */
+/** Вход в демо, пока демо-база не готова: 503 вместо тихого входа в реальную базу или в недозагруженные данные. */
+export function demoNotReadyError(): AppError {
+  return new AppError("SERVICE_UNAVAILABLE", "Демо-база ещё не готова (идёт загрузка демо-данных). Попробуйте через несколько минут.", {
+    status: 503,
+  });
+}
+
+/**
+ * Идёт загрузка демо-данных: seed:demo держит advisory-lock демо-базы всё время загрузки.
+ * Пока он взят, данные неполные, а рейсы ещё проводятся по статусам — рабочее пространство не трогаем.
+ */
+export async function demoSeedRunning(): Promise<boolean> {
+  const [row] = await dbFor("demo").$queryRaw<{ running: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM pg_locks
+      WHERE locktype = 'advisory' AND granted AND objsubid = 1
+        AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+        AND ((classid::bigint << 32) | objid::bigint) = ${DEMO_SEED_LOCK}::bigint
+    ) AS running`;
+  return Boolean(row?.running);
+}
+
+/** Демо-база готова к работе: миграции применены, ключевые компании загружены и загрузка завершена. */
 export async function demoWorkspaceReady(): Promise<boolean> {
   try {
     const n = await dbFor("demo").company.count({ where: { registrationNumber: { in: Object.values(DEMO_ANCHORS) } } });
-    return n > 0;
+    return n > 0 && !(await demoSeedRunning());
   } catch {
     return false;
   }
@@ -48,6 +72,8 @@ export async function provisionDemoIdentity(userId: string): Promise<{ activeCom
     include: { memberships: { where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" } } },
   });
   if (!identity || identity.deletedAt) return { activeCompanyId: null, role: null };
+  // Seed проводит рейсы по статусам от имени водителей: забрать рейс посреди загрузки — сломать её
+  if (await demoSeedRunning()) throw demoNotReadyError();
 
   const anchors = await demo.company.findMany({
     where: { registrationNumber: { in: Object.values(DEMO_ANCHORS) }, deletedAt: null },

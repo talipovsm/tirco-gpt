@@ -12,6 +12,12 @@ export const DEFAULT_DEMO_SCHEMA = "tirco_demo";
 /** Метки схем (COMMENT ON SCHEMA): seed:demo пишет только в схему с меткой demo. */
 export const SCHEMA_MARKER: Record<DataMode, string> = { real: "tirco:real", demo: "tirco:demo" };
 
+/**
+ * Ключ advisory-lock демо-базы: seed:demo держит его всё время загрузки (один seed одновременно),
+ * вход в демо по нему видит, что данные ещё загружаются.
+ */
+export const DEMO_SEED_LOCK = 72_700_001;
+
 /** Метки до переименования проекта (CargoFlow → Tirco): `cargoflow:real` / `cargoflow:demo`. */
 const LEGACY_MARKER_PREFIX = "cargoflow:";
 

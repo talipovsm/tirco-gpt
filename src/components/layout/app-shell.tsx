@@ -1,5 +1,5 @@
 "use client";
-import { Menu, PanelLeftClose, PanelLeftOpen, ShieldCheck, Truck } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -23,13 +23,25 @@ function isActive(pathname: string, href: string) {
 /** Рабочие пространства на всю площадь окна: карта + список + контекстная панель. */
 const WORKSPACE_ROUTES = new Set(["/dashboard", "/orders", "/vehicles"]);
 
+/** Знак Tirco «Т-дорога»: перекладина T — горизонт, ножка — трасса с разметкой (public/brand/tirco-mark.svg). */
+export function TircoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={cn("size-8 shrink-0", className)} aria-hidden>
+      <rect width="64" height="64" rx="14" fill="#1d4ed8" />
+      <rect x="11" y="13" width="42" height="10" rx="3" fill="#fff" />
+      <path d="M27 23h10l8.6 28.4a1.6 1.6 0 0 1-1.5 2.1H19.9a1.6 1.6 0 0 1-1.5-2.1Z" fill="#fff" />
+      <rect x="30.95" y="27" width="2.1" height="5" rx="1.05" fill="#f59e0b" />
+      <rect x="30.6" y="36" width="2.8" height="6" rx="1.4" fill="#f59e0b" />
+      <rect x="30.2" y="45.5" width="3.6" height="6" rx="1.8" fill="#f59e0b" />
+    </svg>
+  );
+}
+
 export function Logo({ className, dark, compact }: { className?: string; dark?: boolean; compact?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)}>
-      <span className="bg-primary grid size-8 shrink-0 place-items-center rounded-md text-white">
-        <Truck className="size-4.5" aria-hidden />
-      </span>
-      {!compact && <span className={cn("text-base", dark ? "text-white" : "text-foreground")}>Tirco</span>}
+    <span className={cn("inline-flex items-center gap-2 font-extrabold tracking-tight", className)}>
+      <TircoMark />
+      {!compact && <span className={cn("text-lg", dark ? "text-white" : "text-foreground")}>Tirco</span>}
     </span>
   );
 }

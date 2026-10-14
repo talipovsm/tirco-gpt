@@ -482,25 +482,28 @@ enum FuelInvestigationStatus {
 // ───────────────────────────── Identity ─────────────────────────────
 
 model User {
-  id           String       @id @default(uuid()) @db.Uuid
-  email        String       @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  phone        String?
-  platformRole PlatformRole @default(USER)
-  status       UserStatus   @default(ACTIVE)
-  locale       String       @default("ru-RU")
-  timezone     String       @default("Asia/Almaty")
-  lastLoginAt  DateTime?    @db.Timestamptz(3)
-  blockedAt    DateTime?    @db.Timestamptz(3)
-  blockReason  String?
-  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
-  deletedAt    DateTime?    @db.Timestamptz(3)
+  id              String       @id @default(uuid()) @db.Uuid
+  email           String       @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  platformRole    PlatformRole @default(USER)
+  status          UserStatus   @default(ACTIVE)
+  locale          String       @default("ru-RU")
+  timezone        String       @default("Asia/Almaty")
+  lastLoginAt     DateTime?    @db.Timestamptz(3)
+  /// Email подтверждён ссылкой из письма (или сбросом пароля по ссылке из письма)
+  emailVerifiedAt DateTime?    @db.Timestamptz(3)
+  blockedAt       DateTime?    @db.Timestamptz(3)
+  blockReason     String?
+  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime?    @db.Timestamptz(3)
 
   sessions                     Session[]
   passwordResetTokens          PasswordResetToken[]
+  emailVerificationTokens      EmailVerificationToken[]
   memberships                  CompanyMember[]
   driverProfiles               DriverProfile[]
   createdLoads                 Load[]                        @relation("LoadCreatedBy")
@@ -568,6 +571,19 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model PasswordResetToken {

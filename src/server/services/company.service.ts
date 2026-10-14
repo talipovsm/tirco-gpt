@@ -4,9 +4,10 @@ import type { CompanyDocumentType } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import { requireActiveCompany, requireCompanyPermission, requirePermission, type Actor } from "@/lib/auth/actor";
 import { generateToken, sha256 } from "@/lib/auth/tokens";
-import { prisma } from "@/lib/db/prisma";
+import { authDb, prisma } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
 import { sendEmail } from "@/lib/notifications/adapters";
+import { emailDeliveryEnabled } from "@/lib/notifications/email";
 import { ROLES_BY_COMPANY_TYPE } from "@/lib/permissions";
 import { buildStorageKey, storage } from "@/lib/storage/storage";
 import { validateUpload } from "@/lib/storage/file-validation";
@@ -329,6 +330,13 @@ export async function submitVerification(actor: Actor, companyId: string, commen
   assertCompanyManager(actor, companyId);
   const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId } });
   if (company.verificationStatus === "VERIFIED") throw new AppError("DUPLICATE_ACTION", "Компания уже проверена.");
+  // SEC-04: на проверку компанию отправляет руководитель с подтверждённым email (если доставка писем подключена)
+  if (emailDeliveryEnabled()) {
+    const submitter = await authDb.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { emailVerifiedAt: true } });
+    if (!submitter.emailVerifiedAt) {
+      throw errors.validation("Подтвердите email по ссылке из письма — отправить ссылку повторно можно в профиле.");
+    }
+  }
   if (company.verificationStatus === "PENDING") throw new AppError("DUPLICATE_ACTION", "Заявка на проверку уже отправлена.");
   if (company.verificationStatus === "SUSPENDED")
     throw errors.forbidden("Деятельность компании приостановлена. Обратитесь к администратору.");
@@ -438,9 +446,12 @@ export async function assertRegistrationNumberFree(
   field: string,
 ) {
   if (await registrationNumberHolder(db, country, registrationNumber)) {
-    throw errors.validation("Компания с таким регистрационным номером уже проверена на платформе. Попросите приглашение у её руководителя.", {
-      [field]: ["Номер закреплён за проверенной компанией"],
-    });
+    throw errors.validation(
+      "Компания с таким регистрационным номером уже проверена на платформе. Попросите приглашение у её руководителя.",
+      {
+        [field]: ["Номер закреплён за проверенной компанией"],
+      },
+    );
   }
 }
 

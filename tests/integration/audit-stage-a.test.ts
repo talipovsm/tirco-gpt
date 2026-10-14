@@ -4,9 +4,9 @@ import { acceptBid, createBid } from "@/server/services/bid.service";
 import { createLoad, getLoadDetail, listLoads } from "@/server/services/load.service";
 import { loadListQuerySchema } from "@/lib/validation/load";
 import { companyCreateSchema } from "@/lib/validation/auth";
-import { createCompanyForActor } from "@/server/services/company.service";
+import { createCompanyForActor, submitVerification } from "@/server/services/company.service";
 import { adminCompanyDecision } from "@/server/services/admin.service";
-import { login, requestPasswordReset } from "@/server/services/auth.service";
+import { login, requestPasswordReset, sendEmailVerification, verifyEmail } from "@/server/services/auth.service";
 import { emailDeliveryEnabled, setEmailTransportForTests } from "@/lib/notifications/email";
 import { adminsWithDemoPassword, grantPlatformAdmin, revokePlatformAdmin } from "@/server/services/platform-admin.service";
 import { hashPassword } from "@/lib/auth/password";
@@ -252,5 +252,55 @@ describe("SEC-04: регистрационный номер закрепляет
     const a = await makeCompany("SHIPPER");
     const b = await makeCompany("CARRIER");
     await expect(prisma.company.update({ where: { id: b.id }, data: { registrationNumber: a.registrationNumber } })).rejects.toThrow();
+  });
+});
+
+describe("SEC-04: подтверждение email", () => {
+  const sent: { to: string; text: string }[] = [];
+  beforeEach(async () => {
+    await resetDb();
+    sent.length = 0;
+    setEmailTransportForTests({ sendMail: async (m) => void sent.push(m) });
+    vi.stubEnv("EMAIL_DRIVER", "smtp");
+    vi.stubEnv("SMTP_HOST", "smtp.test.local");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    setEmailTransportForTests(null);
+  });
+  const meta = { ip: "10.4.0.1", userAgent: "vitest" };
+
+  it("ссылка из письма подтверждает email один раз; старая ссылка недействительна", async () => {
+    const u = await makeUser();
+    await sendEmailVerification(u.id);
+    const first = sent[0].text.match(/token=([A-Za-z0-9_-]+)/)![1];
+    await sendEmailVerification(u.id);
+    const second = sent[1].text.match(/token=([A-Za-z0-9_-]+)/)![1];
+    await expectAppError(verifyEmail(first, meta), "VALIDATION_ERROR");
+    await verifyEmail(second, meta);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: u.id } })).emailVerifiedAt).not.toBeNull();
+    await expectAppError(verifyEmail(second, meta), "VALIDATION_ERROR");
+  });
+
+  it("без подтверждённого email компанию нельзя отправить на проверку", async () => {
+    const co = await makeCompany("SHIPPER");
+    await prisma.company.update({ where: { id: co.id }, data: { verificationStatus: "UNVERIFIED" } });
+    const u = await makeUser({ role: "SHIPPER", companyId: co.id });
+    await prisma.companyDocument.create({
+      data: {
+        companyId: co.id,
+        type: "REGISTRATION",
+        filename: "reg.pdf",
+        mimeType: "application/pdf",
+        size: 10,
+        storageKey: "k",
+        uploadedByUserId: u.id,
+      },
+    });
+    const actor = await actorFor(u.id, co.id);
+    await expectAppError(submitVerification(actor, co.id, null), "VALIDATION_ERROR");
+    await prisma.user.update({ where: { id: u.id }, data: { emailVerifiedAt: new Date() } });
+    await submitVerification(actor, co.id, null);
+    expect((await prisma.company.findUniqueOrThrow({ where: { id: co.id } })).verificationStatus).toBe("PENDING");
   });
 });

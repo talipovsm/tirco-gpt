@@ -15,6 +15,7 @@ import { demoNotReadyError, demoWorkspaceReady, provisionDemoIdentity } from "./
 import { AppError, errors } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/notifications/adapters";
+import { emailDeliveryEnabled } from "@/lib/notifications/email";
 import { ROLES_BY_COMPANY_TYPE } from "@/lib/permissions";
 import type { changePasswordSchema, loginSchema, profileUpdateSchema, registerSchema, resetPasswordSchema } from "@/lib/validation/auth";
 import { assertRegistrationNumberFree } from "./company.service";
@@ -119,7 +120,62 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
 
     const session = await createSession(result.user.id, result.companyId, meta);
     logger.info("auth.registered", { userId: result.user.id });
+    // Подтверждение email (SEC-04): письмо со ссылкой; без доставки писем — пропускается
+    if (emailDeliveryEnabled()) await sendEmailVerification(result.user.id);
     return { userId: result.user.id, companyId: result.companyId, ...(session.token ? { token: session.token } : {}) };
+  });
+}
+
+const EMAIL_VERIFICATION_TTL_MS = 48 * 60 * 60_000;
+
+/** Письмо со ссылкой подтверждения email; действует только последняя ссылка. Возвращает true, если письмо принято. */
+export async function sendEmailVerification(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  if (user.emailVerifiedAt) return false;
+  const token = generateToken(32);
+  await prisma.$transaction([
+    prisma.emailVerificationToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } }),
+    prisma.emailVerificationToken.create({
+      data: { userId, tokenHash: sha256(token), expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS) },
+    }),
+  ]);
+  const link = `${process.env.APP_URL ?? "http://localhost:3000"}/verify-email?token=${token}`;
+  return sendEmail(
+    user.email,
+    "Подтвердите email в Tirco",
+    `Здравствуйте, ${user.firstName}! Чтобы подтвердить адрес, перейдите по ссылке (действует 48 часов): ${link}`,
+  );
+}
+
+/** Повторная отправка ссылки подтверждения из профиля. */
+export async function resendEmailVerification(actor: Actor, meta: RequestMeta) {
+  return inReal(async () => {
+    enforceRateLimit("passwordReset", meta.ip ?? "anon");
+    enforceRateLimit("passwordResetAccount", `verify:${actor.userId}`);
+    if (!emailDeliveryEnabled()) throw errors.validation("Отправка писем на платформе не подключена.");
+    const sent = await sendEmailVerification(actor.userId);
+    return { sent };
+  });
+}
+
+export async function verifyEmail(token: string, meta: RequestMeta) {
+  return inReal(async () => {
+    enforceRateLimit("passwordReset", meta.ip ?? "anon");
+    const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash: sha256(token) } });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw errors.validation("Ссылка подтверждения недействительна или устарела. Запросите новую в профиле.");
+    }
+    await prisma.$transaction(async (tx) => {
+      const used = await tx.emailVerificationToken.updateMany({ where: { id: record.id, usedAt: null }, data: { usedAt: new Date() } });
+      if (used.count !== 1) throw errors.validation("Ссылка уже использована.");
+      await tx.user.update({ where: { id: record.userId }, data: { emailVerifiedAt: new Date() } });
+      await audit(
+        { userId: record.userId, active: null, ip: meta.ip, userAgent: meta.userAgent },
+        { action: AuditAction.USER_UPDATED, entityType: "User", entityId: record.userId, newValue: { emailVerified: true } },
+        tx,
+      );
+    });
+    return { ok: true };
   });
 }
 
@@ -329,7 +385,12 @@ export async function resetPassword(input: z.output<typeof resetPasswordSchema>,
         data: { usedAt: new Date() },
       });
       if (used.count === 0) throw new AppError("DUPLICATE_ACTION", "Ссылка уже использована.");
-      await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+      // Ссылка пришла на этот email — значит адрес подтверждён
+      const owner = await tx.user.findUniqueOrThrow({ where: { id: record.userId }, select: { emailVerifiedAt: true } });
+      await tx.user.update({
+        where: { id: record.userId },
+        data: { passwordHash, ...(owner.emailVerifiedAt ? {} : { emailVerifiedAt: new Date() }) },
+      });
       // Завершаем все активные сессии пользователя
       await tx.session.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
       await audit(

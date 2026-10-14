@@ -124,3 +124,47 @@ export function ResetPasswordForm() {
     </div>
   );
 }
+
+/** Подтверждение email по ссылке из письма: подтверждается кнопкой (POST), а не открытием страницы — ссылку могут открыть сканеры почты. */
+export function VerifyEmailForm() {
+  const token = useSearchParams().get("token") ?? "";
+  const [done, setDone] = React.useState(false);
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  if (!token) return <FormError message="Ссылка подтверждения недействительна. Запросите новую в профиле." />;
+  const confirm = async () => {
+    setError(null);
+    setPending(true);
+    try {
+      await api("/api/auth/verify-email", { body: { token } });
+      setDone(true);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <div>
+      <h1 className="text-large-title text-center">Подтверждение email</h1>
+      {done ? (
+        <div className="mt-7 space-y-5">
+          <div className="bg-card flex flex-col items-center rounded-lg px-5 py-6 text-center" role="status" data-testid="email-verified">
+            <CheckCircle2 className="text-success mb-2 size-9 [stroke-width:1.5]" aria-hidden />
+            Email подтверждён.
+          </div>
+          <Button asChild size="lg" className="w-full">
+            <Link href="/dashboard">Перейти в Tirco</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-7 space-y-5">
+          <FormError message={error} />
+          <Button size="lg" className="w-full" onClick={confirm} loading={pending} loadingText="Подтверждаем...">
+            Подтвердить email
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

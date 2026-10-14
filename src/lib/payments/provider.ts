@@ -127,11 +127,20 @@ export function webhookSecret(base: string, provider: string): string | undefine
   return process.env[key] || process.env[base] || undefined;
 }
 
+/** Обязательна ли метка времени: в production — да, если явно не разрешено WEBHOOK_REQUIRE_TIMESTAMP=0. */
+export function webhookTimestampRequired(): boolean {
+  const flag = process.env.WEBHOOK_REQUIRE_TIMESTAMP;
+  if (flag === "1") return true;
+  if (flag === "0") return false;
+  return process.env.NODE_ENV === "production";
+}
+
 /**
  * Проверка подписи входящего webhook.
  * Рекомендуемый формат: X-Tirco-Timestamp (unix, секунды) + подпись HMAC-SHA256(`${timestamp}.${body}`) —
  * старые запросы (старше 5 минут) отклоняются, поэтому перехваченный запрос нельзя повторить.
- * Формат без метки времени (HMAC тела) поддерживается для совместимости, пока не задан WEBHOOK_REQUIRE_TIMESTAMP=1.
+ * Формат без метки времени (HMAC тела) в production отклоняется (SEC-09); для совместимости со старым интегратором
+ * его можно временно разрешить WEBHOOK_REQUIRE_TIMESTAMP=0. Вне production он принимается, пока не задан WEBHOOK_REQUIRE_TIMESTAMP=1.
  */
 export function verifySignedWebhook(
   body: string,
@@ -146,6 +155,6 @@ export function verifySignedWebhook(
     if (!Number.isFinite(seconds) || Math.abs(now - seconds * 1000) > WEBHOOK_TOLERANCE_MS) return { ok: false, reason: "stale" };
     return verifyWebhookSignature(`${ts}.${body}`, signature, secret) ? { ok: true } : { ok: false, reason: "signature" };
   }
-  if (process.env.WEBHOOK_REQUIRE_TIMESTAMP === "1") return { ok: false, reason: "timestamp-required" };
+  if (webhookTimestampRequired()) return { ok: false, reason: "timestamp-required" };
   return verifyWebhookSignature(body, signature, secret) ? { ok: true } : { ok: false, reason: "signature" };
 }

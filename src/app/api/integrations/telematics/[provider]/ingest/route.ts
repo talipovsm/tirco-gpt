@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { runWithDataMode } from "@/lib/db/data-mode";
+import { readRawBody } from "@/lib/api/raw-body";
 import { fail, ok } from "@/lib/api/response";
 import { isAppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -9,7 +10,7 @@ import { ingestFromDevice } from "@/server/services/telemetry.service";
 
 /**
  * Приём показаний от телематического провайдера/устройства (GPS, двигатель, одометр, уровень топлива CAN/датчик).
- * Подпись: X-Tirco-Signature = hex(HMAC-SHA256(тело, TELEMATICS_WEBHOOK_SECRET)). Дубликаты показаний игнорируются.
+ * Подпись: X-Tirco-Timestamp + X-Tirco-Signature (см. verifySignedWebhook), секрет TELEMATICS_WEBHOOK_SECRET; тело — до 1 МБ. Дубликаты показаний игнорируются.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {
   // Внешние провайдеры работают с реальными данными; демо-режим использует встроенные симуляторы.
@@ -17,7 +18,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: 
     const { provider } = await ctx.params;
     const secret = webhookSecret("TELEMATICS_WEBHOOK_SECRET", provider);
     if (!secret) return fail("FORBIDDEN", "Приём телематики не настроен.", 403);
-    const raw = await req.text();
+    const read = await readRawBody(req);
+    if (!read.ok) return fail("VALIDATION_ERROR", "Слишком большой запрос.", 413);
+    const raw = read.text;
     const check = verifySignedWebhook(raw, req.headers, secret);
     if (!check.ok) return fail("UNAUTHORIZED", "Неверная подпись.", 401);
     let body: unknown;

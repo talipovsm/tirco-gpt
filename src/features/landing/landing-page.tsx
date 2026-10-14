@@ -196,7 +196,7 @@ export function LandingPage() {
         {/* ── Первый экран ── */}
         <section aria-labelledby="hero-title" className="relative isolate overflow-hidden bg-[#070b14] pt-16 text-white">
           <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_32rem_at_75%_35%,rgb(29_78_216/0.28),transparent_70%),radial-gradient(40rem_24rem_at_10%_100%,rgb(245_158_11/0.10),transparent_70%)]" />
-          <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-12 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-6 lg:px-8 lg:pt-20 lg:pb-24">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-4 pt-12 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-6 lg:px-8 lg:pt-20 lg:pb-24">
             <div className="max-w-xl">
               <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300">
                 <Route className="size-3.5 text-blue-300" aria-hidden />
@@ -237,7 +237,7 @@ export function LandingPage() {
 
         {/* ── Что такое TIRCO ── */}
         <section aria-labelledby="about-title" className="border-b border-slate-100 py-20 sm:py-28">
-          <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:px-8">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:px-8">
             <Reveal>
               <p className="text-primary text-xs font-semibold tracking-[0.16em] uppercase">Что такое TIRCO</p>
               <h2
@@ -281,14 +281,14 @@ export function LandingPage() {
             <Reveal>
               <SectionHead id="features-title" eyebrow="Возможности" title="Всё, что нужно для перевозки, — уже связано между собой" />
             </Reveal>
-            <div className="mt-12 grid gap-4 md:grid-cols-6">
+            <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-6">
               <Reveal className="md:col-span-4">
                 <FeatureCard
                   icon={Gavel}
                   title="Биржа грузов и торги"
                   text="Размещение груза через мастер с маршрутом и точками. Перевозчики предлагают цену, стороны обмениваются встречными предложениями, задают вопросы по грузу."
                 >
-                  <div className="mt-6 grid gap-2 sm:grid-cols-3" aria-hidden>
+                  <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3" aria-hidden>
                     {[
                       { name: "Перевозчик A", price: "4 500 $", tone: "slate" },
                       { name: "Перевозчик B", price: "4 200 $", tone: "blue" },
@@ -379,7 +379,7 @@ export function LandingPage() {
                 text="Интерфейс и права зависят от роли в компании: каждый видит свои задачи и не мешает другим."
               />
             </Reveal>
-            <ul className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
+            <ul className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
               {AUDIENCE.map((a, i) => (
                 <Reveal
                   as="li"
@@ -425,7 +425,7 @@ export function LandingPage() {
                 tone="dark"
               />
             </Reveal>
-            <ol className="mt-14 grid gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
+            <ol className="mt-14 grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
               {STEPS.map((s, i) => (
                 <Reveal as="li" key={s.title} delay={(i % 3) * 90} className="relative pl-14">
                   <span className="id-code absolute top-0 left-0 grid size-10 place-items-center rounded-xl border border-white/15 bg-white/5 text-sm font-semibold text-blue-200">
@@ -447,7 +447,7 @@ export function LandingPage() {
 
         {/* ── Почему TIRCO ── */}
         <section id="why" aria-labelledby="why-title" className="scroll-mt-20 py-20 sm:py-28">
-          <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:px-8">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:px-8">
             <Reveal className="lg:sticky lg:top-28 lg:self-start">
               <SectionHead
                 id="why-title"
@@ -560,7 +560,7 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-12 sm:px-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:px-8">
           <div>
             <LandingLogo tone="dark" />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">

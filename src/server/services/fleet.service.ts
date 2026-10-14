@@ -3,7 +3,7 @@ import type { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import { requireActiveCompany, requirePermission, type Actor } from "@/lib/auth/actor";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, type Tx } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
 import { isCarrierRole } from "@/lib/permissions";
 import { RESOURCE_BUSY_STATUSES } from "@/lib/state-machine/order-state-machine";
@@ -57,6 +57,30 @@ export async function listVehicles(actor: Actor, opts: { q?: string; status?: st
   return { items, total, page: opts.page, pageSize: opts.pageSize };
 }
 
+/**
+ * Госномер уникален в пределах компании (SEC-10). Совпадение с машиной другой компании допускается — иначе чужая
+ * компания могла бы «занять» номер, — но записывается в журнал аудита, чтобы администратор мог разобраться.
+ */
+async function recordSharedPlate(tx: Tx, actor: Actor, v: { id: string; companyId: string; country: string; plateNumber: string }) {
+  const others = await tx.vehicle.findMany({
+    where: { country: v.country, plateNumber: v.plateNumber, deletedAt: null, companyId: { not: v.companyId } },
+    select: { companyId: true },
+    take: 10,
+  });
+  if (!others.length) return;
+  await audit(
+    actor,
+    {
+      action: AuditAction.VEHICLE_PLATE_SHARED,
+      entityType: "Vehicle",
+      entityId: v.id,
+      companyId: v.companyId,
+      newValue: { plateNumber: v.plateNumber, country: v.country, otherCompanyIds: others.map((o) => o.companyId) },
+    },
+    tx,
+  );
+}
+
 export async function createVehicle(actor: Actor, input: VehicleInput) {
   requirePermission(actor, "VEHICLE_MANAGE");
   const m = carrierCompany(actor);
@@ -76,11 +100,12 @@ export async function createVehicle(actor: Actor, input: VehicleInput) {
         },
         tx,
       );
+      await recordSharedPlate(tx, actor, v);
       return v;
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      throw errors.validation("Автомобиль с таким госномером уже зарегистрирован в этой стране.", {
+      throw errors.validation("В вашем автопарке уже есть автомобиль с таким госномером.", {
         plateNumber: ["Госномер уже используется"],
       });
     }
@@ -127,11 +152,14 @@ export async function updateVehicle(actor: Actor, vehicleId: string, input: Vehi
         },
         tx,
       );
+      if (updated.plateNumber !== v.plateNumber || updated.country !== v.country) await recordSharedPlate(tx, actor, updated);
       return updated;
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      throw errors.validation("Автомобиль с таким госномером уже зарегистрирован.", { plateNumber: ["Госномер уже используется"] });
+      throw errors.validation("В вашем автопарке уже есть автомобиль с таким госномером.", {
+        plateNumber: ["Госномер уже используется"],
+      });
     }
     throw e;
   }

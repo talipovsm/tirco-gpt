@@ -222,7 +222,7 @@ export default async function CompanyPage() {
             value: "verification",
             label: "Верификация",
             content: (
-              <div className="grid gap-5 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
                     <CardTitle>Статус проверки</CardTitle>

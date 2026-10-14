@@ -117,6 +117,20 @@ const CUSTOMER_PERMISSIONS: Permission[] = [
   P.CARRIER_DIRECTORY_VIEW,
 ];
 
+/**
+ * Менеджер заказчика (SEC-06): работает с грузами, ставками и перевозками, но не подписывает договоры,
+ * не отменяет перевозки, не ведёт платежи и не управляет компанией — это права руководителя (SHIPPER/FORWARDER).
+ */
+const CUSTOMER_MANAGER_EXCLUDED: Permission[] = [
+  P.CONTRACT_SIGN,
+  P.ORDER_CANCEL,
+  P.PAYMENT_EDIT,
+  P.SECURE_DEAL_INITIATE,
+  P.COMPANY_MANAGE,
+  P.COMPANY_MEMBERS_MANAGE,
+];
+const CUSTOMER_MANAGER_PERMISSIONS: Permission[] = CUSTOMER_PERMISSIONS.filter((p) => !CUSTOMER_MANAGER_EXCLUDED.includes(p));
+
 const CARRIER_DISPATCHER_PERMISSIONS: Permission[] = [
   P.MARKETPLACE_VIEW,
   P.LOAD_ASK_QUESTION,
@@ -150,7 +164,9 @@ const CARRIER_DISPATCHER_PERMISSIONS: Permission[] = [
 
 export const ROLE_PERMISSIONS: Record<MemberRole, readonly Permission[]> = {
   SHIPPER: CUSTOMER_PERMISSIONS,
+  SHIPPER_MANAGER: CUSTOMER_MANAGER_PERMISSIONS,
   FORWARDER: [...CUSTOMER_PERMISSIONS, P.MARKETPLACE_VIEW],
+  FORWARDER_MANAGER: [...CUSTOMER_MANAGER_PERMISSIONS, P.MARKETPLACE_VIEW],
   CARRIER_ADMIN: [
     ...CARRIER_DISPATCHER_PERMISSIONS,
     P.CONTRACT_SIGN,
@@ -183,8 +199,8 @@ export const ADMIN_PERMISSIONS: readonly Permission[] = Object.values(Permission
 
 /** Какие роли участников допустимы для каждого типа компании. */
 export const ROLES_BY_COMPANY_TYPE: Record<CompanyType, MemberRole[]> = {
-  SHIPPER: ["SHIPPER"],
-  FORWARDER: ["FORWARDER"],
+  SHIPPER: ["SHIPPER", "SHIPPER_MANAGER"],
+  FORWARDER: ["FORWARDER", "FORWARDER_MANAGER"],
   CARRIER: ["CARRIER_ADMIN", "CARRIER_DISPATCHER", "DRIVER"],
 };
 
@@ -198,6 +214,8 @@ export function roleHasPermission(role: MemberRole, permission: Permission): boo
   return ROLE_PERMISSIONS[role].includes(permission);
 }
 
-export const isCustomerRole = (role: MemberRole | null | undefined) => role === "SHIPPER" || role === "FORWARDER";
+export const isCustomerRole = (role: MemberRole | null | undefined) =>
+  role === "SHIPPER" || role === "SHIPPER_MANAGER" || role === "FORWARDER" || role === "FORWARDER_MANAGER";
+export const isForwarderRole = (role: MemberRole | null | undefined) => role === "FORWARDER" || role === "FORWARDER_MANAGER";
 export const isCarrierRole = (role: MemberRole | null | undefined) => role === "CARRIER_ADMIN" || role === "CARRIER_DISPATCHER";
 export const isDriverRole = (role: MemberRole | null | undefined) => role === "DRIVER";

@@ -62,7 +62,7 @@ export default async function CarriersPage({ searchParams }: { searchParams: Sea
                 <li key={c.id}>
                   <Link
                     href={`/companies/${c.id}`}
-                    className="group hover:bg-surface-secondary grid gap-2 px-4 py-3 transition-colors duration-150 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,0.9fr)_1rem] lg:items-center lg:gap-4"
+                    className="group hover:bg-surface-secondary grid grid-cols-1 gap-2 px-4 py-3 transition-colors duration-150 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,0.9fr)_1rem] lg:items-center lg:gap-4"
                   >
                     <div className="min-w-0">
                       <p className="group-hover:text-link text-body truncate font-semibold transition-colors">{c.legalName}</p>

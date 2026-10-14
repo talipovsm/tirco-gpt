@@ -3,7 +3,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as MLMap } from "maplibre-gl";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { cssColor, mapStyle, useDarkScheme } from "./map-style";
+import { BASEMAP_FAILED_TEXT, cssColor, mapStyle, useDarkScheme, watchBasemap } from "./map-style";
 
 export type MapPoint = {
   lat: number;
@@ -53,6 +53,7 @@ export function MapView({
   const ref = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<MLMap | null>(null);
   const [failed, setFailed] = React.useState(false);
+  const [basemapFailed, setBasemapFailed] = React.useState(false);
   // Пересоздаём карту только при реальном изменении точек
   const pointsKey = JSON.stringify({ points, lines: lines ?? null });
   const pickRef = React.useRef(onPick);
@@ -83,7 +84,7 @@ export function MapView({
         });
         mapRef.current = map;
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-        map.on("error", () => undefined);
+        watchBasemap(map, () => !cancelled && setBasemapFailed(true));
         map.on("click", (e) => pickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
         // style.load — стиль готов (линии рисуются даже если тайлы недоступны)
         map.once("style.load", () => {
@@ -166,6 +167,14 @@ export function MapView({
         role="region"
         aria-label={`Карта: ${points.map((p) => p.label).join(", ")}`}
       />
+      {basemapFailed && (
+        <p
+          className="material-menu shadow-menu text-footnote pointer-events-none absolute bottom-2 left-2 max-w-[80%] rounded-sm px-2 py-1"
+          role="status"
+        >
+          {BASEMAP_FAILED_TEXT}
+        </p>
+      )}
       {picking && pickHint && (
         <p className="material-menu shadow-menu text-footnote pointer-events-none absolute top-2 left-2 rounded-sm px-2 py-1">{pickHint}</p>
       )}

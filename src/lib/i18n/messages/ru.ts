@@ -127,9 +127,11 @@ export const ru = {
   enums: {
     MemberRole: {
       SHIPPER: "Грузовладелец",
+      SHIPPER_MANAGER: "Менеджер грузовладельца",
       CARRIER_ADMIN: "Руководитель перевозчика",
       CARRIER_DISPATCHER: "Диспетчер",
       FORWARDER: "Экспедитор",
+      FORWARDER_MANAGER: "Менеджер экспедитора",
       DRIVER: "Водитель",
     },
     CompanyType: { SHIPPER: "Грузовладелец", CARRIER: "Перевозчик", FORWARDER: "Экспедитор" },

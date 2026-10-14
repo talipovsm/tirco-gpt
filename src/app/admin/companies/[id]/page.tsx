@@ -33,7 +33,7 @@ export default async function AdminCompanyPage({ params }: { params: Promise<{ i
       {company.suspendReason && (
         <p className="bg-danger-bg text-danger text-body mb-4 rounded-lg px-3 py-2">Приостановлена: {company.suspendReason}</p>
       )}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Реквизиты</CardTitle>

@@ -108,6 +108,40 @@ describe("SEC-010: подпись webhook с меткой времени", async
     const body = "{}";
     vi.stubEnv("WEBHOOK_REQUIRE_TIMESTAMP", "1");
     expect(verifySignedWebhook(body, headers({ "x-tirco-signature": sign(body) }), secret).ok).toBe(false);
+    vi.unstubAllEnvs();
+  });
+  it("SEC-09: в production метка времени обязательна по умолчанию, отключается только явно", () => {
+    const body = "{}";
+    const legacy = headers({ "x-tirco-signature": sign(body) });
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("WEBHOOK_REQUIRE_TIMESTAMP", "");
+    expect(verifySignedWebhook(body, legacy, secret)).toEqual({ ok: false, reason: "timestamp-required" });
+    vi.stubEnv("WEBHOOK_REQUIRE_TIMESTAMP", "0");
+    expect(verifySignedWebhook(body, legacy, secret).ok).toBe(true);
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("WEBHOOK_REQUIRE_TIMESTAMP", "");
+    expect(verifySignedWebhook(body, legacy, secret).ok).toBe(true);
+    vi.unstubAllEnvs();
+  });
+});
+
+describe("SEC-09: предел размера тела вебхука", async () => {
+  const { readRawBody } = await import("@/lib/api/raw-body");
+  const post = (body: string, headers: Record<string, string> = {}) =>
+    new Request("http://localhost/api/x", { method: "POST", body, headers });
+  it("читает тело в пределах лимита и прерывает чтение сверх него", async () => {
+    expect(await readRawBody(post('{"a":1}'), 100)).toEqual({ ok: true, text: '{"a":1}' });
+    expect(await readRawBody(post("x".repeat(101)), 100)).toEqual({ ok: false, reason: "too-large" });
+    // Заявленный Content-Length не спасает: считается фактический поток
+    const stream = new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode("x".repeat(80)));
+        c.enqueue(new TextEncoder().encode("x".repeat(80)));
+        c.close();
+      },
+    });
+    const chunked = new Request("http://localhost/api/x", { method: "POST", body: stream, duplex: "half" } as RequestInit);
+    expect(await readRawBody(chunked, 100)).toEqual({ ok: false, reason: "too-large" });
   });
 });
 

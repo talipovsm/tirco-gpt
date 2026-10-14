@@ -50,10 +50,15 @@ describe("order state machine", () => {
     expect(canTransition("DELIVERED", "CLOSED", "CUSTOMER").ok).toBe(true);
   });
 
-  it("после подписания договора отмена только администратором", () => {
+  it("после подписания договора отмена только администратором или по соглашению сторон до погрузки", () => {
     const r = canTransition("IN_TRANSIT", "CANCELLED", "CUSTOMER", { manual: true });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toContain("спора/администратора");
+    if (!r.ok) expect(r.reason).toContain("по соглашению сторон");
+    // BL-01: по соглашению сторон переход выполняет система — до начала погрузки
+    expect(canTransition("CONTRACT_SIGNED", "CANCELLED", "SYSTEM").ok).toBe(true);
+    expect(canTransition("WAITING_FOR_LOADING", "CANCELLED", "SYSTEM").ok).toBe(true);
+    expect(canTransition("AT_LOADING", "CANCELLED", "SYSTEM").ok).toBe(false);
+    expect(canTransition("CONTRACT_SIGNED", "CANCELLED", "CARRIER", { manual: true }).ok).toBe(false);
     expect(canTransition("IN_TRANSIT", "CANCELLED", "ADMIN", { manual: true }).ok).toBe(true);
     expect(canTransition("CONTRACT_PENDING", "CANCELLED", "CARRIER", { manual: true }).ok).toBe(true);
   });

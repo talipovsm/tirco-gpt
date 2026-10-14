@@ -18,7 +18,7 @@ type Stop = {
 
 /** Код страны рядом с городом: мелко и приглушённо, без эмодзи-флагов. */
 function CountryCode({ code }: { code: string }) {
-  return <span className="text-caption text-tertiary-foreground font-medium tracking-wide">{code}</span>;
+  return <span className="text-caption text-muted-foreground font-medium tracking-wide">{code}</span>;
 }
 
 /**
@@ -33,7 +33,7 @@ export function RouteChain({ stops, className, compact }: { stops: Stop[]; class
     <span className={cn("inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5", className)} title={collapsed ? full : undefined}>
       {shown.map((s, i) => (
         <span key={`${s.city}-${i}`} className="inline-flex items-baseline gap-1.5" aria-hidden>
-          {i > 0 && <span className="text-tertiary-foreground">→</span>}
+          {i > 0 && <span className="text-muted-foreground">→</span>}
           <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
             <span>{s.city}</span>
             <CountryCode code={s.country} />

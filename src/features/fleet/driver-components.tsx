@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Mail, Pencil, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Field, FormError } from "@/components/common/field";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { api, ApiError, errorMessage } from "@/lib/client/api";
+import { DateInput } from "@/components/common/date-time-field";
 
 const form = z.object({
   fullName: z.string().trim().min(3, "Укажите ФИО водителя"),
@@ -136,7 +137,7 @@ export function DriverFormDialog({ driver, trigger }: { driver?: DriverRow; trig
               </DialogFooter>
             </>
           ) : (
-            <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
+            <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2" noValidate>
               <div className="sm:col-span-2">
                 <FormError message={error} />
               </div>
@@ -160,7 +161,18 @@ export function DriverFormDialog({ driver, trigger }: { driver?: DriverRow; trig
                 <Input {...f.register("licenseCategory")} />
               </Field>
               <Field id="d-exp" label="Удостоверение действует до">
-                <Input type="date" {...f.register("licenseExpiry")} />
+                <Controller
+                  control={f.control}
+                  name="licenseExpiry"
+                  render={({ field }) => (
+                    <DateInput
+                      id="d-exp"
+                      value={(field.value as string | null | undefined) ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
               </Field>
               <Field id="d-pass" label="Паспорт (необязательно)">
                 <Input {...f.register("passportNumber")} />

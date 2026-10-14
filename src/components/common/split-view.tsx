@@ -32,7 +32,7 @@ export function SplitView({
       <section
         aria-label={listLabel}
         className={cn(
-          "bg-card lg:hairline-r flex min-h-0 flex-col max-lg:order-2 lg:w-[22rem] lg:shrink-0",
+          "bg-card lg:hairline-r flex min-h-0 flex-col max-lg:order-2 lg:w-[22rem] lg:shrink-0 xl:w-[24rem]",
           hasDetail ? "max-lg:hidden" : "max-lg:flex-1",
         )}
       >

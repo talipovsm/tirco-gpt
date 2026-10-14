@@ -3,7 +3,7 @@ import type { Actor, ActorMembership } from "@/lib/auth/actor";
 import { permissionsForMembership } from "@/lib/auth/actor";
 import { prisma } from "@/lib/db/prisma";
 import { errors } from "@/lib/errors";
-import { isCarrierRole, isCustomerRole, type Permission } from "@/lib/permissions";
+import { isCarrierRole, isCustomerRole, isForwarderRole, type Permission } from "@/lib/permissions";
 import type { ActorSide } from "@/lib/state-machine/order-state-machine";
 
 export type OrderSide = Exclude<ActorSide, "SYSTEM">;
@@ -135,7 +135,7 @@ export function resolveLoadRelation(
     }
   }
   // Экспедитор может просматривать биржу
-  const forwarder = actor.memberships.find((m) => m.role === "FORWARDER");
+  const forwarder = actor.memberships.find((m) => isForwarderRole(m.role));
   if (forwarder && load.visibility === "MARKETPLACE" && (load.status === "PUBLISHED" || load.status === "BIDDING")) {
     return { relation: "VIEWER", membership: forwarder };
   }

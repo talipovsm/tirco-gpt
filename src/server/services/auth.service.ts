@@ -4,7 +4,8 @@ import type { MemberRole } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import type { Actor, RequestMeta } from "@/lib/auth/actor";
 import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from "@/lib/auth/password";
-import { enforceRateLimit } from "@/lib/auth/rate-limit";
+import { assertFailuresBelowLimit, enforceRateLimit, recordFailedAttempt, resetFailedAttempts } from "@/lib/auth/rate-limit";
+import { DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { createSession, destroySession, setActiveCompany } from "@/lib/auth/session";
 import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { runWithDataMode, type DataMode } from "@/lib/db/data-mode";
@@ -14,8 +15,10 @@ import { demoNotReadyError, demoWorkspaceReady, provisionDemoIdentity } from "./
 import { AppError, errors } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/notifications/adapters";
+import { emailDeliveryEnabled } from "@/lib/notifications/email";
 import { ROLES_BY_COMPANY_TYPE } from "@/lib/permissions";
 import type { changePasswordSchema, loginSchema, profileUpdateSchema, registerSchema, resetPasswordSchema } from "@/lib/validation/auth";
+import { assertRegistrationNumberFree } from "./company.service";
 
 const ROLE_BY_ACTIVITY: Record<"SHIPPER" | "CARRIER" | "FORWARDER", MemberRole> = {
   SHIPPER: "SHIPPER",
@@ -75,17 +78,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       let companyId: string;
       if (input.companyMode === "create") {
         const c = input.company!;
-        const dup = await tx.company.findUnique({
-          where: { country_registrationNumber: { country: c.country, registrationNumber: c.registrationNumber } },
-        });
-        if (dup) {
-          throw errors.validation(
-            "Компания с таким регистрационным номером уже зарегистрирована. Попросите приглашение у её администратора.",
-            {
-              "company.registrationNumber": ["Компания с таким номером уже существует"],
-            },
-          );
-        }
+        await assertRegistrationNumberFree(tx, c.country, c.registrationNumber, "company.registrationNumber");
         const company = await tx.company.create({
           data: {
             type: input.activity,
@@ -127,7 +120,62 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
 
     const session = await createSession(result.user.id, result.companyId, meta);
     logger.info("auth.registered", { userId: result.user.id });
+    // Подтверждение email (SEC-04): письмо со ссылкой; без доставки писем — пропускается
+    if (emailDeliveryEnabled()) await sendEmailVerification(result.user.id);
     return { userId: result.user.id, companyId: result.companyId, ...(session.token ? { token: session.token } : {}) };
+  });
+}
+
+const EMAIL_VERIFICATION_TTL_MS = 48 * 60 * 60_000;
+
+/** Письмо со ссылкой подтверждения email; действует только последняя ссылка. Возвращает true, если письмо принято. */
+export async function sendEmailVerification(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  if (user.emailVerifiedAt) return false;
+  const token = generateToken(32);
+  await prisma.$transaction([
+    prisma.emailVerificationToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } }),
+    prisma.emailVerificationToken.create({
+      data: { userId, tokenHash: sha256(token), expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS) },
+    }),
+  ]);
+  const link = `${process.env.APP_URL ?? "http://localhost:3000"}/verify-email?token=${token}`;
+  return sendEmail(
+    user.email,
+    "Подтвердите email в Tirco",
+    `Здравствуйте, ${user.firstName}! Чтобы подтвердить адрес, перейдите по ссылке (действует 48 часов): ${link}`,
+  );
+}
+
+/** Повторная отправка ссылки подтверждения из профиля. */
+export async function resendEmailVerification(actor: Actor, meta: RequestMeta) {
+  return inReal(async () => {
+    enforceRateLimit("passwordReset", meta.ip ?? "anon");
+    enforceRateLimit("passwordResetAccount", `verify:${actor.userId}`);
+    if (!emailDeliveryEnabled()) throw errors.validation("Отправка писем на платформе не подключена.");
+    const sent = await sendEmailVerification(actor.userId);
+    return { sent };
+  });
+}
+
+export async function verifyEmail(token: string, meta: RequestMeta) {
+  return inReal(async () => {
+    enforceRateLimit("passwordReset", meta.ip ?? "anon");
+    const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash: sha256(token) } });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw errors.validation("Ссылка подтверждения недействительна или устарела. Запросите новую в профиле.");
+    }
+    await prisma.$transaction(async (tx) => {
+      const used = await tx.emailVerificationToken.updateMany({ where: { id: record.id, usedAt: null }, data: { usedAt: new Date() } });
+      if (used.count !== 1) throw errors.validation("Ссылка уже использована.");
+      await tx.user.update({ where: { id: record.userId }, data: { emailVerifiedAt: new Date() } });
+      await audit(
+        { userId: record.userId, active: null, ip: meta.ip, userAgent: meta.userAgent },
+        { action: AuditAction.USER_UPDATED, entityType: "User", entityId: record.userId, newValue: { emailVerified: true } },
+        tx,
+      );
+    });
+    return { ok: true };
   });
 }
 
@@ -228,13 +276,17 @@ export async function getInvitePreview(token: string) {
 export async function login(input: z.output<typeof loginSchema>, meta: RequestMeta) {
   return inReal(async () => {
     enforceRateLimit("login", meta.ip ?? "anon");
-    enforceRateLimit("loginAccount", input.email);
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       include: { memberships: { where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" }, take: 1 } },
     });
+    // Общий демо-аккаунт демо-стенда входят все посетители — лимит на учётную запись к нему не применяется
+    // (остаётся лимит по IP). Для остальных считаются только неудачные попытки (SEC-05).
+    const accountLimited = !(user && sharedDemoAccount(user.email, user.platformRole));
+    if (accountLimited) assertFailuresBelowLimit("loginAccount", input.email);
     const valid = await verifyPassword(input.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
     if (!user || !valid || user.deletedAt) {
+      if (accountLimited) recordFailedAttempt("loginAccount", input.email);
       if (user) {
         await audit(
           { userId: user.id, active: null, ip: meta.ip, userAgent: meta.userAgent },
@@ -247,6 +299,15 @@ export async function login(input: z.output<typeof loginSchema>, meta: RequestMe
     if (user.status === "BLOCKED") {
       throw new AppError("FORBIDDEN", "Учётная запись заблокирована. Обратитесь в поддержку Tirco.");
     }
+    // Администратор платформы с общеизвестным демо-паролем в production не входит (SEC-01)
+    if (user.platformRole === "PLATFORM_ADMIN" && process.env.NODE_ENV === "production" && input.password === DEMO_PASSWORD) {
+      logger.warn("auth.admin_demo_password", { userId: user.id });
+      throw new AppError(
+        "FORBIDDEN",
+        "Вход администратора с демо-паролем запрещён. Назначьте новый пароль: ADMIN_PASSWORD=… npm run admin:grant -- --email <адрес> --reset-password --confirm.",
+      );
+    }
+    if (accountLimited) resetFailedAttempts("loginAccount", input.email);
     // Режим выбран пользователем при входе и проверяется сервером; дальше он хранится только в серверной сессии.
     // Публичный демо-аккаунт демо-стенда входит только в демо-базу.
     const dataMode: DataMode = sharedDemoAccount(user.email, user.platformRole) ? "demo" : input.dataMode;
@@ -324,7 +385,12 @@ export async function resetPassword(input: z.output<typeof resetPasswordSchema>,
         data: { usedAt: new Date() },
       });
       if (used.count === 0) throw new AppError("DUPLICATE_ACTION", "Ссылка уже использована.");
-      await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+      // Ссылка пришла на этот email — значит адрес подтверждён
+      const owner = await tx.user.findUniqueOrThrow({ where: { id: record.userId }, select: { emailVerifiedAt: true } });
+      await tx.user.update({
+        where: { id: record.userId },
+        data: { passwordHash, ...(owner.emailVerifiedAt ? {} : { emailVerifiedAt: new Date() }) },
+      });
       // Завершаем все активные сессии пользователя
       await tx.session.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
       await audit(

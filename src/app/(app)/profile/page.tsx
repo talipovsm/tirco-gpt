@@ -3,17 +3,20 @@ import { DefinitionList, PageHeader } from "@/components/common/misc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { label } from "@/lib/i18n";
 import { LogoutButton } from "@/features/auth/logout-button";
-import { ChangePasswordForm, ProfileForm } from "@/features/profile/profile-forms";
+import { ChangePasswordForm, EmailVerificationNotice, ProfileForm } from "@/features/profile/profile-forms";
+import { authDb } from "@/lib/db/prisma";
+import { emailDeliveryEnabled } from "@/lib/notifications/email";
 import { pageActor } from "@/server/page-context";
 
 export const metadata: Metadata = { title: "Профиль" };
 
 export default async function ProfilePage() {
   const actor = await pageActor();
+  const identity = await authDb.user.findUnique({ where: { id: actor.userId }, select: { emailVerifiedAt: true } });
   return (
     <>
       <PageHeader title="Профиль" description={actor.email} />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Личные данные</CardTitle>
@@ -26,7 +29,8 @@ export default async function ProfilePage() {
           <CardHeader>
             <CardTitle>Безопасность</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            <EmailVerificationNotice verified={!!identity?.emailVerifiedAt} deliveryEnabled={emailDeliveryEnabled()} />
             <ChangePasswordForm />
           </CardContent>
         </Card>

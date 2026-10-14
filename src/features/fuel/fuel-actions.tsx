@@ -28,13 +28,14 @@ import { useAction } from "@/lib/client/use-action";
 import { enumOptions } from "@/lib/i18n";
 import { CURRENCIES } from "@/lib/money";
 import { EMPTY_LIMITS, limitsBody, type LimitsValue } from "./limits-form";
+import { TimeInput } from "@/components/common/date-time-field";
 
 type Opt = { id: string; label: string };
 
 function LimitsFields({ v, set, currency }: { v: LimitsValue; set: (v: LimitsValue) => void; currency: string }) {
   const f = (k: keyof LimitsValue) => (e: React.ChangeEvent<HTMLInputElement>) => set({ ...v, [k]: e.target.value });
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Field id="l-tx" label="На одну заправку, л">
         <Input type="number" min={1} value={v.perTransactionLiters} onChange={f("perTransactionLiters")} />
       </Field>
@@ -52,10 +53,10 @@ function LimitsFields({ v, set, currency }: { v: LimitsValue; set: (v: LimitsVal
       </Field>
       <div className="grid grid-cols-2 gap-2">
         <Field id="l-from" label="С">
-          <Input type="time" value={v.allowedFrom} onChange={f("allowedFrom")} />
+          <TimeInput value={v.allowedFrom} onChange={(t) => set({ ...v, allowedFrom: t })} />
         </Field>
         <Field id="l-to" label="До">
-          <Input type="time" value={v.allowedTo} onChange={f("allowedTo")} />
+          <TimeInput value={v.allowedTo} onChange={(t) => set({ ...v, allowedTo: t })} />
         </Field>
       </div>
       <fieldset className="sm:col-span-3">
@@ -109,7 +110,7 @@ export function IssueCardDialog({ vehicles, drivers }: { vehicles: Opt[]; driver
               номер, PIN и CVV не хранятся.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Field id="c-label" label="Номер в компании" required>
               <Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="FC-001" maxLength={30} />
             </Field>
@@ -410,7 +411,7 @@ export function SimulateRefuelDialog({ cards, stations }: { cards: Opt[]; statio
               Данные помечаются как DEMO.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field id="s-card" label="Карта">
               <NativeSelect value={form.fuelCardId} onChange={(e) => setForm({ ...form, fuelCardId: e.target.value })}>
                 {cards.map((c) => (
@@ -540,7 +541,7 @@ export function VehicleFuelSettingsDialog({
             <DialogTitle>Топливные параметры и телематика</DialogTitle>
             <DialogDescription>Норма расхода задаётся для этого автомобиля. Изменения записываются в журнал аудита.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field id="v-ft" label="Тип топлива">
               <NativeSelect value={form.fuelType} onChange={f("fuelType")}>
                 <option value="">—</option>

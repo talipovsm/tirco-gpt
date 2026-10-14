@@ -89,7 +89,14 @@ export default async function VehiclesPage({ searchParams }: { searchParams: Sea
             )}
           >
             <span className="text-headline num leading-5">{count(s)}</span>
-            <span className="text-caption text-muted-foreground w-full truncate">{s ? STATUS_SHORT[s] : "Все"}</span>
+            <span
+              className={cn(
+                "text-caption w-full leading-tight break-words hyphens-auto",
+                active ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {s ? STATUS_SHORT[s] : "Все"}
+            </span>
           </Link>
         );
       })}

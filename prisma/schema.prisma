@@ -40,9 +40,13 @@ enum VerificationStatus {
 
 enum MemberRole {
   SHIPPER
+  /// Менеджер грузовладельца: грузы и перевозки без подписи договоров, отмен, платежей и управления компанией (SEC-06)
+  SHIPPER_MANAGER
   CARRIER_ADMIN
   CARRIER_DISPATCHER
   FORWARDER
+  /// Менеджер экспедитора — те же ограничения
+  FORWARDER_MANAGER
   DRIVER
 }
 
@@ -368,6 +372,14 @@ enum DisputeReason {
   OTHER
 }
 
+enum CancellationRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
 enum DisputeStatus {
   OPEN
   IN_REVIEW
@@ -482,25 +494,28 @@ enum FuelInvestigationStatus {
 // ───────────────────────────── Identity ─────────────────────────────
 
 model User {
-  id           String       @id @default(uuid()) @db.Uuid
-  email        String       @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  phone        String?
-  platformRole PlatformRole @default(USER)
-  status       UserStatus   @default(ACTIVE)
-  locale       String       @default("ru-RU")
-  timezone     String       @default("Asia/Almaty")
-  lastLoginAt  DateTime?    @db.Timestamptz(3)
-  blockedAt    DateTime?    @db.Timestamptz(3)
-  blockReason  String?
-  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
-  deletedAt    DateTime?    @db.Timestamptz(3)
+  id              String       @id @default(uuid()) @db.Uuid
+  email           String       @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  platformRole    PlatformRole @default(USER)
+  status          UserStatus   @default(ACTIVE)
+  locale          String       @default("ru-RU")
+  timezone        String       @default("Asia/Almaty")
+  lastLoginAt     DateTime?    @db.Timestamptz(3)
+  /// Email подтверждён ссылкой из письма (или сбросом пароля по ссылке из письма)
+  emailVerifiedAt DateTime?    @db.Timestamptz(3)
+  blockedAt       DateTime?    @db.Timestamptz(3)
+  blockReason     String?
+  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime?    @db.Timestamptz(3)
 
   sessions                     Session[]
   passwordResetTokens          PasswordResetToken[]
+  emailVerificationTokens      EmailVerificationToken[]
   memberships                  CompanyMember[]
   driverProfiles               DriverProfile[]
   createdLoads                 Load[]                        @relation("LoadCreatedBy")
@@ -530,6 +545,8 @@ model User {
   plannedMovements             PlannedMovement[]             @relation("PlannedMovementCreator")
   reviewsWritten               Review[]                      @relation("ReviewAuthor")
   openedDisputes               Dispute[]                     @relation("DisputeOpener")
+  proposedCancellations        OrderCancellationRequest[]    @relation("CancellationProposer")
+  decidedCancellations         OrderCancellationRequest[]    @relation("CancellationDecider")
   resolvedDisputes             Dispute[]                     @relation("DisputeResolver")
   disputeComments              DisputeComment[]              @relation("DisputeCommentAuthor")
   sentInvites                  CompanyInvite[]               @relation("InviteSender")
@@ -568,6 +585,19 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model PasswordResetToken {
@@ -642,10 +672,13 @@ model Company {
   chatMessages           ChatMessage[]   @relation("ChatMessageCompany")
   openedDisputes         Dispute[]       @relation("DisputeOpenerCompany")
 
-  @@unique([country, registrationNumber])
+  // Регистрационный номер закреплён только за проверенной компанией: частичный индекс "Company_verified_registration_unique" в миграции (SEC-04)
+  @@index([country, registrationNumber])
   @@index([type])
   @@index([verificationStatus])
   @@index([legalName])
+  // Поиск по подстроке (ILIKE): триграммные индексы, PERF-03
+  @@index([legalName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Company_legalName_trgm_idx")
 }
 
 model CompanyMember {
@@ -772,7 +805,7 @@ model Vehicle {
   fuelAnomalies      FuelAnomaly[]
   fuelInvestigations FuelInvestigation[]
 
-  // Уникальность госномера — только среди неудалённых машин: частичный индекс "Vehicle_active_plate_unique" в миграции
+  // Госномер уникален в пределах компании среди неудалённых машин: частичный индекс "Vehicle_company_plate_unique" в миграции (SEC-10)
   @@index([country, plateNumber])
   @@index([companyId, status])
   @@index([plateNumber])
@@ -877,6 +910,11 @@ model Load {
   @@index([originCountry, originCity])
   @@index([destinationCountry, destinationCity])
   @@index([companyId, status])
+  // Поиск по подстроке (ILIKE): триграммные индексы, PERF-03
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Load_title_trgm_idx")
+  @@index([publicNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "Load_publicNumber_trgm_idx")
+  @@index([originCity(ops: raw("gin_trgm_ops"))], type: Gin, map: "Load_originCity_trgm_idx")
+  @@index([destinationCity(ops: raw("gin_trgm_ops"))], type: Gin, map: "Load_destinationCity_trgm_idx")
 }
 
 /// Откуда километраж: маршрут по дорогам от провайдера или оценка (по прямой × коэффициент)
@@ -929,6 +967,8 @@ model LoadStop {
   load Load @relation(fields: [loadId], references: [id], onDelete: Cascade)
 
   @@unique([loadId, sequence])
+  // Поиск по подстроке (ILIKE): триграммные индексы, PERF-03
+  @@index([city(ops: raw("gin_trgm_ops"))], type: Gin, map: "LoadStop_city_trgm_idx")
 }
 
 model LoadInvitation {
@@ -1070,24 +1110,25 @@ model TransportOrder {
   createdAt            DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime     @updatedAt @db.Timestamptz(3)
 
-  load             Load                          @relation(fields: [loadId], references: [id])
-  shipper          Company                       @relation("OrderShipper", fields: [shipperCompanyId], references: [id])
-  carrier          Company                       @relation("OrderCarrier", fields: [carrierCompanyId], references: [id])
-  forwarder        Company?                      @relation("OrderForwarder", fields: [forwarderCompanyId], references: [id])
-  acceptedBid      Bid                           @relation(fields: [acceptedBidId], references: [id])
-  vehicle          Vehicle?                      @relation(fields: [vehicleId], references: [id])
-  driver           DriverProfile?                @relation(fields: [driverId], references: [id])
-  statusHistory    TransportOrderStatusHistory[]
-  participants     TransportOrderParticipant[]
-  contracts        Contract[]
-  documents        OrderDocument[]
-  trackingEvents   TrackingEvent[]
-  chatThread       ChatThread?
-  payments         PaymentRecord[]
-  reviews          Review[]
-  disputes         Dispute[]
-  nextMovements    PlannedMovement[]
-  fuelTransactions FuelTransaction[]
+  load                 Load                          @relation(fields: [loadId], references: [id])
+  shipper              Company                       @relation("OrderShipper", fields: [shipperCompanyId], references: [id])
+  carrier              Company                       @relation("OrderCarrier", fields: [carrierCompanyId], references: [id])
+  forwarder            Company?                      @relation("OrderForwarder", fields: [forwarderCompanyId], references: [id])
+  acceptedBid          Bid                           @relation(fields: [acceptedBidId], references: [id])
+  vehicle              Vehicle?                      @relation(fields: [vehicleId], references: [id])
+  driver               DriverProfile?                @relation(fields: [driverId], references: [id])
+  statusHistory        TransportOrderStatusHistory[]
+  participants         TransportOrderParticipant[]
+  contracts            Contract[]
+  documents            OrderDocument[]
+  trackingEvents       TrackingEvent[]
+  chatThread           ChatThread?
+  payments             PaymentRecord[]
+  reviews              Review[]
+  cancellationRequests OrderCancellationRequest[]
+  disputes             Dispute[]
+  nextMovements        PlannedMovement[]
+  fuelTransactions     FuelTransaction[]
 
   fuelAnomalies FuelAnomaly[] @relation("FuelAnomalyOrder")
 
@@ -1099,6 +1140,8 @@ model TransportOrder {
   @@index([driverId])
   @@index([vehicleId])
   @@index([createdAt])
+  // Поиск по подстроке (ILIKE): триграммные индексы, PERF-03
+  @@index([publicNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "TransportOrder_publicNumber_trgm_idx")
 }
 
 model TransportOrderStatusHistory {
@@ -1917,4 +1960,26 @@ model FuelInvestigationAttachment {
   uploadedBy User @relation("FuelInvestigationAttachmentUploader", fields: [uploadedByUserId], references: [id])
 
   @@index([investigationId])
+}
+
+/// Отмена перевозки по соглашению сторон (BL-01): одна сторона предлагает, вторая соглашается.
+/// Одно ожидающее предложение на перевозку — частичный индекс "OrderCancellationRequest_one_pending" в миграции.
+model OrderCancellationRequest {
+  id               String                    @id @default(uuid()) @db.Uuid
+  orderId          String                    @db.Uuid
+  proposedBySide   PartySide
+  proposedByUserId String                    @db.Uuid
+  reason           String
+  status           CancellationRequestStatus @default(PENDING)
+  decidedByUserId  String?                   @db.Uuid
+  decisionComment  String?
+  decidedAt        DateTime?                 @db.Timestamptz(3)
+  createdAt        DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @db.Timestamptz(3)
+
+  order      TransportOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  proposedBy User           @relation("CancellationProposer", fields: [proposedByUserId], references: [id])
+  decidedBy  User?          @relation("CancellationDecider", fields: [decidedByUserId], references: [id])
+
+  @@index([orderId, status])
 }

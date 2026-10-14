@@ -10,7 +10,9 @@ class ProfileScreen extends StatelessWidget {
 
   static const _roles = {
     'SHIPPER': 'Грузовладелец',
+    'SHIPPER_MANAGER': 'Менеджер грузовладельца',
     'FORWARDER': 'Экспедитор',
+    'FORWARDER_MANAGER': 'Менеджер экспедитора',
     'CARRIER_ADMIN': 'Руководитель перевозчика',
     'CARRIER_DISPATCHER': 'Диспетчер',
     'DRIVER': 'Водитель',

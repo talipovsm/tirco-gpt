@@ -21,6 +21,8 @@ export type PlatformSettings = {
   /** По истечении периода проверки без спора — подтвердить получение и выплатить перевозчику автоматически */
   autoConfirmOnTimeout: boolean;
   requirePodForClose: boolean;
+  /** Отметить доставку можно только с фото груза, POD или CMR (BL-05) */
+  requireProofOnDelivery: boolean;
   restrictedCargoTypes: CargoType[];
   requireVerifiedToPublish: boolean;
   /** Ставки и сделки — только с проверенными перевозчиками */
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
   confirmationWindowHours: 72,
   autoConfirmOnTimeout: true,
   requirePodForClose: true,
+  requireProofOnDelivery: false,
   restrictedCargoTypes: [],
   requireVerifiedToPublish: false,
   requireVerifiedToBid: false,

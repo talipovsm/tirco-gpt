@@ -5,6 +5,8 @@ import type { ActionSource, OrderStatus } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import type { Actor } from "@/lib/auth/actor";
 import { prisma, type Tx } from "@/lib/db/prisma";
+import { DEFAULT_TZ } from "@/lib/format";
+import { defaultTimezone } from "@/lib/geo/countries";
 import { AppError, errors } from "@/lib/errors";
 import { financeSummary } from "@/lib/money";
 import {
@@ -247,20 +249,25 @@ export async function changeStatus(
     throw errors.forbidden("У вас нет прав на изменение статуса этой перевозки.");
   }
   await validateAttachments(orderId, input.documentIds);
-  if (to === "AT_LOADING") {
-    const settings = await getSettings();
-    if (settings.requireSecureDeal) {
-      const deal = await findLiveSecureDeal(prisma, orderId);
-      if (!deal || !HELD_STATUSES.includes(deal.status as SecureDealStatus)) {
-        throw new AppError(
-          "INVALID_STATE_TRANSITION",
-          "Начать загрузку можно после того, как заказчик обеспечит оплату через безопасную сделку.",
-        );
-      }
+  const requireSecuredPayment = to === "AT_LOADING" && (await getSettings()).requireSecureDeal;
+  const assertPaymentSecured = async (db: Tx) => {
+    const deal = await findLiveSecureDeal(db, orderId);
+    if (!deal || !HELD_STATUSES.includes(deal.status as SecureDealStatus)) {
+      throw new AppError(
+        "INVALID_STATE_TRANSITION",
+        "Начать загрузку можно после того, как заказчик обеспечит оплату через безопасную сделку.",
+      );
     }
-  }
+  };
+  // Быстрый отказ до транзакции; окончательная проверка — внутри неё
+  if (requireSecuredPayment) await assertPaymentSecured(prisma);
 
   return prisma.$transaction(async (tx) => {
+    if (requireSecuredPayment) {
+      // BL-03: блокируем строки сделки — параллельная отмена сделки дождётся перехода или увидит его результат
+      await tx.$queryRaw`SELECT id FROM "PaymentRecord" WHERE "orderId" = ${orderId}::uuid AND "type" = 'SECURE_DEAL' FOR UPDATE`;
+      await assertPaymentSecured(tx);
+    }
     let trackingEventId: string | null = null;
     const trackingType = TRANSITION_TRACKING_EVENT[to];
     const expectedFrom = order.currentStatus;
@@ -317,35 +324,54 @@ export async function cancelOrder(actor: Actor, orderId: string, reason: string)
       comment: `Отмена: ${reason}`,
       manual: true,
     });
-    await tx.contract.updateMany({
-      where: { orderId, status: { in: ["PENDING_SIGNATURES", "PARTIALLY_SIGNED", "DRAFT"] } },
-      data: { status: "CANCELLED" },
-    });
-    await tx.load.update({ where: { id: order.loadId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason } });
-    await tx.paymentRecord.updateMany({ where: { orderId, status: { in: ["PLANNED", "INVOICED"] } }, data: { status: "CANCELLED" } });
-    // Перевозчик отказался от сделки — груз заказчика не должен пропасть: он снова выставляется на биржу копией
-    // (один груз связан с одной сделкой, поэтому создаётся новый груз с тем же маршрутом и условиями)
-    let republishedLoadId: string | null = null;
-    if (access.side === "CARRIER") {
-      await tx.bid.update({ where: { id: order.acceptedBidId }, data: { status: "WITHDRAWN", decidedAt: new Date() } });
-      republishedLoadId = await republishLoadCopy(tx, actor, order.loadId, order.publicNumber, reason);
-    }
-    await audit(
-      actor,
-      {
-        action: AuditAction.ORDER_CANCELLED,
-        entityType: "TransportOrder",
-        entityId: orderId,
-        oldValue: { status: from },
-        newValue: { status: "CANCELLED", reason },
-      },
-      tx,
-    );
-    return { ...order, republishedLoadId };
+    return applyCancellationEffects(tx, actor, order, from, reason, access.side === "CARRIER");
   });
   // Безопасная сделка: неподтверждённая оплата отменяется, обеспеченная — возвращается заказчику через провайдера
   await settleOnOrderCancel(orderId, actor, reason);
   return cancelled;
+}
+
+/**
+ * Последствия отмены перевозки внутри транзакции перехода: черновые договоры, груз и плановые платежи отменяются;
+ * при отказе перевозчика его ставка отзывается, а груз заказчика снова выставляется копией. Денежная часть
+ * безопасной сделки — после транзакции (settleOnOrderCancel).
+ */
+export async function applyCancellationEffects<O extends { id: string; loadId: string; acceptedBidId: string; publicNumber: string }>(
+  tx: Tx,
+  actor: Actor,
+  order: O,
+  from: OrderStatus,
+  reason: string,
+  carrierWithdrew: boolean,
+) {
+  await tx.contract.updateMany({
+    where: { orderId: order.id, status: { in: ["PENDING_SIGNATURES", "PARTIALLY_SIGNED", "DRAFT"] } },
+    data: { status: "CANCELLED" },
+  });
+  await tx.load.update({ where: { id: order.loadId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason } });
+  await tx.paymentRecord.updateMany({
+    where: { orderId: order.id, status: { in: ["PLANNED", "INVOICED"] } },
+    data: { status: "CANCELLED" },
+  });
+  // Перевозчик отказался от сделки — груз заказчика не должен пропасть: он снова выставляется на биржу копией
+  // (один груз связан с одной сделкой, поэтому создаётся новый груз с тем же маршрутом и условиями)
+  let republishedLoadId: string | null = null;
+  if (carrierWithdrew) {
+    await tx.bid.update({ where: { id: order.acceptedBidId }, data: { status: "WITHDRAWN", decidedAt: new Date() } });
+    republishedLoadId = await republishLoadCopy(tx, actor, order.loadId, order.publicNumber, reason);
+  }
+  await audit(
+    actor,
+    {
+      action: AuditAction.ORDER_CANCELLED,
+      entityType: "TransportOrder",
+      entityId: order.id,
+      oldValue: { status: from },
+      newValue: { status: "CANCELLED", reason },
+    },
+    tx,
+  );
+  return { ...order, republishedLoadId };
 }
 
 /** Копия груза после отказа перевозчика: опубликована, если дата загрузки ещё актуальна, иначе — черновик. */
@@ -737,6 +763,9 @@ export async function unassignDriver(actor: Actor, orderId: string) {
 // ─────────── Доставка и закрытие ───────────
 
 /** Водитель/перевозчик отмечает доставку (с фото, CMR, комментарием). */
+/** Документы, подтверждающие доставку при отметке «Доставлено» (BL-05). */
+const DELIVERY_PROOF_TYPES = ["PROOF_OF_DELIVERY", "CMR", "CARGO_PHOTO"] as const;
+
 export async function reportDelivered(
   actor: Actor,
   orderId: string,
@@ -751,6 +780,19 @@ export async function reportDelivered(
     throw new AppError("DELIVERY_NOT_ALLOWED", "Отметить доставку можно только после прибытия на разгрузку.");
   }
   await validateAttachments(orderId, input.documentIds);
+  if ((await getSettings()).requireProofOnDelivery) {
+    // BL-05: подтверждение доставки — фото груза, POD или CMR среди документов перевозки (приложенные к отметке тоже там)
+    const proof = await prisma.orderDocument.count({
+      where: {
+        orderId,
+        status: "ACTIVE",
+        type: { in: [...DELIVERY_PROOF_TYPES] },
+      },
+    });
+    if (proof === 0) {
+      throw new AppError("DELIVERY_NOT_ALLOWED", "Приложите фото груза, POD или CMR, чтобы отметить доставку.");
+    }
+  }
   return prisma.$transaction(async (tx) => {
     const ev = await tx.trackingEvent.create({
       data: {
@@ -787,13 +829,23 @@ export async function reportDelivered(
       },
       tx,
     );
+    // BL-06: срок — по местному времени точки разгрузки (его видят обе стороны), а не всегда по Алматы
+    const deliveryStop = await tx.loadStop.findFirst({
+      where: { loadId: updated.loadId, type: "DELIVERY" },
+      orderBy: { sequence: "desc" },
+      select: { city: true, country: true, timezone: true },
+    });
+    const dueTz = deliveryStop?.timezone ?? (deliveryStop ? defaultTimezone(deliveryStop.country) : DEFAULT_TZ);
+    const dueText = confirmationDueAt
+      ? `${confirmationDueAt.toLocaleString("ru-RU", { timeZone: dueTz, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} по местному времени${deliveryStop ? ` места разгрузки (${deliveryStop.city})` : ""}`
+      : null;
     await notify(tx, {
       userIds: await orderParticipantUserIds(tx, updated, { customer: true, carrier: true }),
       excludeUserId: actor.userId,
       type: "STATUS_CHANGED",
       title: `${updated.publicNumber}: груз доставлен`,
-      body: confirmationDueAt
-        ? `Проверьте документы и подтвердите получение или откройте спор до ${confirmationDueAt.toLocaleString("ru-RU", { timeZone: "Asia/Almaty" })} (Алматы). После этого выплата перевозчику будет выполнена автоматически.`
+      body: dueText
+        ? `Проверьте документы и подтвердите получение или откройте спор до ${dueText}. После этого выплата перевозчику будет выполнена автоматически.`
         : "Проверьте документы и подтвердите получение груза.",
       entityType: "TransportOrder",
       entityId: orderId,

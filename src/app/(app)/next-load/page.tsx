@@ -13,6 +13,7 @@ import { MapView, type MapLine, type MapPoint } from "@/features/tracking/map-vi
 import { guard, navKindFor, pageActor, sp, type SearchParams } from "@/server/page-context";
 import { getMovementMatches, nextLoadContext } from "@/server/services/next-load.service";
 import { redirect } from "next/navigation";
+import { forbiddenUrl } from "@/lib/auth/forbidden-link";
 
 export const metadata: Metadata = { title: "Следующий рейс" };
 
@@ -28,8 +29,7 @@ type Sort = (typeof SORTS)[number]["value"];
 
 export default async function NextLoadPage({ searchParams }: { searchParams: SearchParams }) {
   const actor = await pageActor();
-  if (navKindFor(actor) !== "carrier")
-    redirect("/forbidden?reason=" + encodeURIComponent("Раздел «Следующий рейс» доступен перевозчикам."));
+  if (navKindFor(actor) !== "carrier") redirect(forbiddenUrl("Раздел «Следующий рейс» доступен перевозчикам."));
   const params = await searchParams;
   const ctx = await guard(nextLoadContext(actor));
   const movementParam = sp(params, "movement");
@@ -103,7 +103,7 @@ export default async function NextLoadPage({ searchParams }: { searchParams: Sea
           action={{ href: "/vehicles", label: "Добавить автомобиль" }}
         />
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="space-y-5">
             <Card>
               <CardHeader>
@@ -237,7 +237,7 @@ export default async function NextLoadPage({ searchParams }: { searchParams: Sea
                     description="Увеличьте допустимый крюк, добавьте направление или расширьте период доступности. Ниже — почему не подошли остальные грузы."
                   />
                 ) : (
-                  <div className="grid gap-3 2xl:grid-cols-2" data-testid="nl-matches">
+                  <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2" data-testid="nl-matches">
                     {result.matches.map((m) => (
                       <MatchCard key={m.loadId} m={m} />
                     ))}

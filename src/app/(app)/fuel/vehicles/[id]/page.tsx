@@ -64,7 +64,7 @@ export default async function VehicleFuelPage({ params }: { params: Promise<{ id
         description={`${label("VehicleType", v.vehicleType)} · ${v.fuelType ? label("FuelType", v.fuelType) : "тип топлива не указан"}${v.engineType ? ` · ${v.engineType}` : ""}${v.vin ? ` · VIN ${v.vin}` : ""}`}
         actions={canManage ? <VehicleFuelSettingsDialog vehicleId={v.id} initial={v} /> : undefined}
       />
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" data-testid="vehicle-fuel-summary">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4" data-testid="vehicle-fuel-summary">
         <Card>
           <CardContent className="pt-5">
             <p className="text-muted-foreground text-body">Текущий уровень</p>
@@ -105,7 +105,7 @@ export default async function VehicleFuelPage({ params }: { params: Promise<{ id
         </Card>
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader>

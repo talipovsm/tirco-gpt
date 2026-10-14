@@ -11,8 +11,10 @@ const DEMO_PASSWORD = "Demo1234!";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
 const PDF = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
 
-function isoDate(daysAhead: number) {
-  return new Date(Date.now() + daysAhead * 86400_000).toISOString().slice(0, 10);
+/** Дата в формате полей интерфейса: ДД.ММ.ГГГГ. */
+function uiDate(daysAhead: number) {
+  const [y, m, d] = new Date(Date.now() + daysAhead * 86400_000).toISOString().slice(0, 10).split("-");
+  return `${d}.${m}.${y}`;
 }
 
 async function login(browser: Browser, email: string, password = DEMO_PASSWORD, opts: Parameters<Browser["newContext"]>[0] = {}) {
@@ -72,7 +74,7 @@ test("полный сценарий цифровой перевозки", async 
   await stop0.getByLabel("Страна").selectOption("CN");
   await stop0.getByLabel("Город").fill("Урумчи");
   await stop0.getByLabel("Адрес").fill("Промзона Мидун, склад 12");
-  await stop0.getByLabel("Дата").fill(isoDate(3));
+  await stop0.getByLabel("Дата").fill(uiDate(3));
   await shipper.getByRole("button", { name: "Добавить точку" }).click();
   const stop1 = shipper.getByTestId("stop-1");
   await stop1.getByLabel("Тип точки").selectOption("TRANSIT");
@@ -81,7 +83,7 @@ test("полный сценарий цифровой перевозки", async 
   const stop2 = shipper.getByTestId("stop-2");
   await stop2.getByLabel("Страна").selectOption("RU");
   await stop2.getByLabel("Город").fill("Москва");
-  await stop2.getByLabel("Дата").fill(isoDate(12));
+  await stop2.getByLabel("Дата").fill(uiDate(12));
   await shipper.getByRole("button", { name: "Продолжить" }).click();
 
   await shipper.getByLabel("Название груза").fill("E2E Электроника");
@@ -102,7 +104,7 @@ test("полный сценарий цифровой перевозки", async 
   await shipper.waitForURL(/\/loads\/[0-9a-f-]{36}$/);
   const loadUrl = shipper.url();
   const loadHeading = await shipper.getByRole("heading", { level: 1 }).innerText();
-  const loadNumber = loadHeading.match(/CF-L-\d{6}/)![0];
+  const loadNumber = loadHeading.match(/TR-L-\d{6}/)![0];
   await expect(shipper.getByRole("heading", { level: 1 })).toContainText("Опубликован");
   // Карточка груза: километраж маршрута (оценка без ключа провайдера)
   await expect(shipper.getByTestId("route-distance").first()).toContainText("(оценка)");
@@ -130,7 +132,7 @@ test("полный сценарий цифровой перевозки", async 
   await confirmInDialog(shipper, "Принять предложение");
   await shipper.waitForURL(/\/orders\/[0-9a-f-]{36}\?tab=contract/);
   const orderUrl = shipper.url().split("?")[0];
-  const orderNumber = (await shipper.getByRole("heading", { level: 1 }).innerText()).match(/CF-O-\d{6}/)![0];
+  const orderNumber = (await shipper.getByRole("heading", { level: 1 }).innerText()).match(/TR-O-\d{6}/)![0];
   // Карточка перевозки: километраж маршрута груза
   await expect(shipper.getByTestId("order-summary").getByTestId("route-distance")).toContainText("(оценка)");
 

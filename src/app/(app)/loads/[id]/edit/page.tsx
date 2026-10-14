@@ -1,3 +1,4 @@
+import { isForwarderRole } from "@/lib/permissions";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/common/misc";
@@ -24,7 +25,7 @@ export default async function EditLoadPage({ params }: { params: Promise<{ id: s
         loadStatus={load.status}
         initial={loadToWizardValues(load as unknown as Parameters<typeof loadToWizardValues>[0])}
         carriers={carriers}
-        isForwarder={actor.active?.role === "FORWARDER"}
+        isForwarder={isForwarderRole(actor.active?.role)}
       />
     </>
   );

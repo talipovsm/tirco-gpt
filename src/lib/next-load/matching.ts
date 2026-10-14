@@ -121,7 +121,10 @@ export function bodyCompatible(required: BodyType | null, actual: BodyType): boo
 }
 
 const round = (n: number) => Math.round(n);
-const fmtDate = (d: Date) => d.toLocaleDateString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit" });
+// Один форматтер на модуль (PERF-02): toLocaleDateString с параметрами создаёт Intl.DateTimeFormat при каждом вызове,
+// а подбор форматирует даты для каждого из сотен грузов — это была основная часть времени подбора
+const DATE_FMT = new Intl.DateTimeFormat("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit" });
+const fmtDate = (d: Date) => DATE_FMT.format(d);
 const tons = (kg: number) => `${Math.round((kg / 1000) * 10) / 10} т`;
 
 /** Проверка совместимости груза и автомобиля. Пустой массив — совместимы. */

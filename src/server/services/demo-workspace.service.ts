@@ -22,10 +22,12 @@ export const DEMO_ANCHORS = {
 
 const ANCHOR_FOR: Record<MemberRole, keyof typeof DEMO_ANCHORS> = {
   SHIPPER: "SHIPPER",
+  SHIPPER_MANAGER: "SHIPPER",
   CARRIER_ADMIN: "CARRIER",
   CARRIER_DISPATCHER: "CARRIER",
   DRIVER: "CARRIER",
   FORWARDER: "FORWARDER",
+  FORWARDER_MANAGER: "FORWARDER",
 };
 
 /** Заведомо непригодный для входа хеш: в демо-базе пароль не хранится и не проверяется. */

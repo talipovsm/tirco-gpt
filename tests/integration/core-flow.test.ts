@@ -31,7 +31,7 @@ describe("core flow", () => {
   it("создаёт груз (черновик) и публикует его", async () => {
     const draft = await createLoad(s.shipper, loadInput(), { publish: false });
     expect(draft.status).toBe("DRAFT");
-    expect(draft.publicNumber).toMatch(/^CF-L-\d{6}$/);
+    expect(draft.publicNumber).toMatch(/^TR-L-\d{6}$/);
     loadId = draft.id;
     const stops = await prisma.loadStop.findMany({ where: { loadId }, orderBy: { sequence: "asc" } });
     expect(stops.map((x) => x.city)).toEqual(["Урумчи", "Алматы", "Москва"]);
@@ -91,7 +91,7 @@ describe("core flow", () => {
     const res = await acceptBid(s.shipper, bidId);
     orderId = res.orderId;
     contractId = res.contractId;
-    expect(res.orderNumber).toMatch(/^CF-O-\d{6}$/);
+    expect(res.orderNumber).toMatch(/^TR-O-\d{6}$/);
 
     const order = await prisma.transportOrder.findUniqueOrThrow({ where: { id: orderId } });
     expect(order.currentStatus).toBe("CONTRACT_PENDING");
@@ -102,7 +102,7 @@ describe("core flow", () => {
     expect(await prisma.transportOrder.count({ where: { loadId } })).toBe(1);
 
     const contract = await prisma.contract.findUniqueOrThrow({ where: { id: contractId } });
-    expect(contract.documentNumber).toMatch(/^CF-C-\d{6}$/);
+    expect(contract.documentNumber).toMatch(/^TR-C-\d{6}$/);
     expect(contract.contentHash).toMatch(/^[a-f0-9]{64}$/);
     expect(contract.contentSnapshot).toContain("Shipper LLP");
     expect(contract.contentSnapshot).toContain("Carrier LLP");

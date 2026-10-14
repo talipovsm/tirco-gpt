@@ -1,7 +1,7 @@
 import "server-only";
 import type { Actor } from "@/lib/auth/actor";
 import { prisma } from "@/lib/db/prisma";
-import { isCarrierRole, isCustomerRole } from "@/lib/permissions";
+import { isCarrierRole, isCustomerRole, isForwarderRole } from "@/lib/permissions";
 import { ACTIVE_STATUSES, IN_TRANSIT_STATUSES } from "@/lib/state-machine/order-state-machine";
 import { ordersWhereForActiveCompany } from "./access";
 
@@ -288,7 +288,7 @@ export async function forwarderDashboard(actor: Actor) {
 export function dashboardKind(actor: Actor): "customer" | "forwarder" | "carrier" | "driver" | "admin" | "none" {
   const r = actor.active?.role;
   if (!r) return actor.isAdmin ? "admin" : "none";
-  if (r === "FORWARDER") return "forwarder";
+  if (isForwarderRole(r)) return "forwarder";
   if (isCustomerRole(r)) return "customer";
   if (isCarrierRole(r)) return "carrier";
   return "driver";

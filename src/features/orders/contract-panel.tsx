@@ -84,7 +84,7 @@ export function ContractPanel({
   const pending_ = contract.status === "PENDING_SIGNATURES" || contract.status === "PARTIALLY_SIGNED";
 
   return (
-    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-5">
         <Card>
           <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">

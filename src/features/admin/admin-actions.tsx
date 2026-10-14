@@ -95,6 +95,7 @@ type Settings = {
   confirmationWindowHours: number;
   autoConfirmOnTimeout: boolean;
   requirePodForClose: boolean;
+  requireProofOnDelivery: boolean;
   restrictedCargoTypes: string[];
   requireVerifiedToPublish: boolean;
   requireVerifiedToBid: boolean;
@@ -188,6 +189,16 @@ export function SettingsForm({ initial }: { initial: Settings }) {
       </div>
       <div className="flex items-start gap-2">
         <Checkbox
+          id="s-proof"
+          checked={s.requireProofOnDelivery}
+          onCheckedChange={(c) => setS({ ...s, requireProofOnDelivery: c === true })}
+        />
+        <Label htmlFor="s-proof" className="leading-snug font-normal">
+          Отмечать доставку только с фото груза, POD или CMR
+        </Label>
+      </div>
+      <div className="flex items-start gap-2">
+        <Checkbox
           id="s-ver"
           checked={s.requireVerifiedToPublish}
           onCheckedChange={(c) => setS({ ...s, requireVerifiedToPublish: c === true })}
@@ -208,7 +219,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
       </div>
       <fieldset>
         <legend className="text-body mb-2 font-medium">Ограничить публикацию грузов типов</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {enumOptions("CargoType").map((o) => (
             <label key={o.value} className="text-body flex items-center gap-2">
               <Checkbox

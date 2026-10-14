@@ -1,7 +1,8 @@
 name: Native apps
 
 # Сборка нативных приложений Tirco (Flutter): проверки + Android (APK), iOS (без подписи), macOS, Windows.
-# Адрес API для сборок — переменная репозитория TIRCO_API (Settings → Variables); без неё — тестовый сервер на Railway.
+# Адрес API для сборок — переменная репозитория TIRCO_API (Settings → Variables), обязательна: без неё сборки не запускаются,
+# чтобы приложения случайно не ушли на старый стенд (OPS-04). Проверки (analyze/test) работают и без неё.
 # Подложка карт — переменная GEOAPIFY_KEY (публичный ключ карт Geoapify); пусто — тайлы OSM.
 on:
   push:
@@ -17,7 +18,7 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.5"
-  API_DEFINE: --dart-define=TIRCO_API=${{ vars.TIRCO_API || 'https://tslaprojects-cargoflow-copy-production.up.railway.app' }} --dart-define=GEOAPIFY_KEY=${{ vars.GEOAPIFY_KEY }}
+  API_DEFINE: --dart-define=TIRCO_API=${{ vars.TIRCO_API }} --dart-define=GEOAPIFY_KEY=${{ vars.GEOAPIFY_KEY }}
 
 jobs:
   checks:
@@ -35,8 +36,34 @@ jobs:
             echo "::endgroup::"
           done
 
+  # Без TIRCO_API сборки не выполняются. В pull request это предупреждение (проверки analyze/test проходят,
+  # сборки пропускаются), при push в main и ручном запуске — ошибка: релизные сборки без адреса API не собираются.
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.api.outputs.build }}
+    steps:
+      - name: TIRCO_API задан
+        id: api
+        env:
+          TIRCO_API: ${{ vars.TIRCO_API }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          problem=""
+          if [ -z "$TIRCO_API" ]; then
+            problem="Не задана переменная репозитория TIRCO_API (Settings → Secrets and variables → Actions → Variables) — адрес API Tirco для сборок."
+          else
+            case "$TIRCO_API" in https://*) ;; *) problem="TIRCO_API должен начинаться с https://";; esac
+          fi
+          if [ -z "$problem" ]; then echo "build=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "build=false" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "pull_request" ]; then echo "::warning::$problem Сборки пропущены."; exit 0; fi
+          echo "::error::$problem"
+          exit 1
+
   android:
-    needs: checks
+    needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -56,7 +83,8 @@ jobs:
           path: native/apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-release.apk
 
   ios:
-    needs: checks
+    needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     strategy:
@@ -74,7 +102,8 @@ jobs:
         with: { name: "ios-${{ matrix.app }}-unsigned", path: "ios-${{ matrix.app }}.zip" }
 
   macos:
-    needs: checks
+    needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -90,7 +119,8 @@ jobs:
         with: { name: macos-tirco, path: Tirco-macos.zip }
 
   windows:
-    needs: checks
+    needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:

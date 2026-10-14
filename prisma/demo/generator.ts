@@ -28,6 +28,7 @@ import {
   VEHICLES,
   type City,
 } from "./catalog";
+import { PUBLIC_NUMBER_PREFIX } from "@/lib/public-number";
 
 // ───────── Детерминированная случайность ─────────
 
@@ -441,7 +442,7 @@ export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}
     const published = loadStatus !== "DRAFT";
     loads.push({
       id: loadId,
-      publicNumber: num("CF-L-", loadNos[i].n),
+      publicNumber: num(PUBLIC_NUMBER_PREFIX.load, loadNos[i].n),
       companyId: owner.companyId,
       createdByUserId: owner.userId,
       clientName: owner.clientName,
@@ -530,7 +531,13 @@ export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}
           awaitingSide: "CUSTOMER",
           createdAt: at,
         });
-        note(owner.userId, "NEW_BID", `Новое предложение по грузу ${num("CF-L-", loadNos[i].n)}`, at, `/loads/${loadId}?tab=bids`);
+        note(
+          owner.userId,
+          "NEW_BID",
+          `Новое предложение по грузу ${num(PUBLIC_NUMBER_PREFIX.load, loadNos[i].n)}`,
+          at,
+          `/loads/${loadId}?tab=bids`,
+        );
       }
       continue;
     }
@@ -549,7 +556,7 @@ export async function generateDemoWorld(opts: { seed?: string; now?: Date } = {}
     const pair = pairs[pairIdx];
     const orderId = r.uuid();
     const bidId = r.uuid();
-    const orderNo = num("CF-O-", orderNos[orderIdx++].n);
+    const orderNo = num(PUBLIC_NUMBER_PREFIX.order, orderNos[orderIdx++].n);
     const isForwarder = owner.companyId === aForwarder.id;
     const at = (s: OrderStatus) => reached.find((x) => x.status === s);
     const atDate = (s: OrderStatus) => (at(s) ? addDays(L, at(s)!.at) : null);

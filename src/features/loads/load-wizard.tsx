@@ -2,7 +2,7 @@
 import { Check, MapPin, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/common/field";
 import { DefinitionList, MoneyDisplay } from "@/components/common/misc";
@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { loadInputSchema, type LoadInput } from "@/lib/validation/load";
 import { RoutePreview } from "./route-preview";
 import { defaultWizardValues, emptyStop, type WizardValues } from "./wizard-values";
+import { DateInput, TimeInput } from "@/components/common/date-time-field";
 
 function toPayload(v: WizardValues): LoadInput {
   return {
@@ -211,7 +212,7 @@ export function LoadWizard({
                   )}
                   <span className="inline-flex items-baseline gap-1 font-medium whitespace-nowrap">
                     {s.city || countryName(s.country)}
-                    <span className="text-caption text-tertiary-foreground">{s.country}</span>
+                    <span className="text-caption text-muted-foreground">{s.country}</span>
                   </span>
                 </React.Fragment>
               ))}
@@ -226,7 +227,7 @@ export function LoadWizard({
                     <MapPin className="text-link size-4" aria-hidden />
                     Точка {i + 1}: {label("StopType", values.stops[i]?.type)}
                   </legend>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {!isFirst && !isLast && (
                       <Field id={`stops.${i}.type`} label="Тип точки">
                         <NativeSelect {...form.register(`stops.${i}.type`)}>
@@ -256,14 +257,47 @@ export function LoadWizard({
                       <Input {...form.register(`stops.${i}.fullAddress`)} />
                     </Field>
                     <Field id={`stops.${i}.date`} label="Дата" error={err(`stops.${i}.date`)} required={isFirst}>
-                      <Input type="date" {...form.register(`stops.${i}.date`)} />
+                      <Controller
+                        control={form.control}
+                        name={`stops.${i}.date`}
+                        render={({ field }) => (
+                          <DateInput
+                            id={`stops.${i}.date`}
+                            value={(field.value as string) ?? ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                          />
+                        )}
+                      />
                     </Field>
                     <div className="grid grid-cols-2 gap-2">
                       <Field id={`stops.${i}.timeFrom`} label="С">
-                        <Input type="time" {...form.register(`stops.${i}.timeFrom`)} />
+                        <Controller
+                          control={form.control}
+                          name={`stops.${i}.timeFrom`}
+                          render={({ field }) => (
+                            <TimeInput
+                              id={`stops.${i}.timeFrom`}
+                              value={(field.value as string) ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          )}
+                        />
                       </Field>
                       <Field id={`stops.${i}.timeTo`} label="До" error={err(`stops.${i}.timeTo`)}>
-                        <Input type="time" {...form.register(`stops.${i}.timeTo`)} />
+                        <Controller
+                          control={form.control}
+                          name={`stops.${i}.timeTo`}
+                          render={({ field }) => (
+                            <TimeInput
+                              id={`stops.${i}.timeTo`}
+                              value={(field.value as string) ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          )}
+                        />
                       </Field>
                     </div>
                     {(isFirst || isLast) && (
@@ -306,7 +340,7 @@ export function LoadWizard({
           <CardHeader>
             <CardTitle>Груз</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id="title" label="Название груза" error={err("title")} required className="sm:col-span-2">
               <Input placeholder="Например: Электроника, мониторы" {...form.register("title")} />
             </Field>
@@ -356,7 +390,7 @@ export function LoadWizard({
           <CardHeader>
             <CardTitle>Транспорт</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id="vehicleType" label="Тип транспорта">
               <NativeSelect {...form.register("vehicleType")}>
                 <option value="">Любой</option>
@@ -399,7 +433,7 @@ export function LoadWizard({
           <CardHeader>
             <CardTitle>Цена и публикация</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field id="priceType" label="Тип цены" required>
               <NativeSelect {...form.register("priceType")}>
                 {enumOptions("PriceType").map((o) => (
@@ -444,7 +478,7 @@ export function LoadWizard({
             </Field>
             <fieldset className="sm:col-span-3">
               <legend className="text-body mb-2 font-medium">Кто увидит груз</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {(["MARKETPLACE", "INVITE_ONLY"] as const).map((v) => (
                   <label
                     key={v}
@@ -500,7 +534,7 @@ export function LoadWizard({
             <CardTitle>Предпросмотр груза</CardTitle>
             <p className="text-muted-foreground text-body">Проверьте данные перед публикацией.</p>
           </CardHeader>
-          <CardContent className="grid gap-6 lg:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div>
               <h3 className="text-body mb-3 font-semibold">Маршрут</h3>
               <RouteTimeline

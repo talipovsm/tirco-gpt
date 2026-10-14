@@ -119,14 +119,14 @@ export function OrderTrackingHeader({
               <span className="text-footnote text-muted-foreground block">Откуда</span>
               <span className="text-title3 inline-flex items-baseline gap-1">
                 {origin?.city}
-                <span className="text-caption text-tertiary-foreground font-medium">{origin?.country}</span>
+                <span className="text-caption text-muted-foreground font-medium">{origin?.country}</span>
               </span>
             </span>
             <span className="min-w-0 text-right">
               <span className="text-footnote text-muted-foreground block">Куда</span>
               <span className="text-title3 inline-flex items-baseline gap-1">
                 {destination?.city}
-                <span className="text-caption text-tertiary-foreground font-medium">{destination?.country}</span>
+                <span className="text-caption text-muted-foreground font-medium">{destination?.country}</span>
               </span>
             </span>
           </div>

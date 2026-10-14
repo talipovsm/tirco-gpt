@@ -27,7 +27,7 @@ export function ProfileForm({ initial }: { initial: { firstName: string; lastNam
   });
   const e = f.formState.errors;
   return (
-    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
+    <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2" noValidate>
       <div className="sm:col-span-2">
         <FormError message={error} />
       </div>
@@ -89,5 +89,32 @@ export function ChangePasswordForm() {
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Статус подтверждения email и повторная отправка ссылки (SEC-04). */
+export function EmailVerificationNotice({ verified, deliveryEnabled }: { verified: boolean; deliveryEnabled: boolean }) {
+  const [pending, setPending] = React.useState(false);
+  if (verified) return <p className="text-body">Email подтверждён.</p>;
+  if (!deliveryEnabled)
+    return <p className="text-body text-muted-foreground">Email не подтверждён: отправка писем на платформе не подключена.</p>;
+  const resend = async () => {
+    setPending(true);
+    try {
+      await api("/api/auth/verify-email/resend", { method: "POST" });
+      toast.success("Письмо со ссылкой отправлено. Проверьте почту.");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <div className="space-y-3" data-testid="email-unverified">
+      <p className="text-body">Email не подтверждён. Без подтверждения нельзя отправить компанию на проверку.</p>
+      <Button variant="secondary" onClick={resend} loading={pending} loadingText="Отправляем...">
+        Отправить ссылку ещё раз
+      </Button>
+    </div>
   );
 }

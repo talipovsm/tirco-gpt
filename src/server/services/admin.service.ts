@@ -3,10 +3,10 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { OrderStatus } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import { requirePermission, type Actor } from "@/lib/auth/actor";
-import { prisma } from "@/lib/db/prisma";
+import { authDb, prisma } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
 import { ACTIVE_STATUSES, IN_TRANSIT_STATUSES } from "@/lib/state-machine/order-state-machine";
-import { companyRatings } from "./company.service";
+import { companyRatings, registrationNumberHolder } from "./company.service";
 import { companyUserIds, notify } from "./notification.service";
 import { performTransitionInTx } from "./order-core";
 
@@ -166,6 +166,17 @@ export async function adminSetUserStatus(actor: Actor, userId: string, action: "
   if (userId === actor.userId) throw errors.forbidden("Нельзя заблокировать собственную учётную запись.");
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw errors.notFound("Пользователь не найден.");
+  if (action === "BLOCK") {
+    // SEC-07: администраторы равноправны, поэтому один не может отключить другого из панели. Роль сначала снимается
+    // оператором с доступом к серверу (npm run admin:grant -- --revoke), последнего администратора снять нельзя.
+    // Роль платформы — всегда из реальной базы (единая identity), а не из базы режима данных.
+    const identity = await authDb.user.findUnique({ where: { id: userId }, select: { platformRole: true } });
+    if (identity?.platformRole === "PLATFORM_ADMIN") {
+      throw errors.forbidden(
+        "Администратора платформы нельзя заблокировать из панели. Сначала снимите роль: npm run admin:grant -- --revoke.",
+      );
+    }
+  }
   if (action === "BLOCK" && user.status === "BLOCKED") throw new AppError("DUPLICATE_ACTION", "Пользователь уже заблокирован.");
   if (action === "UNBLOCK" && user.status === "ACTIVE") throw new AppError("DUPLICATE_ACTION", "Пользователь уже активен.");
   return prisma.$transaction(async (tx) => {
@@ -228,6 +239,21 @@ export async function adminListCompanies(actor: Actor, opts: Page & { q?: string
 }
 
 /** Решение по верификации / приостановка / восстановление компании. */
+/** Номер компании уже закреплён за другой проверенной компанией — подтвердить вторую нельзя (SEC-04). */
+async function assertNumberNotTaken(
+  tx: Pick<typeof prisma, "company">,
+  company: { id: string; country: string; registrationNumber: string },
+) {
+  const holder = await registrationNumberHolder(tx, company.country, company.registrationNumber, company.id);
+  if (holder) {
+    throw new AppError(
+      "CONFLICT",
+      `Регистрационный номер ${company.registrationNumber} уже закреплён за проверенной компанией «${holder.legalName}». ` +
+        "Проверьте документы: если номер принадлежит этой заявке, сначала приостановите и разберите прежнюю компанию.",
+    );
+  }
+}
+
 export async function adminCompanyDecision(
   actor: Actor,
   companyId: string,
@@ -249,6 +275,7 @@ export async function adminCompanyDecision(
         if (company.verificationStatus === "SUSPENDED") {
           throw new AppError("INVALID_STATE_TRANSITION", "Компания приостановлена — сначала восстановите её деятельность.");
         }
+        await assertNumberNotTaken(tx, company);
         status = "VERIFIED";
         action = AuditAction.VERIFICATION_APPROVED;
         if (pending)
@@ -283,6 +310,7 @@ export async function adminCompanyDecision(
       case "RESTORE": {
         if (company.verificationStatus !== "SUSPENDED") throw new AppError("INVALID_STATE_TRANSITION", "Компания не приостановлена.");
         const lastApproved = await tx.verificationRequest.findFirst({ where: { companyId, status: "APPROVED" } });
+        if (lastApproved) await assertNumberNotTaken(tx, company);
         status = lastApproved ? "VERIFIED" : "UNVERIFIED";
         action = AuditAction.COMPANY_RESTORED;
         break;

@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { currentDataMode } from "@/lib/db/data-mode";
 
 /** S3-совместимое хранилище объектов. Файлы никогда не публикуются по открытым URL. */
 export interface StorageAdapter {
@@ -9,6 +10,8 @@ export interface StorageAdapter {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
   get(key: string): Promise<Buffer>;
   delete(key: string): Promise<void>;
+  /** Удаляет все объекты с префиксом (очистка демо-файлов). Возвращает число удалённых объектов, если известно. */
+  deletePrefix(prefix: string): Promise<number | null>;
   /** Короткоживущая подписанная ссылка (для S3). null — отдавать через сервер. */
   signedUrl(key: string, filename: string, contentType: string, ttlSeconds?: number): Promise<string | null>;
 }
@@ -32,6 +35,10 @@ class LocalStorageAdapter implements StorageAdapter {
   }
   async delete(key: string) {
     await rm(this.resolve(key), { force: true });
+  }
+  async deletePrefix(prefix: string) {
+    await rm(this.resolve(prefix.replace(/\/+$/, "")), { recursive: true, force: true });
+    return null;
   }
   async signedUrl() {
     return null;
@@ -76,6 +83,22 @@ class S3StorageAdapter implements StorageAdapter {
     const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
     await (await this.client()).send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
+  async deletePrefix(prefix: string) {
+    const { ListObjectsV2Command, DeleteObjectsCommand } = await import("@aws-sdk/client-s3");
+    const client = await this.client();
+    let token: string | undefined;
+    let deleted = 0;
+    do {
+      const page = await client.send(new ListObjectsV2Command({ Bucket: this.bucket, Prefix: prefix, ContinuationToken: token }));
+      const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []));
+      if (keys.length) {
+        await client.send(new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: keys, Quiet: true } }));
+        deleted += keys.length;
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return deleted;
+  }
   async signedUrl(key: string, filename: string, contentType: string, ttlSeconds = 60) {
     const { GetObjectCommand } = await import("@aws-sdk/client-s3");
     const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
@@ -103,7 +126,11 @@ export function storage(): StorageAdapter {
   return g.__cfStorage;
 }
 
+/** Префикс загрузок пользователей демо-базы: их можно удалить целиком, не трогая файлы реальной базы (DATA-01). */
+export const DEMO_UPLOADS_PREFIX = "demo/uploads/";
+
 export function buildStorageKey(scope: string, ext: string) {
   const d = new Date();
-  return `${scope}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${randomUUID()}${ext}`;
+  const mode = currentDataMode();
+  return `${mode === "demo" ? DEMO_UPLOADS_PREFIX : ""}${scope}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${randomUUID()}${ext}`;
 }

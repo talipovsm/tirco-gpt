@@ -129,7 +129,7 @@ export function FleetWorkspace({
                           <span className={cn("size-2 rounded-full", isSel ? "bg-white/60" : "bg-border-strong")} aria-hidden />
                         )}
                         <span className="id-code font-semibold">{v.plateNumber}</span>
-                        <span className={cn("text-caption font-medium tracking-wide", isSel ? "opacity-75" : "text-tertiary-foreground")}>
+                        <span className={cn("text-caption font-medium tracking-wide", isSel ? "opacity-75" : "text-muted-foreground")}>
                           {v.country}
                         </span>
                         <span className={cn("ml-auto", isSel && "[&_*]:!text-selection-foreground")}>
@@ -175,7 +175,7 @@ export function FleetWorkspace({
               {selected.trip && <HealthBadge health={selected.trip.health} />}
             </div>
             <h2 id={`veh-${selected.id}`} className="text-title2 id-code mt-1.5">
-              {selected.plateNumber} <span className="text-subheadline text-tertiary-foreground font-medium">{selected.country}</span>
+              {selected.plateNumber} <span className="text-subheadline text-muted-foreground font-medium">{selected.country}</span>
             </h2>
             <p className="text-subheadline text-muted-foreground">
               {selected.make} {selected.model}
@@ -191,7 +191,7 @@ export function FleetWorkspace({
             <X className="size-3.5 [stroke-width:2.5]" aria-hidden />
           </button>
         </header>
-        <div className="grid gap-6 px-4 pb-6 lg:px-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 px-4 pb-6 lg:px-6 xl:grid-cols-2">
           <InsetGroup header={t("ui.specs")}>
             <InsetList>
               <ListRow title="Кузов" value={selected.bodyLabel} />

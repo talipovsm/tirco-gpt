@@ -16,13 +16,14 @@ import { requireLoadRelation } from "./access";
 import { expireStaleBids } from "./bid.service";
 import { actualLoadWhere } from "@/lib/validation/bid";
 import { companyRatings } from "./company.service";
-import { CARRIER_OFFICE_ROLES, companyUserIds, notify } from "./notification.service";
+import { CARRIER_OFFICE_ROLES, companyUserIds, CUSTOMER_ROLES, notify } from "./notification.service";
 import { getSettings } from "./settings.service";
 
 type LoadParsed = z.output<typeof loadInputSchema>;
 type ListQuery = z.output<typeof loadListQuerySchema>;
 
-export const EDITABLE_LOAD_STATUSES: LoadStatus[] = ["DRAFT", "PUBLISHED"];
+/** Груз со ставками (BIDDING) тоже можно изменить: ставки снимаются, участники торгов получают уведомление. */
+export const EDITABLE_LOAD_STATUSES: LoadStatus[] = ["DRAFT", "PUBLISHED", "BIDDING"];
 export const CANCELLABLE_LOAD_STATUSES: LoadStatus[] = ["DRAFT", "PUBLISHED", "BIDDING"];
 
 /** Точки груза с координатами: указанные пользователем или найденные геокодером (справочник → кэш → провайдер). */
@@ -170,13 +171,10 @@ export async function updateLoad(actor: Actor, loadId: string, input: LoadParsed
     await lockLoad(tx, loadId);
     await expireStaleBids(tx, loadId);
     const current = await tx.load.findUniqueOrThrow({ where: { id: loadId }, include: { stops: true } });
-    if (current.status === "BIDDING") {
-      throw new AppError("INVALID_STATE_TRANSITION", "Груз нельзя изменить: по нему уже есть предложения. Отмените груз и создайте новый.");
-    }
     if (!EDITABLE_LOAD_STATUSES.includes(current.status)) {
       throw new AppError("INVALID_STATE_TRANSITION", "Груз в текущем статусе изменить нельзя.");
     }
-    if (current.status === "PUBLISHED") {
+    if (current.status === "PUBLISHED" || current.status === "BIDDING") {
       // Опубликованный груз после правки должен по-прежнему проходить проверки публикации
       const settings = await getSettings(tx);
       if (settings.restrictedCargoTypes.includes(input.cargoType)) {
@@ -197,6 +195,8 @@ export async function updateLoad(actor: Actor, loadId: string, input: LoadParsed
         ...loadData(input),
         ...route,
         visibility: current.status === "DRAFT" ? "DRAFT" : invitees.length ? "INVITE_ONLY" : "MARKETPLACE",
+        // Ставки были сделаны на прежние условия — груз возвращается к приёму предложений
+        ...(current.status === "BIDDING" ? { status: "PUBLISHED" as const } : {}),
         stops: { create: stops },
         invitations: { create: invitees.map((carrierCompanyId) => ({ carrierCompanyId })) },
       },
@@ -225,8 +225,45 @@ export async function updateLoad(actor: Actor, loadId: string, input: LoadParsed
       },
       tx,
     );
-    return { id: updated.id, publicNumber: updated.publicNumber, status: updated.status };
+    const reset = current.status === "BIDDING" ? await resetBidsAfterChange(tx, actor, loadId, updated.publicNumber, load.companyId) : 0;
+    return { id: updated.id, publicNumber: updated.publicNumber, status: updated.status, bidsReset: reset };
   });
+}
+
+/**
+ * Условия груза изменились — ожидающие ставки сделаны на прежние условия: они отклоняются с пояснением,
+ * а перевозчики получают уведомление и могут предложить цену заново.
+ */
+async function resetBidsAfterChange(tx: Tx, actor: Actor, loadId: string, publicNumber: string, ownerCompanyId: string) {
+  const pending = await tx.bid.findMany({ where: { loadId, status: "PENDING" }, select: { id: true, carrierCompanyId: true } });
+  if (pending.length === 0) return 0;
+  const now = new Date();
+  await tx.bid.updateMany({
+    where: { id: { in: pending.map((b) => b.id) } },
+    data: { status: "REJECTED", decidedAt: now, decidedByUserId: actor.userId },
+  });
+  for (const b of pending) {
+    await tx.bidMessage.create({
+      data: {
+        bidId: b.id,
+        authorUserId: actor.userId,
+        authorCompanyId: ownerCompanyId,
+        side: "CUSTOMER",
+        type: "REJECTED",
+        message: "Условия груза изменены — предложите цену заново.",
+      },
+    });
+    await notify(tx, {
+      userIds: await companyUserIds(tx, b.carrierCompanyId, CARRIER_OFFICE_ROLES),
+      type: "BID_REJECTED",
+      title: `Условия груза ${publicNumber} изменены`,
+      body: "Ваше предложение снято, потому что заказчик изменил условия. Посмотрите новые условия и предложите цену заново.",
+      entityType: "Load",
+      entityId: loadId,
+      link: `/loads/${loadId}`,
+    });
+  }
+  return pending.length;
 }
 
 async function lockLoad(tx: Tx, loadId: string) {
@@ -363,6 +400,28 @@ export async function cancelLoad(actor: Actor, loadId: string, reason: string | 
 
 // ─────────── Чтение ───────────
 
+/**
+ * Приватные поля груза: заметки видит только владелец (и администратор); имя клиента экспедитора,
+ * контакты и примечания точек — владелец и выбранный перевозчик. Остальные перевозчики и экспедиторы
+ * получают груз без этих полей (SEC-02).
+ */
+export function loadForViewer<
+  L extends {
+    notes: string | null;
+    clientName: string | null;
+    stops: { contactName: string | null; contactPhone: string | null; notes: string | null }[];
+  },
+>(load: L, isOwner: boolean, isSelectedCarrier: boolean): L {
+  if (isOwner) return load;
+  if (isSelectedCarrier) return { ...load, notes: null };
+  return {
+    ...load,
+    notes: null,
+    clientName: null,
+    stops: load.stops.map((st) => ({ ...st, contactName: null, contactPhone: null, notes: null })),
+  };
+}
+
 export async function getLoadDetail(actor: Actor, loadId: string) {
   const { relation, membership } = await requireLoadRelation(actor, loadId);
   await expireStaleBids(prisma, loadId);
@@ -410,7 +469,7 @@ export async function getLoadDetail(actor: Actor, loadId: string) {
     load.order && (isOwner || actor.memberships.some((m) => m.companyId === load.order!.carrierCompanyId && isCarrierRole(m.role)));
 
   return {
-    load: { ...load, order: orderVisible ? load.order : null },
+    load: loadForViewer({ ...load, order: orderVisible ? load.order : null }, isOwner, !!orderVisible),
     bids,
     ratings,
     history,
@@ -479,8 +538,8 @@ export async function listLoads(actor: Actor, q: ListQuery) {
       orderBy,
       skip: (q.page - 1) * q.pageSize,
       take: q.pageSize,
-      // Линия маршрута нужна только карточке груза — в списках не передаётся
-      omit: { routeGeometry: true },
+      // Линия маршрута нужна только карточке груза — в списках не передаётся; на бирже — без приватных полей владельца
+      omit: q.scope === "mine" ? { routeGeometry: true } : { routeGeometry: true, notes: true, clientName: true },
       include: {
         stops: { orderBy: { sequence: "asc" }, select: { sequence: true, type: true, country: true, city: true } },
         company: { select: { id: true, legalName: true, tradeName: true, verificationStatus: true } },
@@ -504,7 +563,7 @@ export async function askQuestion(actor: Actor, loadId: string, question: string
     const q = await tx.loadQuestion.create({ data: { loadId, companyId: membership.companyId, askedByUserId: actor.userId, question } });
     const full = await tx.load.findUniqueOrThrow({ where: { id: loadId }, select: { publicNumber: true } });
     await notify(tx, {
-      userIds: await companyUserIds(tx, load.companyId, ["SHIPPER", "FORWARDER"]),
+      userIds: await companyUserIds(tx, load.companyId, CUSTOMER_ROLES),
       type: "LOAD_QUESTION",
       title: `Вопрос по грузу ${full.publicNumber}`,
       body: question.slice(0, 200),

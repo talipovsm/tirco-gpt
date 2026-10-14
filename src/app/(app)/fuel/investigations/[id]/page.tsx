@@ -31,7 +31,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
         }
         description={`${inv.vehicle.make} ${inv.vehicle.model} · ${inv.vehicle.plateNumber}${driverName ? ` · водитель ${driverName}` : ""} · открыл ${userNames[inv.openedByUserId] ?? "—"} ${formatDateTime(inv.createdAt)}`}
       />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
           {inv.resolution && (
             <Card>

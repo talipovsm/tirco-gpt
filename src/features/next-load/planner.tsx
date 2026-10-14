@@ -12,6 +12,7 @@ import { useAction } from "@/lib/client/use-action";
 import { COUNTRIES } from "@/lib/geo/countries";
 import { cn } from "@/lib/utils";
 import { MapView } from "@/features/tracking/map-view";
+import { DateInput } from "@/components/common/date-time-field";
 
 export type KnownCity = { country: string; city: string; latitude: number; longitude: number };
 
@@ -286,10 +287,10 @@ export function NextLoadPlanner({
             <Input type="number" min={10} max={2000} value={radius} onChange={(e) => setRadius(e.target.value)} />
           </Field>
           <Field id="nl-from" label="Свободен с">
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <DateInput value={from} onChange={setFrom} />
           </Field>
           <Field id="nl-until" label="Готов ждать до">
-            <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+            <DateInput value={until} onChange={setUntil} />
           </Field>
         </div>
       </details>

@@ -97,3 +97,37 @@ export function healthColors(): Record<Health, string> {
     string
   >;
 }
+
+/**
+ * Подложка карты не загрузилась (OPS-07): провайдер тайлов недоступен или отвечает ошибками. Маркеры и линии
+ * остаются, но пользователю нужно объяснить пустой фон. Срабатывает после трёх ошибок, если ни один тайл не загрузился.
+ */
+export function watchBasemap(
+  map: { on(type: "data" | "error", listener: (e: unknown) => void): unknown; getSource(id: string): { type: string } | undefined },
+  onFailed: () => void,
+) {
+  let errors = 0;
+  let tileLoaded = false;
+  let reported = false;
+  // Тайлы маршрутов и объектов (GeoJSON) грузятся локально — учитываются только источники подложки
+  const isBasemap = (e: unknown) => {
+    const id = (e as { sourceId?: unknown }).sourceId;
+    if (typeof id !== "string") return false;
+    const type = map.getSource(id)?.type;
+    return type === "raster" || type === "vector";
+  };
+  map.on("data", (e) => {
+    const ev = e as { dataType?: string; tile?: unknown };
+    if (ev.dataType === "source" && ev.tile && isBasemap(e)) tileLoaded = true;
+  });
+  map.on("error", (e) => {
+    if (tileLoaded || reported || !isBasemap(e)) return;
+    errors += 1;
+    if (errors >= 3) {
+      reported = true;
+      onFailed();
+    }
+  });
+}
+
+export const BASEMAP_FAILED_TEXT = "Подложка карты не загрузилась — маршрут и точки показаны без неё.";

@@ -13,9 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
       </main>
-      <footer className="text-footnote text-tertiary-foreground px-4 pb-6 text-center">
-        Китай · Казахстан · Россия · Центральная Азия
-      </footer>
+      <footer className="text-footnote text-muted-foreground px-4 pb-6 text-center">Китай · Казахстан · Россия · Центральная Азия</footer>
     </div>
   );
 }

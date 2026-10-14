@@ -78,7 +78,7 @@ export function AnalysisChecks({ checks, liters }: { checks: Checks | null; lite
     ],
   ];
   return (
-    <dl className="text-body grid gap-2 sm:grid-cols-[180px_1fr]" data-testid="analysis-checks">
+    <dl className="text-body grid grid-cols-1 gap-2 sm:grid-cols-[180px_1fr]" data-testid="analysis-checks">
       {rows.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-muted-foreground">{k}</dt>

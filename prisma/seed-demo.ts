@@ -13,6 +13,7 @@ import pg from "pg";
 import { runWithDataMode } from "@/lib/db/data-mode";
 import { DEMO_SEED_LOCK, dataModeConfig, SCHEMA_MARKER } from "@/lib/db/data-mode-config";
 import { dbFor } from "@/lib/db/prisma";
+import { DEMO_UPLOADS_PREFIX, storage } from "@/lib/storage/storage";
 import { readMarker } from "../scripts/db-modes";
 import { generateDemoWorld } from "./demo/generator";
 import { seedScenarios } from "./seed";
@@ -59,6 +60,14 @@ async function main() {
       console.log("[demo-seed] Демо-данные уже загружены — пропускаю (seed:demo:reset — загрузить заново).");
       return;
     }
+    // Загрузки посетителей прежней демо-базы удаляются вместе с ней (DATA-01): файлы реальной базы лежат вне этого префикса
+    const removed = await storage()
+      .deletePrefix(DEMO_UPLOADS_PREFIX)
+      .catch((e) => {
+        console.warn("[demo-seed] Не удалось удалить прежние демо-файлы:", e instanceof Error ? e.message : e);
+        return 0;
+      });
+    if (removed) console.log(`[demo-seed] Удалено прежних демо-файлов: ${removed}`);
     const startedAt = Date.now();
     const now = process.env.DEMO_SEED_DATE ? new Date(process.env.DEMO_SEED_DATE) : new Date();
     await runWithDataMode("demo", async () => {

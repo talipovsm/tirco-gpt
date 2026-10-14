@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { runWithDataMode } from "@/lib/db/data-mode";
+import { readRawBody } from "@/lib/api/raw-body";
 import { fail, ok } from "@/lib/api/response";
 import { isAppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -9,7 +10,7 @@ import { handleProviderEvent } from "@/server/services/fuel-transaction.service"
 
 /**
  * Процессинг топливных карт → Tirco: запрос авторизации (ответ: разрешить/отклонить по лимитам), завершение, отмена, возврат.
- * Подпись: X-Tirco-Signature = hex(HMAC-SHA256(тело, FUEL_CARD_WEBHOOK_SECRET)). Повторная доставка безопасна.
+ * Подпись: X-Tirco-Timestamp + X-Tirco-Signature (см. verifySignedWebhook), секрет FUEL_CARD_WEBHOOK_SECRET; тело — до 1 МБ. Повторная доставка безопасна.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {
   // Внешние провайдеры работают с реальными данными; демо-режим использует встроенные симуляторы.
@@ -17,7 +18,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: 
     const { provider } = await ctx.params;
     const secret = webhookSecret("FUEL_CARD_WEBHOOK_SECRET", provider);
     if (!secret) return fail("FORBIDDEN", "Интеграция с процессингом топливных карт не настроена.", 403);
-    const raw = await req.text();
+    const read = await readRawBody(req);
+    if (!read.ok) return fail("VALIDATION_ERROR", "Слишком большой запрос.", 413);
+    const raw = read.text;
     const check = verifySignedWebhook(raw, req.headers, secret);
     if (!check.ok) {
       logger.warn("fuel.webhook.bad-signature", { provider, reason: check.reason });

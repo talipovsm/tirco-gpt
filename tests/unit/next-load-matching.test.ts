@@ -193,3 +193,18 @@ describe("Next Load: подбор следующего груза", () => {
     expect(r.matches[0].compatibility.warnings[0]).toMatch(/Автомобиль не выбран/);
   });
 });
+
+describe("PERF-02: стоимость подбора на дашборде", () => {
+  it("верхняя граница дашборда (10 машин × 500 грузов) считается за десятки миллисекунд", () => {
+    const keys = Object.keys(CITY) as CityKey[];
+    const candidates = Array.from({ length: 500 }, (_, i) =>
+      load(keys[i % keys.length], keys[(i * 3 + 1) % keys.length], { loadingDateFrom: day(i % 6) }),
+    );
+    const started = performance.now();
+    for (let v = 0; v < 10; v++) matchNextLoads(params(v % 2 ? ["moscow"] : []), candidates);
+    const ms = performance.now() - started;
+    // Измерено локально: ≈430 мс до исправления (Intl.DateTimeFormat на каждую дату), ≈33 мс после.
+    // Предел с запасом для медленных CI-машин: тест ловит возврат дорогих операций в цикл, а не колебания скорости.
+    expect(ms).toBeLessThan(200);
+  });
+});

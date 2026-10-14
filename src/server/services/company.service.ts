@@ -3,10 +3,12 @@ import type { z } from "zod";
 import type { CompanyDocumentType } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import { requireActiveCompany, requireCompanyPermission, requirePermission, type Actor } from "@/lib/auth/actor";
+import { invalidateRequestSession } from "@/lib/auth/session";
 import { generateToken, sha256 } from "@/lib/auth/tokens";
-import { prisma } from "@/lib/db/prisma";
+import { authDb, prisma } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
 import { sendEmail } from "@/lib/notifications/adapters";
+import { emailDeliveryEnabled } from "@/lib/notifications/email";
 import { ROLES_BY_COMPANY_TYPE } from "@/lib/permissions";
 import { buildStorageKey, storage } from "@/lib/storage/storage";
 import { validateUpload } from "@/lib/storage/file-validation";
@@ -329,6 +331,13 @@ export async function submitVerification(actor: Actor, companyId: string, commen
   assertCompanyManager(actor, companyId);
   const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId } });
   if (company.verificationStatus === "VERIFIED") throw new AppError("DUPLICATE_ACTION", "Компания уже проверена.");
+  // SEC-04: на проверку компанию отправляет руководитель с подтверждённым email (если доставка писем подключена)
+  if (emailDeliveryEnabled()) {
+    const submitter = await authDb.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { emailVerifiedAt: true } });
+    if (!submitter.emailVerifiedAt) {
+      throw errors.validation("Подтвердите email по ссылке из письма — отправить ссылку повторно можно в профиле.");
+    }
+  }
   if (company.verificationStatus === "PENDING") throw new AppError("DUPLICATE_ACTION", "Заявка на проверку уже отправлена.");
   if (company.verificationStatus === "SUSPENDED")
     throw errors.forbidden("Деятельность компании приостановлена. Обратитесь к администратору.");
@@ -408,19 +417,51 @@ export function activeCompanyId(actor: Actor) {
   return requireActiveCompany(actor).companyId;
 }
 
+/**
+ * Регистрационный номер закреплён только за проверенной (или приостановленной после проверки) компанией (SEC-04):
+ * неподтверждённая компания не блокирует регистрацию настоящей, а повторная проверка второй компании с тем же
+ * номером отклоняется (adminCompanyDecision) и запрещена частичным уникальным индексом в БД.
+ */
+export async function registrationNumberHolder(
+  db: Pick<typeof prisma, "company">,
+  country: string,
+  registrationNumber: string,
+  exceptCompanyId?: string,
+) {
+  return db.company.findFirst({
+    where: {
+      country,
+      registrationNumber,
+      deletedAt: null,
+      verificationStatus: { in: ["VERIFIED", "SUSPENDED"] },
+      ...(exceptCompanyId ? { id: { not: exceptCompanyId } } : {}),
+    },
+    select: { id: true, legalName: true, verificationStatus: true },
+  });
+}
+
+export async function assertRegistrationNumberFree(
+  db: Pick<typeof prisma, "company">,
+  country: string,
+  registrationNumber: string,
+  field: string,
+) {
+  if (await registrationNumberHolder(db, country, registrationNumber)) {
+    throw errors.validation(
+      "Компания с таким регистрационным номером уже проверена на платформе. Попросите приглашение у её руководителя.",
+      {
+        [field]: ["Номер закреплён за проверенной компанией"],
+      },
+    );
+  }
+}
+
 /** Создание компании существующим пользователем (вторая компания или после отключения). */
 export async function createCompanyForActor(
   actor: Actor,
   input: import("zod").output<typeof import("@/lib/validation/auth").companyCreateSchema>,
 ) {
-  const dup = await prisma.company.findUnique({
-    where: { country_registrationNumber: { country: input.country, registrationNumber: input.registrationNumber } },
-  });
-  if (dup) {
-    throw errors.validation("Компания с таким регистрационным номером уже зарегистрирована. Попросите приглашение у её администратора.", {
-      registrationNumber: ["Компания с таким номером уже существует"],
-    });
-  }
+  await assertRegistrationNumberFree(prisma, input.country, input.registrationNumber, "registrationNumber");
   const role = input.type === "CARRIER" ? "CARRIER_ADMIN" : input.type === "FORWARDER" ? "FORWARDER" : "SHIPPER";
   const company = await prisma.$transaction(async (tx) => {
     const c = await tx.company.create({ data: { ...input, phone: input.phone ?? actor.phone, email: input.email ?? actor.email } });
@@ -438,6 +479,9 @@ export async function createCompanyForActor(
     );
     return c;
   });
-  if (actor.sessionId) await prisma.session.update({ where: { id: actor.sessionId }, data: { activeCompanyId: company.id } });
+  if (actor.sessionId) {
+    await prisma.session.update({ where: { id: actor.sessionId }, data: { activeCompanyId: company.id } });
+    invalidateRequestSession();
+  }
   return company;
 }

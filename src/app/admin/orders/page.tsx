@@ -3,7 +3,8 @@ import { FilterBar } from "@/components/common/filter-bar";
 import { PageHeader } from "@/components/common/misc";
 import { Pagination } from "@/components/common/pagination";
 import { toPlain } from "@/lib/serialize";
-import { ORDER_STATUS_LABELS } from "@/lib/state-machine/order-state-machine";
+import type { OrderStatus } from "@/generated/prisma/enums";
+import { ORDER_STATUS_LABELS, UNREACHABLE_ORDER_STATUSES } from "@/lib/state-machine/order-state-machine";
 import { orderListQuerySchema } from "@/lib/validation/order";
 import { OrderTable, type OrderRow } from "@/features/orders/order-table";
 import { pageActorWith, type SearchParams } from "@/server/page-context";
@@ -37,7 +38,9 @@ export default async function AdminOrders({ searchParams }: { searchParams: Sear
             type: "select",
             name: "status",
             label: "Статус",
-            options: Object.entries(ORDER_STATUS_LABELS).map(([value, l]) => ({ value, label: l })),
+            options: Object.entries(ORDER_STATUS_LABELS)
+              .filter(([k]) => !UNREACHABLE_ORDER_STATUSES.includes(k as OrderStatus))
+              .map(([value, l]) => ({ value, label: l })),
           },
           { type: "date", name: "dateFrom", label: "Загрузка с" },
           { type: "date", name: "dateTo", label: "Загрузка по" },

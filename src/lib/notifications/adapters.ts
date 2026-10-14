@@ -1,6 +1,7 @@
 import "server-only";
 import type { NotificationType } from "@/generated/prisma/enums";
 import { logger } from "@/lib/logger";
+import { deliverEmail, emailDriver } from "@/lib/notifications/email";
 
 export type OutboundNotification = {
   userId: string;
@@ -19,35 +20,18 @@ export interface NotificationAdapter {
   send(n: OutboundNotification): Promise<void>;
 }
 
-/**
- * Секреты в ссылках (токены сброса пароля и приглашений) никогда не пишутся в лог в production:
- * доступ к логам не должен давать доступ к учётным записям.
- */
-export function redactSecrets(text: string): string {
-  if (process.env.NODE_ENV !== "production") return text;
-  return text.replace(/([?&]token=)[^&\s]+/gi, "$1[REDACTED]").replace(/(\/invite\/)[A-Za-z0-9_-]+/g, "$1[REDACTED]");
-}
+export { redactSecrets } from "@/lib/notifications/email";
 
-function maskEmail(email: string): string {
-  if (process.env.NODE_ENV !== "production") return email;
-  const [local, domain] = email.split("@");
-  return `${local.slice(0, 1)}***@${domain ?? ""}`;
-}
-
-/** Email: в разработке пишет письмо в лог сервера. Для production подключите SMTP/API-провайдер, реализовав send(). */
+/** Email: SMTP в production, лог в разработке (см. src/lib/notifications/email.ts). */
 export class EmailNotificationAdapter implements NotificationAdapter {
   readonly channel = "email" as const;
   isEnabled() {
-    return (process.env.EMAIL_DRIVER ?? "log") === "log";
+    return emailDriver() !== "none";
   }
   async send(n: OutboundNotification) {
     if (!n.email) return;
     const url = n.link ? `${process.env.APP_URL ?? ""}${n.link}` : "";
-    logger.info("email.dev", {
-      to: maskEmail(n.email),
-      subject: `Tirco: ${n.title}`,
-      text: redactSecrets(`${n.body ?? ""} ${url}`.trim()),
-    });
+    await deliverEmail(n.email, `Tirco: ${n.title}`, `${n.body ?? ""} ${url}`.trim());
   }
 }
 
@@ -80,11 +64,7 @@ export const externalAdapters: NotificationAdapter[] = [
   new WhatsAppNotificationAdapter(),
 ];
 
-/** Прямая отправка email (сброс пароля, приглашения). */
-export async function sendEmail(to: string, subject: string, text: string) {
-  if ((process.env.EMAIL_DRIVER ?? "log") !== "log") {
-    logger.warn("email.disabled", { subject, reason: "EMAIL_DRIVER не поддерживает отправку — письмо не отправлено" });
-    return;
-  }
-  logger.info("email.dev", { to: maskEmail(to), subject, text: redactSecrets(text) });
+/** Прямая отправка email (сброс пароля, приглашения). Возвращает true, если письмо принято почтовым сервером. */
+export async function sendEmail(to: string, subject: string, text: string): Promise<boolean> {
+  return deliverEmail(to, subject, text);
 }

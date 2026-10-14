@@ -25,7 +25,7 @@ import { SecureDealPanel, type SecureDealPanelView } from "@/features/orders/sec
 import { OrderActions } from "@/features/orders/order-actions";
 import { OrderStatusTimeline, type HistoryEntry } from "@/features/orders/order-status-timeline";
 import { OrderTrackingHeader } from "@/features/orders/order-tracking-header";
-import { JourneyTimeline } from "@/features/operations/journey-timeline";
+import { ClosingChecklist, type ClosingStep } from "@/features/orders/closing-checklist";
 import { orderProgress } from "@/lib/state-machine/order-progress";
 import { MapView, type MapPoint } from "@/features/tracking/map-view";
 import { routeLines } from "@/features/tracking/route-line";
@@ -34,6 +34,7 @@ import { guard, pageActor } from "@/server/page-context";
 import { unreadForOrder } from "@/server/services/chat.service";
 import { DRIVER_DOCUMENT_TYPES, listOrderDocuments } from "@/server/services/document.service";
 import { getOrderAuditTrail, getOrderDetail } from "@/server/services/order.service";
+import { getCancellationRequest } from "@/server/services/order-cancellation.service";
 import { getSecureDealView } from "@/server/services/secure-deal.service";
 import { tripFuelReport } from "@/server/services/fuel-report.service";
 import { TripFuelReport } from "@/features/fuel/trip-fuel-report";
@@ -65,13 +66,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const isDriver = side === "DRIVER";
 
   const showFuel = (side === "CARRIER" && can("FUEL_VIEW")) || (side === "ADMIN" && actor.permissions.has("FUEL_VIEW"));
-  const [docs, tracking, unread, audit, secureDeal, fuel] = await Promise.all([
+  const [docs, tracking, unread, audit, secureDeal, fuel, cancellation] = await Promise.all([
     listOrderDocuments(actor, id, { includeHistory: true }).then(toPlain),
     listTracking(actor, id, { limit: 30 }).then(toPlain),
     unreadForOrder(actor, id),
     isDriver ? Promise.resolve(null) : getOrderAuditTrail(actor, id, { page: 1, pageSize: 100 }).then(toPlain),
     finance ? getSecureDealView(actor, id).then((v) => toPlain(v) as unknown as SecureDealPanelView) : Promise.resolve(null),
     showFuel ? tripFuelReport(actor, id).then(toPlain) : Promise.resolve(null),
+    isDriver ? Promise.resolve(null) : getCancellationRequest(actor, id),
   ]);
   const secureStatus = secureDeal?.payment?.status ?? null;
   const secureLive = !!secureStatus && !["PAYMENT_CANCELLED", "PAYMENT_FAILED"].includes(secureStatus);
@@ -105,6 +107,38 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           },
         ]
       : []),
+  ];
+
+  // UX-04: что осталось до закрытия сделки — вместо второго таймлайна (этапы рейса показаны в шапке трекинга и на вкладке «Обзор»)
+  const delivered = ["DELIVERED", "CLOSED"].includes(order.currentStatus);
+  const closingSteps: ClosingStep[] = [
+    {
+      key: "contract",
+      label: "Договор подписан обеими сторонами",
+      done: contract?.status === "SIGNED",
+      hint: "Подписать — на вкладке «Договор»",
+    },
+    { key: "resources", label: "Назначены машина и водитель", done: !!order.vehicleId && !!order.driverId, hint: "Назначает перевозчик" },
+    ...(secureLive
+      ? [
+          {
+            key: "payment",
+            label: "Оплата обеспечена безопасной сделкой",
+            done: !["PAYMENT_PENDING", "PAYMENT_AUTHORIZED"].includes(secureStatus ?? ""),
+            hint: "Обеспечивает заказчик на вкладке «Финансы»",
+          },
+        ]
+      : []),
+    { key: "delivered", label: "Груз доставлен", done: delivered, hint: "Отмечает водитель или перевозчик" },
+    ...(detail.requirePod
+      ? [{ key: "pod", label: "Загружен POD или CMR", done: detail.podCount > 0, hint: "На вкладке «Документы»" }]
+      : []),
+    {
+      key: "receipt",
+      label: "Получение подтверждено",
+      done: !!order.receiptConfirmedAt || order.currentStatus === "CLOSED",
+      hint: "Подтверждает заказчик после доставки",
+    },
   ];
 
   const summary = (
@@ -186,7 +220,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   );
 
   const overview = (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <InsetGroup header="Этапы перевозки">
         <div className="p-2">
           <OrderStatusTimeline
@@ -270,7 +304,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   );
 
   const routeTab = (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <InsetGroup
         header="Карта"
         action={
@@ -392,7 +426,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           </span>
         }
       />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">
           <OrderTrackingHeader
             progress={orderProgress(order.statusHistory, order.currentStatus)}
@@ -426,6 +460,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   receiptConfirmedAt: order.receiptConfirmedAt,
                   confirmationDueAt: order.confirmationDueAt,
                   vehicleId: order.vehicleId,
+                  cancellation: cancellation
+                    ? {
+                        proposedBySide: cancellation.proposedBySide,
+                        reason: cancellation.reason,
+                        proposedBy: `${cancellation.proposedBy.firstName} ${cancellation.proposedBy.lastName}`,
+                      }
+                    : null,
                 }}
               />
               {final && order.currentStatus === "CANCELLED" && <p className="text-danger text-subheadline">Перевозка отменена.</p>}
@@ -539,15 +580,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           />
         </div>
         <aside className="space-y-6 xl:sticky xl:top-20 xl:self-start">
-          <InsetGroup header="Этапы рейса">
-            <div className="px-4 py-3.5">
-              <JourneyTimeline
-                status={order.currentStatus}
-                stops={stops}
-                history={order.statusHistory.map((h) => ({ status: h.toStatus, at: String(h.createdAt) }))}
-              />
-            </div>
-          </InsetGroup>
+          {order.currentStatus !== "CANCELLED" && <ClosingChecklist steps={closingSteps} />}
           {summary}
         </aside>
       </div>

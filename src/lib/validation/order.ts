@@ -201,3 +201,13 @@ export const orderListQuerySchema = z.object({
   dateTo: filterDate,
   sort: z.enum(["updated", "created", "loading", "amount"]).default("updated"),
 });
+
+/** Отмена по соглашению сторон (BL-01). */
+export const cancellationProposalSchema = z.object({
+  reason: z.string().trim().min(3, "Укажите причину отмены").max(1000, "Не длиннее 1000 символов"),
+});
+export const cancellationResponseSchema = z.object({
+  decision: z.enum(["ACCEPT", "REJECT"]),
+  password: z.string().max(200).optional(),
+  comment: optionalText(1000),
+});

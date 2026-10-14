@@ -43,7 +43,7 @@ export default async function AnomalyPage({ params }: { params: Promise<{ id: st
         }
         description={`${a.vehicle.make} ${a.vehicle.model} · ${a.vehicle.plateNumber} · ${formatDateTime(a.detectedAt)}${actor.isAdmin ? ` · ${a.company.legalName}` : ""}`}
       />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader>

@@ -200,6 +200,18 @@ describe("Режимы данных: изоляция и атаки на реж�
     expect((await call(loadGET, req(`/api/loads/${demoId}`), { id: demoId })).status).toBe(404);
   });
 
+  it("PERF-04: сессия читается из базы один раз на API-запрос", async () => {
+    await signIn(shipperEmail, "demo");
+    const spy = vi.spyOn(authDb.session, "findUnique");
+    try {
+      // Ответ (200 или 403 по правам роли) не важен: важно, что актор найден и сессия не перечитывалась
+      expect((await call(loadsGET, req("/api/loads"))).status).not.toBe(401);
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("подделанный токен сессии не даёт доступа ни к одному режиму", async () => {
     jar.set(SESSION_COOKIE, "forged-token");
     const res = await call(loadsGET, req("/api/loads"));
@@ -464,9 +476,9 @@ describe("Демо-стенд: демо-аккаунты для входа в р
     });
     afterEach(() => vi.unstubAllEnvs());
 
-    async function signInAs(email: string, dataMode: "real" | "demo") {
+    async function signInAs(email: string, dataMode: "real" | "demo", password = DEMO_PASSWORD) {
       jar.clear();
-      return call(loginPOST, req("/api/auth/login", { method: "POST", body: { email, password: DEMO_PASSWORD, dataMode } }));
+      return call(loginPOST, req("/api/auth/login", { method: "POST", body: { email, password, dataMode } }));
     }
 
     it("общий демо-аккаунт входит только в демо-базу и не переключается в реальную", async () => {
@@ -502,10 +514,16 @@ describe("Демо-стенд: демо-аккаунты для входа в р
       const res = await signInAs("dispatcher@tirco.demo", "real");
       expect((res.json.data as unknown as { dataMode: string }).dataMode).toBe("demo");
 
+      // Администратор платформы входит в реальную базу — но не с общеизвестным демо-паролем (SEC-01)
       await authDb.user.create({
         data: { email: "admin@tirco.demo", firstName: "A", lastName: "A", passwordHash, platformRole: "PLATFORM_ADMIN" },
       });
-      const admin = await signInAs("admin@tirco.demo", "real");
+      expect((await signInAs("admin@tirco.demo", "real")).status).toBe(403);
+      await authDb.user.update({
+        where: { email: "admin@tirco.demo" },
+        data: { passwordHash: await hashPassword("admin-strong-password-1") },
+      });
+      const admin = await signInAs("admin@tirco.demo", "real", "admin-strong-password-1");
       expect((admin.json.data as unknown as { dataMode: string }).dataMode).toBe("real");
     });
 

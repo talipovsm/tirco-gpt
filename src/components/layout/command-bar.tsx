@@ -60,7 +60,7 @@ export function CommandTrigger({ onOpen, className }: { onOpen: () => void; clas
     >
       <Search className="size-3.5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-left">{t("nav.searchShort")}</span>
-      <kbd className="text-footnote text-tertiary-foreground font-sans">{shortcut}</kbd>
+      <kbd className="text-footnote text-muted-foreground font-sans">{shortcut}</kbd>
     </button>
   );
 }
@@ -237,7 +237,7 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
           >
             {commands.length === 0 && (
               <p className="text-subheadline text-muted-foreground px-3 py-8 text-center">
-                {loading ? "Ищем…" : "Ничего не найдено. Попробуйте номер перевозки (CF-O-…), город или госномер."}
+                {loading ? "Ищем…" : "Ничего не найдено. Попробуйте номер перевозки (TR-O-…), город или госномер."}
               </p>
             )}
             {commands.map((c, i) => {

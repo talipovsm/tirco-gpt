@@ -80,7 +80,7 @@ class _SearchDialogState extends State<_SearchDialog> {
               if (_error != null) Padding(padding: const EdgeInsets.all(16), child: Text(_error!, style: const TextStyle(color: CF.danger))),
               if (_res == null) const Padding(padding: EdgeInsets.all(16), child: Text('Введите не меньше двух символов.', style: TextStyle(color: CF.mutedForeground))),
               if (_res != null && orders.isEmpty && loads.isEmpty && vehicles.isEmpty && companies.isEmpty)
-                const Padding(padding: EdgeInsets.all(16), child: Text('Ничего не найдено. Попробуйте номер перевозки (CF-O-…), город или госномер.')),
+                const Padding(padding: EdgeInsets.all(16), child: Text('Ничего не найдено. Попробуйте номер перевозки (TR-O-…), город или госномер.')),
               if (orders.isNotEmpty) head('Перевозки'),
               for (final o in orders)
                 ListTile(

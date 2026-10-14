@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { FilterBar } from "@/components/common/filter-bar";
 import { Pagination } from "@/components/common/pagination";
-import { ORDER_STATUS_LABELS } from "@/lib/state-machine/order-state-machine";
+import type { OrderStatus } from "@/generated/prisma/enums";
+import { ORDER_STATUS_LABELS, UNREACHABLE_ORDER_STATUSES } from "@/lib/state-machine/order-state-machine";
 import { orderListQuerySchema } from "@/lib/validation/order";
 import { LiveWorkspace } from "@/features/operations/live-workspace";
 import { FilteredEmpty, OperationsEmpty } from "@/features/operations/operations-empty";
@@ -27,7 +28,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   const live = await liveObjectsForOrders(actor, ids);
   const objects = ids.map((id) => live.find((o) => o.id === id)).filter((o) => o !== undefined);
   const statusOptions = Object.entries(ORDER_STATUS_LABELS)
-    .filter(([k]) => !["DRAFT", "PUBLISHED", "CARRIER_SELECTION"].includes(k))
+    .filter(([k]) => !UNREACHABLE_ORDER_STATUSES.includes(k as OrderStatus))
     .map(([value, l]) => ({ value, label: l }));
   const selected = typeof params.selected === "string" ? params.selected : null;
 

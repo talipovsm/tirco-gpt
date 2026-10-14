@@ -8,6 +8,7 @@ import { Input, NativeSelect } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { DateInput } from "@/components/common/date-time-field";
 
 export type FilterField =
   | { type: "search"; name: string; placeholder?: string; label?: string }
@@ -139,15 +140,19 @@ export function FilterBar({
               <Label htmlFor={id} className={caption}>
                 {f.label}
               </Label>
-              <Input
-                id={id}
-                type={f.type === "date" ? "date" : f.type === "number" ? "number" : "text"}
-                inputMode={f.type === "number" ? "decimal" : undefined}
-                min={f.type === "number" ? 0 : undefined}
-                placeholder={"placeholder" in f ? f.placeholder : undefined}
-                value={values[f.name]}
-                onChange={(e) => set(f.name, e.target.value, f.type === "date")}
-              />
+              {f.type === "date" ? (
+                <DateInput id={id} value={values[f.name] ?? ""} onChange={(v) => set(f.name, v, true)} />
+              ) : (
+                <Input
+                  id={id}
+                  type={f.type === "number" ? "number" : "text"}
+                  inputMode={f.type === "number" ? "decimal" : undefined}
+                  min={f.type === "number" ? 0 : undefined}
+                  placeholder={"placeholder" in f ? f.placeholder : undefined}
+                  value={values[f.name]}
+                  onChange={(e) => set(f.name, e.target.value)}
+                />
+              )}
             </div>
           );
         })}

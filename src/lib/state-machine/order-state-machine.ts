@@ -86,6 +86,12 @@ export const UNASSIGNABLE_STATUSES: OrderStatus[] = ["VEHICLE_ASSIGNED", "DRIVER
 
 export const FINAL_STATUSES: OrderStatus[] = ["CLOSED", "CANCELLED"];
 
+/**
+ * Статусы груза до сделки, оставшиеся в enum перевозки (BL-04): перевозка создаётся сразу в CARRIER_SELECTED,
+ * поэтому эти значения недостижимы. Удаление из enum требует миграции типа — пока они просто не показываются в фильтрах.
+ */
+export const UNREACHABLE_ORDER_STATUSES: OrderStatus[] = ["DRAFT", "PUBLISHED", "CARRIER_SELECTION"];
+
 const cancelByParties: TransitionRule = { actors: ["CUSTOMER", "CARRIER", "ADMIN"], manual: true, confirm: true };
 const cancelByAdmin: TransitionRule = { actors: ["ADMIN"], manual: true, confirm: true };
 /**

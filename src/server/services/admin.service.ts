@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { OrderStatus } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import { requirePermission, type Actor } from "@/lib/auth/actor";
-import { prisma } from "@/lib/db/prisma";
+import { authDb, prisma } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
 import { ACTIVE_STATUSES, IN_TRANSIT_STATUSES } from "@/lib/state-machine/order-state-machine";
 import { companyRatings, registrationNumberHolder } from "./company.service";
@@ -166,6 +166,17 @@ export async function adminSetUserStatus(actor: Actor, userId: string, action: "
   if (userId === actor.userId) throw errors.forbidden("Нельзя заблокировать собственную учётную запись.");
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw errors.notFound("Пользователь не найден.");
+  if (action === "BLOCK") {
+    // SEC-07: администраторы равноправны, поэтому один не может отключить другого из панели. Роль сначала снимается
+    // оператором с доступом к серверу (npm run admin:grant -- --revoke), последнего администратора снять нельзя.
+    // Роль платформы — всегда из реальной базы (единая identity), а не из базы режима данных.
+    const identity = await authDb.user.findUnique({ where: { id: userId }, select: { platformRole: true } });
+    if (identity?.platformRole === "PLATFORM_ADMIN") {
+      throw errors.forbidden(
+        "Администратора платформы нельзя заблокировать из панели. Сначала снимите роль: npm run admin:grant -- --revoke.",
+      );
+    }
+  }
   if (action === "BLOCK" && user.status === "BLOCKED") throw new AppError("DUPLICATE_ACTION", "Пользователь уже заблокирован.");
   if (action === "UNBLOCK" && user.status === "ACTIVE") throw new AppError("DUPLICATE_ACTION", "Пользователь уже активен.");
   return prisma.$transaction(async (tx) => {

@@ -73,6 +73,11 @@ describe("Админка (QA-01)", () => {
     await expectAppError(adminSetUserStatus(s.admin, user.id, "BLOCK", null), "DUPLICATE_ACTION");
     await adminSetUserStatus(s.admin, user.id, "UNBLOCK", null);
     await expectAppError(adminSetUserStatus(s.admin, s.admin.userId, "BLOCK", null), "FORBIDDEN");
+    // SEC-07: другого администратора из панели не заблокировать
+    const admin2 = await makeUser();
+    await prisma.user.update({ where: { id: admin2.id }, data: { platformRole: "PLATFORM_ADMIN" } });
+    await expectAppError(adminSetUserStatus(s.admin, admin2.id, "BLOCK", null), "FORBIDDEN");
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: admin2.id } })).status).toBe("ACTIVE");
     const detail = await adminGetUser(s.admin, user.id);
     expect(detail.user.id).toBe(user.id);
     expect(await prisma.auditLog.count({ where: { entityId: user.id, action: { in: ["USER_BLOCKED", "USER_UNBLOCKED"] } } })).toBe(2);

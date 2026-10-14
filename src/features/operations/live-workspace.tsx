@@ -63,7 +63,7 @@ export function SegmentTabs({
           aria-controls={`${idPrefix}-${t.key}-panel`}
           onClick={() => onChange(t.key)}
           className={cn(
-            "text-callout lg:text-body flex min-w-0 flex-auto shrink-0 items-center justify-center gap-1 rounded-[0.4375rem] px-2.5 font-medium whitespace-nowrap transition-[background-color,box-shadow,color] duration-(--duration-standard)",
+            "text-callout lg:text-body flex min-w-0 flex-auto shrink-0 items-center justify-center gap-1 rounded-[0.4375rem] px-2 font-medium whitespace-nowrap transition-[background-color,box-shadow,color] duration-(--duration-standard) lg:px-1.5",
             value === t.key ? "bg-segment-thumb shadow-control text-foreground" : "text-foreground/75 hover:text-foreground",
           )}
         >

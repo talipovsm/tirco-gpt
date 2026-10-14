@@ -44,7 +44,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         description="Стоимость перевозок, оплаты и остатки — по каждому рейсу. Платформа не хранит деньги и не проводит платежи сама."
       />
       {totals.length > 0 && (
-        <div className="bg-card mb-4 grid divide-y-(length:--hairline) overflow-hidden rounded-lg md:grid-cols-2 md:divide-x-(length:--hairline) md:divide-y-0 xl:grid-cols-4">
+        <div className="bg-card mb-4 grid grid-cols-1 divide-y-(length:--hairline) overflow-hidden rounded-lg md:grid-cols-2 md:divide-x-(length:--hairline) md:divide-y-0 xl:grid-cols-4">
           {totals.map(([cur, t]) => (
             <div key={cur} className="px-4 py-3">
               <p className="text-section mb-1.5">{cur}</p>
@@ -104,7 +104,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
                 {items.map((p) => (
                   <li
                     key={p.id}
-                    className="text-body grid gap-x-4 gap-y-1 px-4 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center"
+                    className="text-body grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center"
                   >
                     <span className="min-w-0">
                       <span className="block font-medium">{label("PaymentType", p.type)}</span>

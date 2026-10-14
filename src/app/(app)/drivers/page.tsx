@@ -76,7 +76,7 @@ export default async function DriversPage({ searchParams }: { searchParams: Sear
               return (
                 <li
                   key={d.id}
-                  className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_minmax(0,1fr)_auto] lg:items-center lg:gap-4"
+                  className="grid grid-cols-1 gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_minmax(0,1fr)_auto] lg:items-center lg:gap-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span

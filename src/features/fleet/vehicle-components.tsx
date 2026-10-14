@@ -106,7 +106,7 @@ export function VehicleFormDialog({ vehicle, trigger }: { vehicle?: VehicleRow; 
           <DialogHeader>
             <DialogTitle>{vehicle ? `Редактирование ${vehicle.plateNumber}` : "Добавить автомобиль"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={submit} className="grid gap-3 sm:grid-cols-3" noValidate>
+          <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-3" noValidate>
             <div className="sm:col-span-3">
               <FormError message={error} />
             </div>

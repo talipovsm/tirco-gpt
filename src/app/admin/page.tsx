@@ -41,7 +41,7 @@ export default async function AdminDashboard() {
           href="/admin/verification"
         />
       </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Новые компании</CardTitle>

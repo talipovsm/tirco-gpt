@@ -5,7 +5,7 @@ import { Maximize2, Minus, Plus } from "lucide-react";
 import * as React from "react";
 import type { Health } from "@/lib/operations";
 import { cn } from "@/lib/utils";
-import { cssColor, healthColors, mapStyle, useDarkScheme } from "./map-style";
+import { BASEMAP_FAILED_TEXT, cssColor, healthColors, mapStyle, useDarkScheme, watchBasemap } from "./map-style";
 
 /** Объект карты: перевозка/машина с позицией и маршрутом. */
 export type MapObject = {
@@ -79,6 +79,7 @@ export function MapWorkspace({
   const fitted = React.useRef(false);
   const [ready, setReady] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
+  const [basemapFailed, setBasemapFailed] = React.useState(false);
   // Последняя подгонка камеры: повторяется без анимации, когда меняется размер карты
   const refit = React.useRef<(() => void) | null>(null);
   // Номер версии стиля: смена темы пересоздаёт слои, данные синхронизируются заново
@@ -114,7 +115,7 @@ export function MapWorkspace({
           pitchWithRotate: false,
         });
         mapRef.current = map;
-        map.on("error", () => undefined);
+        watchBasemap(map, () => !cancelled && setBasemapFailed(true));
         map.on("style.load", () => {
           const empty = { type: "FeatureCollection" as const, features: [] };
           if (!map.getSource("routes")) map.addSource("routes", { type: "geojson", data: empty });
@@ -338,6 +339,14 @@ export function MapWorkspace({
             aria-label={`Карта операций: объектов ${objects.length}`}
           />
           {!ready && <div className="skeleton absolute inset-0 rounded-none" aria-hidden />}
+          {basemapFailed && (
+            <p
+              className="material-menu shadow-menu text-footnote pointer-events-none absolute bottom-2 left-2 max-w-[80%] rounded-sm px-2 py-1"
+              role="status"
+            >
+              {BASEMAP_FAILED_TEXT}
+            </p>
+          )}
           {ready && !hasData && (
             <p className="material-menu shadow-menu text-subheadline text-muted-foreground pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md px-3 py-2">
               {emptyLabel}

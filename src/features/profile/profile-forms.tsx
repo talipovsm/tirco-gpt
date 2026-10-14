@@ -27,7 +27,7 @@ export function ProfileForm({ initial }: { initial: { firstName: string; lastNam
   });
   const e = f.formState.errors;
   return (
-    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
+    <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2" noValidate>
       <div className="sm:col-span-2">
         <FormError message={error} />
       </div>

@@ -16,7 +16,7 @@ export default async function ProfilePage() {
   return (
     <>
       <PageHeader title="Профиль" description={actor.email} />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Личные данные</CardTitle>

@@ -119,7 +119,7 @@ export default async function DriverHomePage() {
               <div className="min-w-0 flex-1 py-3 pr-4">
                 <p className="text-footnote text-muted-foreground">{label("StopType", s.type)}</p>
                 <p className="font-semibold">
-                  {s.city} <span className="text-caption text-tertiary-foreground font-medium">{s.country}</span>
+                  {s.city} <span className="text-caption text-muted-foreground font-medium">{s.country}</span>
                 </p>
                 {s.fullAddress && <p className="text-subheadline text-muted-foreground">{s.fullAddress}</p>}
                 {s.plannedDateFrom && (

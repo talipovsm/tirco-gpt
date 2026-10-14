@@ -47,7 +47,7 @@ export default async function AdminFuelPage() {
         title="Топливо: проверки"
         description="Несоответствия и расследования по всем компаниям. Решения по ним принимают владельцы автопарков и администраторы."
       />
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Открытые несоответствия ({anomalies.total})</CardTitle>

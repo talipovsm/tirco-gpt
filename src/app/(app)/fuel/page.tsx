@@ -82,13 +82,13 @@ export default async function FuelPage({ searchParams }: { searchParams: SearchP
   ];
 
   const overview = (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       <section className="space-y-3" data-testid="fleet-cards">
         <h2 className="text-base font-semibold">Мой автопарк</h2>
         {dash.fleet.length === 0 ? (
           <EmptyState title="В автопарке нет автомобилей" action={{ href: "/vehicles", label: "Добавить автомобиль" }} />
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {dash.fleet.map((v) => (
               <Link
                 key={v.id}
@@ -388,7 +388,7 @@ export default async function FuelPage({ searchParams }: { searchParams: SearchP
       {accounts.accounts.length === 0 ? (
         <EmptyState title="Топливный счёт ещё не создан" description="Он создаётся при выпуске первой карты или первом пополнении." />
       ) : (
-        <div className="grid gap-3 md:grid-cols-3" data-testid="fuel-account">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3" data-testid="fuel-account">
           {accounts.accounts.map((a) => (
             <div key={a.id} className="contents">
               <KpiCard label={`Баланс (${a.currency})`} value={<MoneyDisplay amount={a.balance} currency={a.currency} />} icon={Receipt} />
@@ -445,7 +445,7 @@ export default async function FuelPage({ searchParams }: { searchParams: SearchP
   );
 
   const checks = (
-    <div className="grid gap-5 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Несоответствия</CardTitle>

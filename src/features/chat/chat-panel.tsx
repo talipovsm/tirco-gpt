@@ -181,7 +181,7 @@ export function ChatPanel({ orderId, canSend, className }: { orderId: string; ca
                   </a>
                 )}
               </div>
-              <p className="text-caption text-tertiary-foreground num mt-0.5 px-3">{formatDateTime(m.createdAt)}</p>
+              <p className="text-caption text-muted-foreground num mt-0.5 px-3">{formatDateTime(m.createdAt)}</p>
             </div>
           );
         })}

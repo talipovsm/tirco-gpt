@@ -103,7 +103,7 @@ export default async function NextLoadPage({ searchParams }: { searchParams: Sea
           action={{ href: "/vehicles", label: "Добавить автомобиль" }}
         />
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="space-y-5">
             <Card>
               <CardHeader>
@@ -237,7 +237,7 @@ export default async function NextLoadPage({ searchParams }: { searchParams: Sea
                     description="Увеличьте допустимый крюк, добавьте направление или расширьте период доступности. Ниже — почему не подошли остальные грузы."
                   />
                 ) : (
-                  <div className="grid gap-3 2xl:grid-cols-2" data-testid="nl-matches">
+                  <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2" data-testid="nl-matches">
                     {result.matches.map((m) => (
                       <MatchCard key={m.loadId} m={m} />
                     ))}

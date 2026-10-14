@@ -26,7 +26,7 @@ export default async function PublicCompanyPage({ params }: { params: Promise<{ 
         }
         description={`${label("CompanyType", company.type)} · ${countryName(company.country)}, ${company.city}`}
       />
-      <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <Card className="h-fit">
           <CardHeader>
             <CardTitle>О компании</CardTitle>

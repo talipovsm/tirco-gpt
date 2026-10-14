@@ -41,7 +41,7 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
     );
 
   const overview = (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <Card>
         <CardHeader>
           <CardTitle>Кратко</CardTitle>
@@ -252,7 +252,7 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
             value: "route",
             label: "Маршрут",
             content: (
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                 <Card>
                   <CardContent className="space-y-4 pt-5">
                     {load.routeDistanceKm != null && <RouteDistance route={load} className="text-body font-medium" />}

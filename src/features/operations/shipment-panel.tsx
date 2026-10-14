@@ -64,7 +64,7 @@ export function ShipmentDetailPanel({
             </div>
           )}
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <InsetGroup header={t("ui.details")}>
               <InsetList>
                 <ListRow

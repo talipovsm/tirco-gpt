@@ -211,7 +211,7 @@ export function LoadWizard({
                   )}
                   <span className="inline-flex items-baseline gap-1 font-medium whitespace-nowrap">
                     {s.city || countryName(s.country)}
-                    <span className="text-caption text-tertiary-foreground">{s.country}</span>
+                    <span className="text-caption text-muted-foreground">{s.country}</span>
                   </span>
                 </React.Fragment>
               ))}
@@ -226,7 +226,7 @@ export function LoadWizard({
                     <MapPin className="text-link size-4" aria-hidden />
                     Точка {i + 1}: {label("StopType", values.stops[i]?.type)}
                   </legend>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {!isFirst && !isLast && (
                       <Field id={`stops.${i}.type`} label="Тип точки">
                         <NativeSelect {...form.register(`stops.${i}.type`)}>
@@ -306,7 +306,7 @@ export function LoadWizard({
           <CardHeader>
             <CardTitle>Груз</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id="title" label="Название груза" error={err("title")} required className="sm:col-span-2">
               <Input placeholder="Например: Электроника, мониторы" {...form.register("title")} />
             </Field>
@@ -356,7 +356,7 @@ export function LoadWizard({
           <CardHeader>
             <CardTitle>Транспорт</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id="vehicleType" label="Тип транспорта">
               <NativeSelect {...form.register("vehicleType")}>
                 <option value="">Любой</option>
@@ -399,7 +399,7 @@ export function LoadWizard({
           <CardHeader>
             <CardTitle>Цена и публикация</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field id="priceType" label="Тип цены" required>
               <NativeSelect {...form.register("priceType")}>
                 {enumOptions("PriceType").map((o) => (
@@ -444,7 +444,7 @@ export function LoadWizard({
             </Field>
             <fieldset className="sm:col-span-3">
               <legend className="text-body mb-2 font-medium">Кто увидит груз</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {(["MARKETPLACE", "INVITE_ONLY"] as const).map((v) => (
                   <label
                     key={v}
@@ -500,7 +500,7 @@ export function LoadWizard({
             <CardTitle>Предпросмотр груза</CardTitle>
             <p className="text-muted-foreground text-body">Проверьте данные перед публикацией.</p>
           </CardHeader>
-          <CardContent className="grid gap-6 lg:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div>
               <h3 className="text-body mb-3 font-semibold">Маршрут</h3>
               <RouteTimeline

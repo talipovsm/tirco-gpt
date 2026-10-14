@@ -219,7 +219,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
       </div>
       <fieldset>
         <legend className="text-body mb-2 font-medium">Ограничить публикацию грузов типов</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {enumOptions("CargoType").map((o) => (
             <label key={o.value} className="text-body flex items-center gap-2">
               <Checkbox

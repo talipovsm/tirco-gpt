@@ -1,6 +1,9 @@
+import { sendAlert } from "./alerting";
+
 /**
  * Минимальный структурированный логгер (JSON в stdout).
  * Никогда не передавайте сюда пароли, токены, содержимое документов.
+ * Записи уровня error дополнительно уходят оповещением на ALERT_WEBHOOK_URL (OPS-06, см. alerting.ts).
  */
 type Level = "debug" | "info" | "warn" | "error";
 const order: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
@@ -22,14 +25,17 @@ function write(level: Level, message: string, meta?: Record<string, unknown>) {
   const min = (process.env.LOG_LEVEL as Level) || "info";
   if (order[level] < (order[min] ?? 20)) return;
   if (process.env.NODE_ENV === "test" && level !== "error" && !process.env.DEBUG_LOGS) return;
+  const safe = meta ? (redact(meta) as Record<string, unknown>) : {};
   const line = JSON.stringify({
     ts: new Date().toISOString(),
     level,
     msg: message,
-    ...(meta ? (redact(meta) as Record<string, unknown>) : {}),
+    ...safe,
   });
-  if (level === "error") console.error(line);
-  else if (level === "warn") console.warn(line);
+  if (level === "error") {
+    console.error(line);
+    void sendAlert(message, safe);
+  } else if (level === "warn") console.warn(line);
   else console.log(line);
 }
 

@@ -55,6 +55,9 @@ function warnAboutConfiguration() {
     );
   }
   void warnAboutAdminDemoPassword(warn);
+  if (!process.env.ALERT_WEBHOOK_URL) {
+    warn("ALERT_WEBHOOK_URL не задан: об ошибках фоновых задач и сбоях 500 никто не узнает до жалобы пользователя.");
+  }
   if ((process.env.EMAIL_DRIVER ?? "log") === "log") {
     warn("EMAIL_DRIVER=log: письма (сброс пароля, приглашения) не отправляются, а только пишутся в лог (токены скрыты).");
   }

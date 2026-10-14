@@ -44,6 +44,25 @@ describe("permissions", () => {
 
   it("роли по типам компаний", () => {
     expect(ROLES_BY_COMPANY_TYPE.CARRIER).toContain("DRIVER");
-    expect(ROLES_BY_COMPANY_TYPE.SHIPPER).toEqual(["SHIPPER"]);
+    expect(ROLES_BY_COMPANY_TYPE.SHIPPER).toEqual(["SHIPPER", "SHIPPER_MANAGER"]);
+    expect(ROLES_BY_COMPANY_TYPE.FORWARDER).toEqual(["FORWARDER", "FORWARDER_MANAGER"]);
+  });
+
+  it("SEC-06: менеджер заказчика без подписи, отмены, платежей и управления компанией", () => {
+    for (const p of [
+      "CONTRACT_SIGN",
+      "ORDER_CANCEL",
+      "PAYMENT_EDIT",
+      "SECURE_DEAL_INITIATE",
+      "COMPANY_MANAGE",
+      "COMPANY_MEMBERS_MANAGE",
+    ] as const) {
+      expect(roleHasPermission("SHIPPER_MANAGER", p)).toBe(false);
+      expect(roleHasPermission("FORWARDER_MANAGER", p)).toBe(false);
+      expect(roleHasPermission("SHIPPER", p)).toBe(true);
+    }
+    expect(roleHasPermission("SHIPPER_MANAGER", "LOAD_CREATE")).toBe(true);
+    expect(roleHasPermission("SHIPPER_MANAGER", "BID_ACCEPT")).toBe(true);
+    expect(roleHasPermission("FORWARDER_MANAGER", "MARKETPLACE_VIEW")).toBe(true);
   });
 });

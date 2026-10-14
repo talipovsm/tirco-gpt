@@ -369,7 +369,11 @@ export async function cancelLoad(actor: Actor, loadId: string, reason: string | 
  * получают груз без этих полей (SEC-02).
  */
 export function loadForViewer<
-  L extends { notes: string | null; clientName: string | null; stops: { contactName: string | null; contactPhone: string | null; notes: string | null }[] },
+  L extends {
+    notes: string | null;
+    clientName: string | null;
+    stops: { contactName: string | null; contactPhone: string | null; notes: string | null }[];
+  },
 >(load: L, isOwner: boolean, isSelectedCarrier: boolean): L {
   if (isOwner) return load;
   if (isSelectedCarrier) return { ...load, notes: null };

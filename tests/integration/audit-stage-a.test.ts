@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db/prisma";
 import { acceptBid, createBid } from "@/server/services/bid.service";
 import { createLoad, getLoadDetail, listLoads } from "@/server/services/load.service";
 import { loadListQuerySchema } from "@/lib/validation/load";
-import { login } from "@/server/services/auth.service";
+import { login, requestPasswordReset } from "@/server/services/auth.service";
+import { emailDeliveryEnabled, setEmailTransportForTests } from "@/lib/notifications/email";
 import { adminsWithDemoPassword, grantPlatformAdmin, revokePlatformAdmin } from "@/server/services/platform-admin.service";
 import { hashPassword } from "@/lib/auth/password";
 import { DEMO_PASSWORD } from "@/lib/demo-accounts";
@@ -154,8 +155,12 @@ describe("OPS-01 / SEC-07: назначение администраторов �
   });
 
   it("отклоняет короткий и демо-пароль, назначает роль существующему пользователю", async () => {
-    await expect(grantPlatformAdmin({ email: "x@example.com", password: "short", create: { firstName: "a", lastName: "b" } })).rejects.toThrow();
-    await expect(grantPlatformAdmin({ email: "x@example.com", password: DEMO_PASSWORD, create: { firstName: "a", lastName: "b" } })).rejects.toThrow();
+    await expect(
+      grantPlatformAdmin({ email: "x@example.com", password: "short", create: { firstName: "a", lastName: "b" } }),
+    ).rejects.toThrow();
+    await expect(
+      grantPlatformAdmin({ email: "x@example.com", password: DEMO_PASSWORD, create: { firstName: "a", lastName: "b" } }),
+    ).rejects.toThrow();
     const user = await makeUser();
     expect(await grantPlatformAdmin({ email: user.email })).toMatchObject({ promoted: true, created: false });
   });
@@ -173,5 +178,40 @@ describe("OPS-01 / SEC-07: назначение администраторов �
     expect(await adminsWithDemoPassword()).toEqual([]);
     await prisma.user.update({ where: { id: a.id }, data: { passwordHash: await hashPassword(DEMO_PASSWORD) } });
     expect(await adminsWithDemoPassword()).toEqual([a.id]);
+  });
+});
+
+describe("OPS-02: доставка писем", () => {
+  const sent: { to: string; subject: string; text: string }[] = [];
+  beforeEach(async () => {
+    await resetDb();
+    sent.length = 0;
+    setEmailTransportForTests({ sendMail: async (m) => void sent.push(m) });
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    setEmailTransportForTests(null);
+  });
+
+  it("сброс пароля отправляет письмо со ссылкой через SMTP", async () => {
+    vi.stubEnv("EMAIL_DRIVER", "smtp");
+    vi.stubEnv("SMTP_HOST", "smtp.test.local");
+    expect(emailDeliveryEnabled()).toBe(true);
+    const u = await makeUser();
+    await requestPasswordReset(u.email, { ip: "10.3.0.1", userAgent: "vitest" });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].to).toBe(u.email);
+    expect(sent[0].text).toMatch(/reset-password\?token=[A-Za-z0-9_-]{20,}/);
+  });
+
+  it("без SMTP письма не доставляются, демо-адреса пропускаются", async () => {
+    vi.stubEnv("EMAIL_DRIVER", "log");
+    expect(emailDeliveryEnabled()).toBe(false);
+    vi.stubEnv("EMAIL_DRIVER", "smtp");
+    vi.stubEnv("SMTP_HOST", "smtp.test.local");
+    const u = await makeUser();
+    await prisma.user.update({ where: { id: u.id }, data: { email: "someone@tirco.demo" } });
+    await requestPasswordReset("someone@tirco.demo", { ip: "10.3.0.2", userAgent: "vitest" });
+    expect(sent).toHaveLength(0);
   });
 });

@@ -35,7 +35,8 @@ export async function grantPlatformAdmin(input: GrantAdminInput): Promise<GrantA
 
   const existing = await authDb.user.findUnique({ where: { email } });
   if (!existing) {
-    if (!input.create) throw new Error(`Пользователь ${email} не найден. Добавьте --create --first-name … --last-name …, чтобы создать его.`);
+    if (!input.create)
+      throw new Error(`Пользователь ${email} не найден. Добавьте --create --first-name … --last-name …, чтобы создать его.`);
     const passwordHash = await hashPassword(checkPassword(input.password));
     const user = await authDb.user.create({
       data: {
@@ -47,12 +48,16 @@ export async function grantPlatformAdmin(input: GrantAdminInput): Promise<GrantA
         status: "ACTIVE",
       },
     });
-    await audit(null, {
-      action: AuditAction.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      newValue: { platformRole: "PLATFORM_ADMIN", via: "admin:grant" },
-    }, authDb);
+    await audit(
+      null,
+      {
+        action: AuditAction.USER_REGISTERED,
+        entityType: "User",
+        entityId: user.id,
+        newValue: { platformRole: "PLATFORM_ADMIN", via: "admin:grant" },
+      },
+      authDb,
+    );
     return { userId: user.id, created: true, promoted: true, passwordReset: true };
   }
 

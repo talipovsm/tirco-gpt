@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/client/api";
 import { forgotPasswordSchema, passwordSchema } from "@/lib/validation/auth";
 
-export function ForgotPasswordForm() {
+/** Как доставляется ссылка: письмом, в лог сервера (разработка) или никак (почта не настроена в production — OPS-02). */
+export type ResetDelivery = "email" | "log" | "unavailable";
+
+export function ForgotPasswordForm({ delivery = "email" }: { delivery?: ResetDelivery }) {
   const [sent, setSent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const form = useForm<z.input<typeof forgotPasswordSchema>>({ resolver: zodResolver(forgotPasswordSchema), defaultValues: { email: "" } });
@@ -29,15 +32,24 @@ export function ForgotPasswordForm() {
     <div>
       <div className="text-center">
         <h1 className="text-large-title">Восстановление пароля</h1>
-        {!sent && (
+        {!sent && delivery !== "unavailable" && (
           <p className="text-subheadline text-muted-foreground mt-1">Укажите email, и мы пришлём ссылку для установки нового пароля.</p>
         )}
       </div>
-      {sent ? (
+      {delivery === "unavailable" ? (
+        <div className="bg-card mt-7 rounded-lg px-5 py-6 text-center" role="status" data-testid="reset-unavailable">
+          <p>Отправка писем на этой платформе пока не подключена, поэтому ссылку для сброса пароля получить нельзя.</p>
+          <p className="text-subheadline text-muted-foreground mt-2">
+            Чтобы восстановить доступ, обратитесь к руководителю вашей компании в Tirco или в поддержку платформы.
+          </p>
+        </div>
+      ) : sent ? (
         <div className="bg-card mt-7 flex flex-col items-center rounded-lg px-5 py-6 text-center" role="status">
           <CheckCircle2 className="text-success mb-2 size-9 [stroke-width:1.5]" aria-hidden />
           <p>Если такой email зарегистрирован, мы отправили на него ссылку для сброса пароля. Ссылка действует 1 час.</p>
-          <p className="text-footnote text-muted-foreground mt-2">В локальной среде письмо выводится в лог сервера (EMAIL_DRIVER=log).</p>
+          {delivery === "log" && (
+            <p className="text-footnote text-muted-foreground mt-2">В локальной среде письмо выводится в лог сервера (EMAIL_DRIVER=log).</p>
+          )}
         </div>
       ) : (
         <form onSubmit={onSubmit} className="mt-7 space-y-5" noValidate>

@@ -363,6 +363,24 @@ export async function cancelLoad(actor: Actor, loadId: string, reason: string | 
 
 // ─────────── Чтение ───────────
 
+/**
+ * Приватные поля груза: заметки видит только владелец (и администратор); имя клиента экспедитора,
+ * контакты и примечания точек — владелец и выбранный перевозчик. Остальные перевозчики и экспедиторы
+ * получают груз без этих полей (SEC-02).
+ */
+export function loadForViewer<
+  L extends { notes: string | null; clientName: string | null; stops: { contactName: string | null; contactPhone: string | null; notes: string | null }[] },
+>(load: L, isOwner: boolean, isSelectedCarrier: boolean): L {
+  if (isOwner) return load;
+  if (isSelectedCarrier) return { ...load, notes: null };
+  return {
+    ...load,
+    notes: null,
+    clientName: null,
+    stops: load.stops.map((st) => ({ ...st, contactName: null, contactPhone: null, notes: null })),
+  };
+}
+
 export async function getLoadDetail(actor: Actor, loadId: string) {
   const { relation, membership } = await requireLoadRelation(actor, loadId);
   await expireStaleBids(prisma, loadId);
@@ -410,7 +428,7 @@ export async function getLoadDetail(actor: Actor, loadId: string) {
     load.order && (isOwner || actor.memberships.some((m) => m.companyId === load.order!.carrierCompanyId && isCarrierRole(m.role)));
 
   return {
-    load: { ...load, order: orderVisible ? load.order : null },
+    load: loadForViewer({ ...load, order: orderVisible ? load.order : null }, isOwner, !!orderVisible),
     bids,
     ratings,
     history,
@@ -479,8 +497,8 @@ export async function listLoads(actor: Actor, q: ListQuery) {
       orderBy,
       skip: (q.page - 1) * q.pageSize,
       take: q.pageSize,
-      // Линия маршрута нужна только карточке груза — в списках не передаётся
-      omit: { routeGeometry: true },
+      // Линия маршрута нужна только карточке груза — в списках не передаётся; на бирже — без приватных полей владельца
+      omit: q.scope === "mine" ? { routeGeometry: true } : { routeGeometry: true, notes: true, clientName: true },
       include: {
         stops: { orderBy: { sequence: "asc" }, select: { sequence: true, type: true, country: true, city: true } },
         company: { select: { id: true, legalName: true, tradeName: true, verificationStatus: true } },

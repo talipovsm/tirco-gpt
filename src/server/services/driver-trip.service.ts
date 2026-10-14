@@ -22,7 +22,7 @@ const tripInclude = {
       cargoType: true,
       temperatureFrom: true,
       temperatureTo: true,
-      notes: true,
+      // Заметки груза видит только владелец (SEC-02)
       routeDistanceKm: true,
       routeDurationMin: true,
       routeSource: true,

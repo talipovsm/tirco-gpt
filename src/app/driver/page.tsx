@@ -151,7 +151,6 @@ export default async function DriverHomePage() {
             {order.load.packagesCount ? ` · ${order.load.packagesCount} ${order.load.packageType ?? "мест"}` : ""}
             {order.load.temperatureFrom !== null && ` · ${order.load.temperatureFrom}…${order.load.temperatureTo} °C`}
           </p>
-          {order.load.notes && <p className="text-subheadline text-muted-foreground">{order.load.notes}</p>}
         </div>
       </InsetGroup>
     </div>

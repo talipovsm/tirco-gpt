@@ -257,7 +257,7 @@ describe("бизнес-правила", () => {
   it("после подписания договора сторона не может отменить перевозку; до — может", async () => {
     const { orderId } = await signedOrder(s);
     const err = await expectAppError(cancelOrder(s.shipper, orderId, "Причина"), "INVALID_STATE_TRANSITION");
-    expect((err as unknown as Error).message).toContain("спора/администратора");
+    expect((err as unknown as Error).message).toContain("по соглашению сторон");
     await cancelOrder(s.admin, orderId, "Решение администратора");
     expect((await prisma.transportOrder.findUniqueOrThrow({ where: { id: orderId } })).currentStatus).toBe("CANCELLED");
 

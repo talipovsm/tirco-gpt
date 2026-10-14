@@ -803,7 +803,7 @@ model Vehicle {
   fuelAnomalies      FuelAnomaly[]
   fuelInvestigations FuelInvestigation[]
 
-  // Уникальность госномера — только среди неудалённых машин: частичный индекс "Vehicle_active_plate_unique" в миграции
+  // Госномер уникален в пределах компании среди неудалённых машин: частичный индекс "Vehicle_company_plate_unique" в миграции (SEC-10)
   @@index([country, plateNumber])
   @@index([companyId, status])
   @@index([plateNumber])

@@ -138,6 +138,25 @@ describe("Автопарк (QA-01)", () => {
     expect((await listVehicles(s.carrier, { q: "777", ...page })).items.length).toBe(0);
   });
 
+  it("SEC-10: госномер уникален в компании, совпадение с другой компанией — в журнал, а не отказ", async () => {
+    const input = vehicleSchema.parse({
+      plateNumber: "KZ 555 SQ",
+      country: "KZ",
+      make: "Volvo",
+      model: "FH",
+      vehicleType: "TRACTOR_TRAILER",
+      bodyType: "CURTAINSIDER",
+      capacityKg: 20000,
+    });
+    const squatter = await createVehicle(s.carrier2, input);
+    const owner = await createVehicle(s.carrier, input);
+    expect(owner.companyId).not.toBe(squatter.companyId);
+    const shared = await prisma.auditLog.findFirstOrThrow({ where: { action: "VEHICLE_PLATE_SHARED", entityId: owner.id } });
+    expect(JSON.stringify(shared.newValue)).toContain(squatter.companyId);
+    await expectAppError(createVehicle(s.carrier, input), "VALIDATION_ERROR");
+    expect(await prisma.auditLog.count({ where: { action: "VEHICLE_PLATE_SHARED", entityId: squatter.id } })).toBe(0);
+  });
+
   it("водители: создание, правка, поиск", async () => {
     const input = driverSchema.parse({
       fullName: "Иван Петров",

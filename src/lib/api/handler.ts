@@ -4,7 +4,7 @@ import { ZodError, type z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import type { Actor, RequestMeta } from "@/lib/auth/actor";
 import { enforceRateLimit, type RATE_LIMITS } from "@/lib/auth/rate-limit";
-import { getCurrentActor, getRequestMeta, getSessionDataMode } from "@/lib/auth/session";
+import { getCurrentActor, getRequestMeta, getSessionDataMode, withRequestSessionCache } from "@/lib/auth/session";
 import { runWithDataMode } from "@/lib/db/data-mode";
 import { prisma } from "@/lib/db/prisma";
 import { AppError, errors, isAppError, type FieldErrors } from "@/lib/errors";
@@ -122,8 +122,9 @@ export function route<P extends Params = Params, A extends boolean = true>(
 ) {
   // Режим данных — только из серверной сессии (не из тела/заголовков запроса); без сессии — реальная база.
   // Весь обработчик выполняется в контексте режима: сервисы получают нужную базу через общий провайдер.
-  return async (req: NextRequest, context: { params: Promise<P> }) =>
-    runWithDataMode((await getSessionDataMode()) ?? "real", () => handle(req, context));
+  // Сессия читается из базы один раз на запрос (PERF-04): режим данных и актор берут её из кеша запроса.
+  return (req: NextRequest, context: { params: Promise<P> }) =>
+    withRequestSessionCache(async () => runWithDataMode((await getSessionDataMode()) ?? "real", () => handle(req, context)));
 
   async function handle(req: NextRequest, context: { params: Promise<P> }) {
     const started = Date.now();

@@ -1,4 +1,5 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import { bindRenderDataMode, runWithDataMode, type DataMode } from "@/lib/db/data-mode";
@@ -87,6 +88,7 @@ export async function createSession(userId: string, activeCompanyId: string | nu
       expiresAt,
     },
   });
+  invalidateRequestSession();
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -100,6 +102,7 @@ export async function createSession(userId: string, activeCompanyId: string | nu
 }
 
 export async function destroySession() {
+  invalidateRequestSession();
   const jar = await cookies();
   const token = await requestToken();
   if (token) {
@@ -123,8 +126,29 @@ async function loadSession() {
   return session;
 }
 
+/**
+ * Кеш сессии на время API-запроса (PERF-04). `React.cache` работает только при рендере серверных компонентов;
+ * в обработчиках маршрутов он не кеширует, и сессия читалась дважды: для режима данных и для актора.
+ * route() выполняет обработчик внутри withRequestSessionCache. Создание, удаление и смена компании сбрасывают кеш.
+ */
+type SessionRow = Awaited<ReturnType<typeof loadSession>>;
+const requestSessionCache = new AsyncLocalStorage<{ session?: Promise<SessionRow> }>();
+
+export function withRequestSessionCache<T>(fn: () => Promise<T>): Promise<T> {
+  return requestSessionCache.run({}, fn);
+}
+
+export function invalidateRequestSession() {
+  const store = requestSessionCache.getStore();
+  if (store) delete store.session;
+}
+
 /** Сессия текущего запроса (кешируется на время запроса). Режим данных — только отсюда, не из запроса клиента. */
-export const getCurrentSession = cache(loadSession);
+export const getCurrentSession = cache((): Promise<SessionRow> => {
+  const store = requestSessionCache.getStore();
+  if (!store) return loadSession();
+  return (store.session ??= loadSession());
+});
 
 /** Режим данных текущей сессии; без сессии — null (вход, регистрация). */
 export async function getSessionDataMode(): Promise<DataMode | null> {
@@ -199,5 +223,6 @@ export async function requireActor(): Promise<Actor> {
 }
 
 export async function setActiveCompany(sessionId: string, companyId: string) {
+  invalidateRequestSession();
   await authDb.session.update({ where: { id: sessionId }, data: { activeCompanyId: companyId } });
 }

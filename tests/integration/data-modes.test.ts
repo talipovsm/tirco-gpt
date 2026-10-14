@@ -200,6 +200,18 @@ describe("Режимы данных: изоляция и атаки на реж�
     expect((await call(loadGET, req(`/api/loads/${demoId}`), { id: demoId })).status).toBe(404);
   });
 
+  it("PERF-04: сессия читается из базы один раз на API-запрос", async () => {
+    await signIn(shipperEmail, "demo");
+    const spy = vi.spyOn(authDb.session, "findUnique");
+    try {
+      // Ответ (200 или 403 по правам роли) не важен: важно, что актор найден и сессия не перечитывалась
+      expect((await call(loadsGET, req("/api/loads"))).status).not.toBe(401);
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("подделанный токен сессии не даёт доступа ни к одному режиму", async () => {
     jar.set(SESSION_COOKIE, "forged-token");
     const res = await call(loadsGET, req("/api/loads"));

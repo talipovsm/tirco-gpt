@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { CompanyDocumentType } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import { requireActiveCompany, requireCompanyPermission, requirePermission, type Actor } from "@/lib/auth/actor";
+import { invalidateRequestSession } from "@/lib/auth/session";
 import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { authDb, prisma } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
@@ -478,6 +479,9 @@ export async function createCompanyForActor(
     );
     return c;
   });
-  if (actor.sessionId) await prisma.session.update({ where: { id: actor.sessionId }, data: { activeCompanyId: company.id } });
+  if (actor.sessionId) {
+    await prisma.session.update({ where: { id: actor.sessionId }, data: { activeCompanyId: company.id } });
+    invalidateRequestSession();
+  }
   return company;
 }

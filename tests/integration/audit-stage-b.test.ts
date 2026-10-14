@@ -55,3 +55,20 @@ describe("BL-05: подтверждение при отметке «Достав
     expect(done.currentStatus).toBe("DELIVERED");
   });
 });
+
+describe("DATA-01: файлы демо-базы отдельно от реальных", () => {
+  it("ключи загрузок в демо-режиме под префиксом demo/uploads/, в реальном — без него", async () => {
+    const { runWithDataMode } = await import("@/lib/db/data-mode");
+    const { buildStorageKey, DEMO_UPLOADS_PREFIX, storage } = await import("@/lib/storage/storage");
+    expect(buildStorageKey("orders/x", ".pdf")).toMatch(/^orders\/x\//);
+    const demoKey = await runWithDataMode("demo", async () => buildStorageKey("orders/x", ".pdf"));
+    expect(demoKey.startsWith(DEMO_UPLOADS_PREFIX)).toBe(true);
+
+    const realKey = buildStorageKey("orders/x", ".pdf");
+    await storage().put(realKey, Buffer.from("real"), "application/pdf");
+    await storage().put(demoKey, Buffer.from("demo"), "application/pdf");
+    await storage().deletePrefix(DEMO_UPLOADS_PREFIX);
+    expect((await storage().get(realKey)).toString()).toBe("real");
+    await expect(storage().get(demoKey)).rejects.toThrow();
+  });
+});

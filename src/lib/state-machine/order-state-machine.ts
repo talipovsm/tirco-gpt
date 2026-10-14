@@ -88,6 +88,14 @@ export const FINAL_STATUSES: OrderStatus[] = ["CLOSED", "CANCELLED"];
 
 const cancelByParties: TransitionRule = { actors: ["CUSTOMER", "CARRIER", "ADMIN"], manual: true, confirm: true };
 const cancelByAdmin: TransitionRule = { actors: ["ADMIN"], manual: true, confirm: true };
+/**
+ * После подписания и до начала погрузки — отмена администратором или по соглашению сторон (BL-01): одна сторона
+ * предлагает, вторая соглашается с повторным вводом пароля, переход выполняет система (order-cancellation.service).
+ */
+const cancelByAgreement: TransitionRule = { actors: ["ADMIN", "SYSTEM"], manual: true, confirm: true };
+
+/** Статусы, в которых возможна отмена по соглашению сторон (после подписания, до погрузки). */
+export const AGREED_CANCELLABLE_STATUSES: OrderStatus[] = ["CONTRACT_SIGNED", "VEHICLE_ASSIGNED", "DRIVER_ASSIGNED", "WAITING_FOR_LOADING"];
 const dispute: TransitionRule = { actors: ["CUSTOMER", "CARRIER", "ADMIN"], manual: false };
 const hold: TransitionRule = { actors: ["ADMIN"], manual: true, confirm: true };
 const system: TransitionRule = { actors: ["SYSTEM"], manual: false };
@@ -113,11 +121,11 @@ export const TRANSITIONS: Record<OrderStatus, Partial<Record<OrderStatus, Transi
     DISPUTED: dispute,
     ON_HOLD: hold,
   },
-  CONTRACT_SIGNED: { VEHICLE_ASSIGNED: assignment, CANCELLED: cancelByAdmin, DISPUTED: dispute, ON_HOLD: hold },
+  CONTRACT_SIGNED: { VEHICLE_ASSIGNED: assignment, CANCELLED: cancelByAgreement, DISPUTED: dispute, ON_HOLD: hold },
   VEHICLE_ASSIGNED: {
     DRIVER_ASSIGNED: assignment,
     CONTRACT_SIGNED: assignment,
-    CANCELLED: cancelByAdmin,
+    CANCELLED: cancelByAgreement,
     DISPUTED: dispute,
     ON_HOLD: hold,
   },
@@ -125,7 +133,7 @@ export const TRANSITIONS: Record<OrderStatus, Partial<Record<OrderStatus, Transi
     WAITING_FOR_LOADING: { actors: ["CARRIER", "ADMIN", "SYSTEM"], manual: true },
     VEHICLE_ASSIGNED: assignment,
     CONTRACT_SIGNED: assignment,
-    CANCELLED: cancelByAdmin,
+    CANCELLED: cancelByAgreement,
     DISPUTED: dispute,
     ON_HOLD: hold,
   },
@@ -133,7 +141,7 @@ export const TRANSITIONS: Record<OrderStatus, Partial<Record<OrderStatus, Transi
     AT_LOADING: { actors: DRIVER_OPS, manual: true, confirm: true },
     VEHICLE_ASSIGNED: assignment,
     CONTRACT_SIGNED: assignment,
-    CANCELLED: cancelByAdmin,
+    CANCELLED: cancelByAgreement,
     DISPUTED: dispute,
     ON_HOLD: hold,
   },
@@ -231,7 +239,7 @@ export function canTransition(
     if (next === "CANCELLED" && !SELF_CANCELLABLE_STATUSES.includes(current)) {
       return {
         ok: false,
-        reason: "После подписания договора отмена выполняется через процедуру спора/администратора.",
+        reason: "После подписания договора отмена — по соглашению сторон до начала погрузки, позже — через спор или администратора.",
       };
     }
     return {
@@ -246,7 +254,7 @@ export function canTransition(
     if (next === "CANCELLED") {
       return {
         ok: false,
-        reason: "После подписания договора отмена выполняется через процедуру спора/администратора.",
+        reason: "После подписания договора отмена — по соглашению сторон до начала погрузки, позже — через спор или администратора.",
       };
     }
     return { ok: false, reason: "У вас нет прав на этот переход статуса." };

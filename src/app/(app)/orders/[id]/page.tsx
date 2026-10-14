@@ -34,6 +34,7 @@ import { guard, pageActor } from "@/server/page-context";
 import { unreadForOrder } from "@/server/services/chat.service";
 import { DRIVER_DOCUMENT_TYPES, listOrderDocuments } from "@/server/services/document.service";
 import { getOrderAuditTrail, getOrderDetail } from "@/server/services/order.service";
+import { getCancellationRequest } from "@/server/services/order-cancellation.service";
 import { getSecureDealView } from "@/server/services/secure-deal.service";
 import { tripFuelReport } from "@/server/services/fuel-report.service";
 import { TripFuelReport } from "@/features/fuel/trip-fuel-report";
@@ -65,13 +66,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const isDriver = side === "DRIVER";
 
   const showFuel = (side === "CARRIER" && can("FUEL_VIEW")) || (side === "ADMIN" && actor.permissions.has("FUEL_VIEW"));
-  const [docs, tracking, unread, audit, secureDeal, fuel] = await Promise.all([
+  const [docs, tracking, unread, audit, secureDeal, fuel, cancellation] = await Promise.all([
     listOrderDocuments(actor, id, { includeHistory: true }).then(toPlain),
     listTracking(actor, id, { limit: 30 }).then(toPlain),
     unreadForOrder(actor, id),
     isDriver ? Promise.resolve(null) : getOrderAuditTrail(actor, id, { page: 1, pageSize: 100 }).then(toPlain),
     finance ? getSecureDealView(actor, id).then((v) => toPlain(v) as unknown as SecureDealPanelView) : Promise.resolve(null),
     showFuel ? tripFuelReport(actor, id).then(toPlain) : Promise.resolve(null),
+    isDriver ? Promise.resolve(null) : getCancellationRequest(actor, id),
   ]);
   const secureStatus = secureDeal?.payment?.status ?? null;
   const secureLive = !!secureStatus && !["PAYMENT_CANCELLED", "PAYMENT_FAILED"].includes(secureStatus);
@@ -426,6 +428,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   receiptConfirmedAt: order.receiptConfirmedAt,
                   confirmationDueAt: order.confirmationDueAt,
                   vehicleId: order.vehicleId,
+                  cancellation: cancellation
+                    ? {
+                        proposedBySide: cancellation.proposedBySide,
+                        reason: cancellation.reason,
+                        proposedBy: `${cancellation.proposedBy.firstName} ${cancellation.proposedBy.lastName}`,
+                      }
+                    : null,
                 }}
               />
               {final && order.currentStatus === "CANCELLED" && <p className="text-danger text-subheadline">Перевозка отменена.</p>}

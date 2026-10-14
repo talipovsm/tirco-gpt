@@ -368,6 +368,14 @@ enum DisputeReason {
   OTHER
 }
 
+enum CancellationRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
 enum DisputeStatus {
   OPEN
   IN_REVIEW
@@ -533,6 +541,8 @@ model User {
   plannedMovements             PlannedMovement[]             @relation("PlannedMovementCreator")
   reviewsWritten               Review[]                      @relation("ReviewAuthor")
   openedDisputes               Dispute[]                     @relation("DisputeOpener")
+  proposedCancellations        OrderCancellationRequest[]    @relation("CancellationProposer")
+  decidedCancellations         OrderCancellationRequest[]    @relation("CancellationDecider")
   resolvedDisputes             Dispute[]                     @relation("DisputeResolver")
   disputeComments              DisputeComment[]              @relation("DisputeCommentAuthor")
   sentInvites                  CompanyInvite[]               @relation("InviteSender")
@@ -1087,24 +1097,25 @@ model TransportOrder {
   createdAt            DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime     @updatedAt @db.Timestamptz(3)
 
-  load             Load                          @relation(fields: [loadId], references: [id])
-  shipper          Company                       @relation("OrderShipper", fields: [shipperCompanyId], references: [id])
-  carrier          Company                       @relation("OrderCarrier", fields: [carrierCompanyId], references: [id])
-  forwarder        Company?                      @relation("OrderForwarder", fields: [forwarderCompanyId], references: [id])
-  acceptedBid      Bid                           @relation(fields: [acceptedBidId], references: [id])
-  vehicle          Vehicle?                      @relation(fields: [vehicleId], references: [id])
-  driver           DriverProfile?                @relation(fields: [driverId], references: [id])
-  statusHistory    TransportOrderStatusHistory[]
-  participants     TransportOrderParticipant[]
-  contracts        Contract[]
-  documents        OrderDocument[]
-  trackingEvents   TrackingEvent[]
-  chatThread       ChatThread?
-  payments         PaymentRecord[]
-  reviews          Review[]
-  disputes         Dispute[]
-  nextMovements    PlannedMovement[]
-  fuelTransactions FuelTransaction[]
+  load                 Load                          @relation(fields: [loadId], references: [id])
+  shipper              Company                       @relation("OrderShipper", fields: [shipperCompanyId], references: [id])
+  carrier              Company                       @relation("OrderCarrier", fields: [carrierCompanyId], references: [id])
+  forwarder            Company?                      @relation("OrderForwarder", fields: [forwarderCompanyId], references: [id])
+  acceptedBid          Bid                           @relation(fields: [acceptedBidId], references: [id])
+  vehicle              Vehicle?                      @relation(fields: [vehicleId], references: [id])
+  driver               DriverProfile?                @relation(fields: [driverId], references: [id])
+  statusHistory        TransportOrderStatusHistory[]
+  participants         TransportOrderParticipant[]
+  contracts            Contract[]
+  documents            OrderDocument[]
+  trackingEvents       TrackingEvent[]
+  chatThread           ChatThread?
+  payments             PaymentRecord[]
+  reviews              Review[]
+  cancellationRequests OrderCancellationRequest[]
+  disputes             Dispute[]
+  nextMovements        PlannedMovement[]
+  fuelTransactions     FuelTransaction[]
 
   fuelAnomalies FuelAnomaly[] @relation("FuelAnomalyOrder")
 
@@ -1934,4 +1945,26 @@ model FuelInvestigationAttachment {
   uploadedBy User @relation("FuelInvestigationAttachmentUploader", fields: [uploadedByUserId], references: [id])
 
   @@index([investigationId])
+}
+
+/// Отмена перевозки по соглашению сторон (BL-01): одна сторона предлагает, вторая соглашается.
+/// Одно ожидающее предложение на перевозку — частичный индекс "OrderCancellationRequest_one_pending" в миграции.
+model OrderCancellationRequest {
+  id               String                    @id @default(uuid()) @db.Uuid
+  orderId          String                    @db.Uuid
+  proposedBySide   PartySide
+  proposedByUserId String                    @db.Uuid
+  reason           String
+  status           CancellationRequestStatus @default(PENDING)
+  decidedByUserId  String?                   @db.Uuid
+  decisionComment  String?
+  decidedAt        DateTime?                 @db.Timestamptz(3)
+  createdAt        DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @db.Timestamptz(3)
+
+  order      TransportOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  proposedBy User           @relation("CancellationProposer", fields: [proposedByUserId], references: [id])
+  decidedBy  User?          @relation("CancellationDecider", fields: [decidedByUserId], references: [id])
+
+  @@index([orderId, status])
 }

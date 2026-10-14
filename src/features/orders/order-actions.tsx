@@ -30,6 +30,7 @@ import { formatDateTime, formatWeight } from "@/lib/format";
 import { enumOptions, label } from "@/lib/i18n";
 import type { Permission } from "@/lib/permissions";
 import {
+  AGREED_CANCELLABLE_STATUSES,
   availableTransitions,
   DISPUTABLE_STATUSES,
   SELF_CANCELLABLE_STATUSES,
@@ -40,6 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/generated/prisma/enums";
 import { DocumentUploader, type UploadedDoc } from "@/features/documents/document-uploader";
+import { CancellationRequestPanel, ProposeCancellation, type CancellationProposal } from "@/features/orders/cancellation-panel";
 
 type Ctx = {
   orderId: string;
@@ -59,6 +61,8 @@ type Ctx = {
   receiptConfirmedAt?: Date | string | null;
   confirmationDueAt?: Date | string | null;
   vehicleId?: string | null;
+  /** Действующее предложение отмены по соглашению сторон (BL-01) */
+  cancellation?: CancellationProposal | null;
 };
 
 const SECURE_HELD = ["PAYMENT_RESERVED", "PAYMENT_RELEASE_PENDING", "PAYMENT_PARTIALLY_RELEASED"];
@@ -759,9 +763,23 @@ export function OrderActions({ ctx, counterpart }: { ctx: Ctx; counterpart: stri
           }
         />,
       );
+    } else if (AGREED_CANCELLABLE_STATUSES.includes(status)) {
+      // BL-01: после подписания и до погрузки — отмена по соглашению сторон
+      if (ctx.cancellation) {
+        blocks.unshift(
+          <CancellationRequestPanel
+            key="cancellation"
+            orderId={orderId}
+            proposal={ctx.cancellation}
+            mySide={isCustomer ? "CUSTOMER" : "CARRIER"}
+          />,
+        );
+      } else {
+        secondary.push(<ProposeCancellation key="propose-cancel" orderId={orderId} />);
+      }
     } else if (!["CLOSED", "CANCELLED", "DISPUTED"].includes(status)) {
       secondary.push(
-        <Tooltip key="cancel-disabled" content="После подписания договора отмена выполняется через процедуру спора/администратора.">
+        <Tooltip key="cancel-disabled" content="После начала погрузки отменить перевозку можно только через спор или администратора.">
           <span tabIndex={0}>
             <Button variant="ghost" disabled>
               <Ban /> Отменить перевозку

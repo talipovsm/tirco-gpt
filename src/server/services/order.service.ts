@@ -322,35 +322,54 @@ export async function cancelOrder(actor: Actor, orderId: string, reason: string)
       comment: `Отмена: ${reason}`,
       manual: true,
     });
-    await tx.contract.updateMany({
-      where: { orderId, status: { in: ["PENDING_SIGNATURES", "PARTIALLY_SIGNED", "DRAFT"] } },
-      data: { status: "CANCELLED" },
-    });
-    await tx.load.update({ where: { id: order.loadId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason } });
-    await tx.paymentRecord.updateMany({ where: { orderId, status: { in: ["PLANNED", "INVOICED"] } }, data: { status: "CANCELLED" } });
-    // Перевозчик отказался от сделки — груз заказчика не должен пропасть: он снова выставляется на биржу копией
-    // (один груз связан с одной сделкой, поэтому создаётся новый груз с тем же маршрутом и условиями)
-    let republishedLoadId: string | null = null;
-    if (access.side === "CARRIER") {
-      await tx.bid.update({ where: { id: order.acceptedBidId }, data: { status: "WITHDRAWN", decidedAt: new Date() } });
-      republishedLoadId = await republishLoadCopy(tx, actor, order.loadId, order.publicNumber, reason);
-    }
-    await audit(
-      actor,
-      {
-        action: AuditAction.ORDER_CANCELLED,
-        entityType: "TransportOrder",
-        entityId: orderId,
-        oldValue: { status: from },
-        newValue: { status: "CANCELLED", reason },
-      },
-      tx,
-    );
-    return { ...order, republishedLoadId };
+    return applyCancellationEffects(tx, actor, order, from, reason, access.side === "CARRIER");
   });
   // Безопасная сделка: неподтверждённая оплата отменяется, обеспеченная — возвращается заказчику через провайдера
   await settleOnOrderCancel(orderId, actor, reason);
   return cancelled;
+}
+
+/**
+ * Последствия отмены перевозки внутри транзакции перехода: черновые договоры, груз и плановые платежи отменяются;
+ * при отказе перевозчика его ставка отзывается, а груз заказчика снова выставляется копией. Денежная часть
+ * безопасной сделки — после транзакции (settleOnOrderCancel).
+ */
+export async function applyCancellationEffects<O extends { id: string; loadId: string; acceptedBidId: string; publicNumber: string }>(
+  tx: Tx,
+  actor: Actor,
+  order: O,
+  from: OrderStatus,
+  reason: string,
+  carrierWithdrew: boolean,
+) {
+  await tx.contract.updateMany({
+    where: { orderId: order.id, status: { in: ["PENDING_SIGNATURES", "PARTIALLY_SIGNED", "DRAFT"] } },
+    data: { status: "CANCELLED" },
+  });
+  await tx.load.update({ where: { id: order.loadId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason } });
+  await tx.paymentRecord.updateMany({
+    where: { orderId: order.id, status: { in: ["PLANNED", "INVOICED"] } },
+    data: { status: "CANCELLED" },
+  });
+  // Перевозчик отказался от сделки — груз заказчика не должен пропасть: он снова выставляется на биржу копией
+  // (один груз связан с одной сделкой, поэтому создаётся новый груз с тем же маршрутом и условиями)
+  let republishedLoadId: string | null = null;
+  if (carrierWithdrew) {
+    await tx.bid.update({ where: { id: order.acceptedBidId }, data: { status: "WITHDRAWN", decidedAt: new Date() } });
+    republishedLoadId = await republishLoadCopy(tx, actor, order.loadId, order.publicNumber, reason);
+  }
+  await audit(
+    actor,
+    {
+      action: AuditAction.ORDER_CANCELLED,
+      entityType: "TransportOrder",
+      entityId: order.id,
+      oldValue: { status: from },
+      newValue: { status: "CANCELLED", reason },
+    },
+    tx,
+  );
+  return { ...order, republishedLoadId };
 }
 
 /** Копия груза после отказа перевозчика: опубликована, если дата загрузки ещё актуальна, иначе — черновик. */

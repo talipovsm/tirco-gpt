@@ -464,9 +464,9 @@ describe("Демо-стенд: демо-аккаунты для входа в р
     });
     afterEach(() => vi.unstubAllEnvs());
 
-    async function signInAs(email: string, dataMode: "real" | "demo") {
+    async function signInAs(email: string, dataMode: "real" | "demo", password = DEMO_PASSWORD) {
       jar.clear();
-      return call(loginPOST, req("/api/auth/login", { method: "POST", body: { email, password: DEMO_PASSWORD, dataMode } }));
+      return call(loginPOST, req("/api/auth/login", { method: "POST", body: { email, password, dataMode } }));
     }
 
     it("общий демо-аккаунт входит только в демо-базу и не переключается в реальную", async () => {
@@ -502,10 +502,16 @@ describe("Демо-стенд: демо-аккаунты для входа в р
       const res = await signInAs("dispatcher@tirco.demo", "real");
       expect((res.json.data as unknown as { dataMode: string }).dataMode).toBe("demo");
 
+      // Администратор платформы входит в реальную базу — но не с общеизвестным демо-паролем (SEC-01)
       await authDb.user.create({
         data: { email: "admin@tirco.demo", firstName: "A", lastName: "A", passwordHash, platformRole: "PLATFORM_ADMIN" },
       });
-      const admin = await signInAs("admin@tirco.demo", "real");
+      expect((await signInAs("admin@tirco.demo", "real")).status).toBe(403);
+      await authDb.user.update({
+        where: { email: "admin@tirco.demo" },
+        data: { passwordHash: await hashPassword("admin-strong-password-1") },
+      });
+      const admin = await signInAs("admin@tirco.demo", "real", "admin-strong-password-1");
       expect((admin.json.data as unknown as { dataMode: string }).dataMode).toBe("real");
     });
 

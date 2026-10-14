@@ -17,6 +17,7 @@ import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/notifications/adapters";
 import { ROLES_BY_COMPANY_TYPE } from "@/lib/permissions";
 import type { changePasswordSchema, loginSchema, profileUpdateSchema, registerSchema, resetPasswordSchema } from "@/lib/validation/auth";
+import { assertRegistrationNumberFree } from "./company.service";
 
 const ROLE_BY_ACTIVITY: Record<"SHIPPER" | "CARRIER" | "FORWARDER", MemberRole> = {
   SHIPPER: "SHIPPER",
@@ -76,17 +77,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       let companyId: string;
       if (input.companyMode === "create") {
         const c = input.company!;
-        const dup = await tx.company.findUnique({
-          where: { country_registrationNumber: { country: c.country, registrationNumber: c.registrationNumber } },
-        });
-        if (dup) {
-          throw errors.validation(
-            "Компания с таким регистрационным номером уже зарегистрирована. Попросите приглашение у её администратора.",
-            {
-              "company.registrationNumber": ["Компания с таким номером уже существует"],
-            },
-          );
-        }
+        await assertRegistrationNumberFree(tx, c.country, c.registrationNumber, "company.registrationNumber");
         const company = await tx.company.create({
           data: {
             type: input.activity,

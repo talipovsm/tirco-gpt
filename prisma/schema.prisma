@@ -642,7 +642,8 @@ model Company {
   chatMessages           ChatMessage[]   @relation("ChatMessageCompany")
   openedDisputes         Dispute[]       @relation("DisputeOpenerCompany")
 
-  @@unique([country, registrationNumber])
+  // Регистрационный номер закреплён только за проверенной компанией: частичный индекс "Company_verified_registration_unique" в миграции (SEC-04)
+  @@index([country, registrationNumber])
   @@index([type])
   @@index([verificationStatus])
   @@index([legalName])

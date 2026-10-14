@@ -408,19 +408,48 @@ export function activeCompanyId(actor: Actor) {
   return requireActiveCompany(actor).companyId;
 }
 
+/**
+ * Регистрационный номер закреплён только за проверенной (или приостановленной после проверки) компанией (SEC-04):
+ * неподтверждённая компания не блокирует регистрацию настоящей, а повторная проверка второй компании с тем же
+ * номером отклоняется (adminCompanyDecision) и запрещена частичным уникальным индексом в БД.
+ */
+export async function registrationNumberHolder(
+  db: Pick<typeof prisma, "company">,
+  country: string,
+  registrationNumber: string,
+  exceptCompanyId?: string,
+) {
+  return db.company.findFirst({
+    where: {
+      country,
+      registrationNumber,
+      deletedAt: null,
+      verificationStatus: { in: ["VERIFIED", "SUSPENDED"] },
+      ...(exceptCompanyId ? { id: { not: exceptCompanyId } } : {}),
+    },
+    select: { id: true, legalName: true, verificationStatus: true },
+  });
+}
+
+export async function assertRegistrationNumberFree(
+  db: Pick<typeof prisma, "company">,
+  country: string,
+  registrationNumber: string,
+  field: string,
+) {
+  if (await registrationNumberHolder(db, country, registrationNumber)) {
+    throw errors.validation("Компания с таким регистрационным номером уже проверена на платформе. Попросите приглашение у её руководителя.", {
+      [field]: ["Номер закреплён за проверенной компанией"],
+    });
+  }
+}
+
 /** Создание компании существующим пользователем (вторая компания или после отключения). */
 export async function createCompanyForActor(
   actor: Actor,
   input: import("zod").output<typeof import("@/lib/validation/auth").companyCreateSchema>,
 ) {
-  const dup = await prisma.company.findUnique({
-    where: { country_registrationNumber: { country: input.country, registrationNumber: input.registrationNumber } },
-  });
-  if (dup) {
-    throw errors.validation("Компания с таким регистрационным номером уже зарегистрирована. Попросите приглашение у её администратора.", {
-      registrationNumber: ["Компания с таким номером уже существует"],
-    });
-  }
+  await assertRegistrationNumberFree(prisma, input.country, input.registrationNumber, "registrationNumber");
   const role = input.type === "CARRIER" ? "CARRIER_ADMIN" : input.type === "FORWARDER" ? "FORWARDER" : "SHIPPER";
   const company = await prisma.$transaction(async (tx) => {
     const c = await tx.company.create({ data: { ...input, phone: input.phone ?? actor.phone, email: input.email ?? actor.email } });

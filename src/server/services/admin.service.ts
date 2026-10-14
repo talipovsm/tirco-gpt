@@ -6,7 +6,7 @@ import { requirePermission, type Actor } from "@/lib/auth/actor";
 import { prisma } from "@/lib/db/prisma";
 import { AppError, errors } from "@/lib/errors";
 import { ACTIVE_STATUSES, IN_TRANSIT_STATUSES } from "@/lib/state-machine/order-state-machine";
-import { companyRatings } from "./company.service";
+import { companyRatings, registrationNumberHolder } from "./company.service";
 import { companyUserIds, notify } from "./notification.service";
 import { performTransitionInTx } from "./order-core";
 
@@ -228,6 +228,21 @@ export async function adminListCompanies(actor: Actor, opts: Page & { q?: string
 }
 
 /** Решение по верификации / приостановка / восстановление компании. */
+/** Номер компании уже закреплён за другой проверенной компанией — подтвердить вторую нельзя (SEC-04). */
+async function assertNumberNotTaken(
+  tx: Pick<typeof prisma, "company">,
+  company: { id: string; country: string; registrationNumber: string },
+) {
+  const holder = await registrationNumberHolder(tx, company.country, company.registrationNumber, company.id);
+  if (holder) {
+    throw new AppError(
+      "CONFLICT",
+      `Регистрационный номер ${company.registrationNumber} уже закреплён за проверенной компанией «${holder.legalName}». ` +
+        "Проверьте документы: если номер принадлежит этой заявке, сначала приостановите и разберите прежнюю компанию.",
+    );
+  }
+}
+
 export async function adminCompanyDecision(
   actor: Actor,
   companyId: string,
@@ -249,6 +264,7 @@ export async function adminCompanyDecision(
         if (company.verificationStatus === "SUSPENDED") {
           throw new AppError("INVALID_STATE_TRANSITION", "Компания приостановлена — сначала восстановите её деятельность.");
         }
+        await assertNumberNotTaken(tx, company);
         status = "VERIFIED";
         action = AuditAction.VERIFICATION_APPROVED;
         if (pending)
@@ -283,6 +299,7 @@ export async function adminCompanyDecision(
       case "RESTORE": {
         if (company.verificationStatus !== "SUSPENDED") throw new AppError("INVALID_STATE_TRANSITION", "Компания не приостановлена.");
         const lastApproved = await tx.verificationRequest.findFirst({ where: { companyId, status: "APPROVED" } });
+        if (lastApproved) await assertNumberNotTaken(tx, company);
         status = lastApproved ? "VERIFIED" : "UNVERIFIED";
         action = AuditAction.COMPANY_RESTORED;
         break;

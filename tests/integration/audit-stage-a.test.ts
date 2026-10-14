@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db/prisma";
 import { acceptBid, createBid } from "@/server/services/bid.service";
 import { createLoad, getLoadDetail, listLoads } from "@/server/services/load.service";
 import { loadListQuerySchema } from "@/lib/validation/load";
+import { companyCreateSchema } from "@/lib/validation/auth";
+import { createCompanyForActor } from "@/server/services/company.service";
+import { adminCompanyDecision } from "@/server/services/admin.service";
 import { login, requestPasswordReset } from "@/server/services/auth.service";
 import { emailDeliveryEnabled, setEmailTransportForTests } from "@/lib/notifications/email";
 import { adminsWithDemoPassword, grantPlatformAdmin, revokePlatformAdmin } from "@/server/services/platform-admin.service";
@@ -213,5 +216,41 @@ describe("OPS-02: доставка писем", () => {
     await prisma.user.update({ where: { id: u.id }, data: { email: "someone@tirco.demo" } });
     await requestPasswordReset("someone@tirco.demo", { ip: "10.3.0.2", userAgent: "vitest" });
     expect(sent).toHaveLength(0);
+  });
+});
+
+describe("SEC-04: регистрационный номер закрепляется за проверенной компанией", () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  const companyInput = (name: string) =>
+    companyCreateSchema.parse({
+      type: "SHIPPER",
+      legalName: name,
+      registrationNumber: "KZ-123456789",
+      country: "KZ",
+      city: "Алматы",
+      address: "ул. Абая, 1",
+    });
+
+  it("неподтверждённая компания не блокирует номер; проверенной может быть только одна", async () => {
+    const admin = await actorFor((await makeUser({ admin: true })).id);
+    const squatter = await actorFor((await makeUser()).id);
+    const owner = await actorFor((await makeUser()).id);
+    const first = await createCompanyForActor(squatter, companyInput("Захватчик"));
+    const second = await createCompanyForActor(owner, companyInput("Настоящая компания"));
+    expect(first.id).not.toBe(second.id);
+
+    await adminCompanyDecision(admin, second.id, "APPROVE", null);
+    await expectAppError(adminCompanyDecision(admin, first.id, "APPROVE", null), "CONFLICT");
+    const late = await actorFor((await makeUser()).id);
+    await expectAppError(createCompanyForActor(late, companyInput("Ещё одна")), "VALIDATION_ERROR");
+  });
+
+  it("база не допускает двух проверенных компаний с одним номером", async () => {
+    const a = await makeCompany("SHIPPER");
+    const b = await makeCompany("CARRIER");
+    await expect(prisma.company.update({ where: { id: b.id }, data: { registrationNumber: a.registrationNumber } })).rejects.toThrow();
   });
 });

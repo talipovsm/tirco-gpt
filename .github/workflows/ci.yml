@@ -40,6 +40,8 @@ jobs:
       - run: npm ci
       - name: Known vulnerabilities in production dependencies
         run: npm audit --omit=dev --audit-level=high
+      - name: Migration safety (immutable history, no destructive SQL without review)
+        run: npm run db:check-migrations
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check

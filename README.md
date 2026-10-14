@@ -146,6 +146,7 @@ CREATE DATABASE tirco_test;
 npm run db:deploy     # применить миграции (prod/CI)
 npm run db:migrate    # создать новую миграцию при изменении schema.prisma (dev)
 npm run db:generate   # сгенерировать клиент (src/generated/prisma)
+npm run db:check-migrations -- --write   # после ревью новой миграции — зафиксировать её контрольную сумму
 ```
 
 Миграция `prisma/migrations/*_init` дополнительно содержит то, что Prisma не выражает в схеме:
@@ -196,7 +197,7 @@ npm run build && npm start
 1. PostgreSQL 16 (managed), S3-совместимое хранилище с **приватным** bucket.
 2. Переменные: `NODE_ENV=production`, `APP_URL=https://…` (cookie получают флаг `Secure`), `STORAGE_DRIVER=s3` + `S3_*`, `EMAIL_DRIVER=smtp` + `SMTP_*` и `EMAIL_FROM` (без почты сброс пароля недоступен — страница восстановления сообщает об этом), ключ карт `NEXT_PUBLIC_GEOAPIFY_KEY` или `NEXT_PUBLIC_MAP_STYLE_URL`.
 3. `npm ci && npm run build`, затем при каждом релизе `npm run db:deploy`, запуск `npm start` за HTTPS-прокси (передающим `X-Forwarded-For`).
-4. Либо `Dockerfile` (выполняет `prisma migrate deploy` при старте).
+4. Либо `Dockerfile` (выполняет `prisma migrate deploy` при старте). Перед релизом с миграциями — дамп базы и правила из [docs/runbooks/backup-restore.md](docs/runbooks/backup-restore.md) (бэкап, восстановление, выкат разрушительных миграций).
 5. **Не запускайте seed в production** (он очищает БД; скрипт это блокирует).
    Первый администратор платформы: `ADMIN_PASSWORD='…' npm run admin:grant -- --email <адрес> --create --first-name <имя> --last-name <фамилия> --confirm`
    (назначить роль существующему пользователю — без `--create`; новый пароль — `--reset-password`; снять роль — `--revoke`, последнего администратора снять нельзя).
@@ -205,7 +206,7 @@ npm run build && npm start
 7. Плановая задача безопасной сделки запускается встроенным планировщиком (`JOB_SECURE_DEAL_INTERVAL_MIN`) или внешним cron с `CRON_SECRET`. Задача идемпотентна — параллельные запуски на нескольких инстансах безопасны.
 8. При старте в production сервер предупреждает в логе об опасных настройках (локальное хранилище файлов, e-mail только в лог, отсутствие https в `APP_URL`).
 9. Заголовки безопасности: CSP, HSTS (production), `X-Frame-Options`, `nosniff`; пользовательские файлы отдаются с `CSP: sandbox`.
-10. CI: `.github/workflows/ci.yml` — lint, typecheck, prettier, unit, integration на PostgreSQL, проверка соответствия миграций схеме, сборка.
+10. CI: `.github/workflows/ci.yml` — проверка безопасности миграций (`npm run db:check-migrations`: применённые миграции неизменны, разрушительный SQL только с отметкой ревью), уязвимости production-зависимостей, lint, typecheck, prettier, unit, integration на PostgreSQL, проверка соответствия миграций схеме, сборка, E2E.
 
 ## 13. Demo accounts
 

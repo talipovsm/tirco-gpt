@@ -108,6 +108,33 @@ describe("Чат перевозки (QA-01)", () => {
     await expectAppError(sendMessage(s.carrier2, orderId, { message: "чужой" }), "FORBIDDEN");
     await expectAppError(listMessages(s.carrier2, orderId, { limit: 10 }), "FORBIDDEN");
   });
+
+  it("PERF-01: опрос без новых сообщений ничего не пишет", async () => {
+    const { orderId } = await newOrder(s);
+    expect((await listMessages(s.carrier, orderId, { limit: 50 })).items).toEqual([]);
+    expect(await prisma.chatReadState.count({ where: { userId: s.carrier.userId } })).toBe(0);
+
+    await sendMessage(s.shipper, orderId, { message: "Первое" });
+    await listMessages(s.carrier, orderId, { limit: 50 });
+    const first = await prisma.chatReadState.findFirstOrThrow({ where: { userId: s.carrier.userId } });
+    await new Promise((r) => setTimeout(r, 20));
+    await listMessages(s.carrier, orderId, { limit: 50 });
+    await listMessages(s.carrier, orderId, { limit: 50, after: new Date().toISOString() });
+    const again = await prisma.chatReadState.findFirstOrThrow({ where: { userId: s.carrier.userId } });
+    expect(again.updatedAt.getTime()).toBe(first.updatedAt.getTime());
+    // Свои сообщения не требуют отметки прочтения
+    await sendMessage(s.carrier, orderId, { message: "Ответ" });
+    await listMessages(s.carrier, orderId, { limit: 50 });
+    expect((await prisma.chatReadState.findFirstOrThrow({ where: { userId: s.carrier.userId } })).updatedAt.getTime()).toBe(
+      first.updatedAt.getTime(),
+    );
+    // Новое сообщение другой стороны — отметка обновляется
+    await sendMessage(s.shipper, orderId, { message: "Второе" });
+    expect(await unreadMessagesTotal(s.carrier)).toBe(1);
+    await listMessages(s.carrier, orderId, { limit: 50 });
+    expect(await unreadMessagesTotal(s.carrier)).toBe(0);
+    expect(await unreadMessagesTotal(s.shipper)).toBe(1);
+  });
 });
 
 describe("Автопарк (QA-01)", () => {

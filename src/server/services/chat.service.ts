@@ -19,7 +19,9 @@ export async function listMessages(actor: Actor, orderId: string, opts: { before
   for (const cursor of [opts.before, opts.after]) {
     if (cursor && Number.isNaN(new Date(cursor).getTime())) throw errors.validation("Некорректный курсор сообщений.");
   }
-  const thread = await threadFor(orderId);
+  // Тред создаётся вместе с перевозкой; чтение его не создаёт (PERF-01)
+  const thread = await prisma.chatThread.findUnique({ where: { orderId }, select: { id: true } });
+  if (!thread) return { items: [], hasMore: false };
   const where = {
     threadId: thread.id,
     ...(opts.before ? { createdAt: { lt: new Date(opts.before) } } : {}),
@@ -57,15 +59,29 @@ export async function listMessages(actor: Actor, orderId: string, opts: { before
     },
     attachment: m.attachment && m.attachment.status !== "DELETED" ? m.attachment : null,
   }));
-  // Прочтение хранится для каждого пользователя отдельно (ChatReadState): в чате несколько участников,
-  // одна отметка «прочитано» на сообщение ничего не говорит о том, кто именно его прочитал
+  await markThreadRead(thread.id, actor.userId);
+  return { items, hasMore };
+}
+
+/**
+ * Прочтение хранится для каждого пользователя отдельно (ChatReadState): в чате несколько участников,
+ * одна отметка «прочитано» на сообщение ничего не говорит о том, кто именно его прочитал.
+ * Отметка пишется, только если есть непрочитанные сообщения других участников (PERF-01): опрос чата
+ * каждые несколько секунд без новых сообщений не выполняет INSERT/UPDATE.
+ */
+async function markThreadRead(threadId: string, userId: string) {
+  const state = await prisma.chatReadState.findUnique({ where: { threadId_userId: { threadId, userId } }, select: { lastReadAt: true } });
+  const unread = await prisma.chatMessage.findFirst({
+    where: { threadId, senderUserId: { not: userId }, ...(state ? { createdAt: { gt: state.lastReadAt } } : {}) },
+    select: { id: true },
+  });
+  if (!unread) return;
   const now = new Date();
   await prisma.chatReadState.upsert({
-    where: { threadId_userId: { threadId: thread.id, userId: actor.userId } },
-    create: { threadId: thread.id, userId: actor.userId, lastReadAt: now },
+    where: { threadId_userId: { threadId, userId } },
+    create: { threadId, userId, lastReadAt: now },
     update: { lastReadAt: now },
   });
-  return { items, hasMore };
 }
 
 export async function sendMessage(actor: Actor, orderId: string, input: { message: string; attachmentId?: string | null }) {
@@ -174,22 +190,22 @@ export async function unreadForOrder(actor: Actor, orderId: string) {
   return prisma.chatMessage.count({ where: { threadId: thread.id, senderUserId: { not: actor.userId }, createdAt: { gt: lastRead } } });
 }
 
-/** Общее количество непрочитанных сообщений пользователя (для бейджа в меню). */
+/**
+ * Общее количество непрочитанных сообщений пользователя (для бейджа в меню). Два запроса при любом числе
+ * перевозок (PERF-01): треды доступных перевозок, где писал кто-то другой, затем один агрегирующий подсчёт.
+ * Перевозки без переписки в выборку не попадают, поэтому прежний предел «последние 500 перевозок» не нужен.
+ */
 export async function unreadMessagesTotal(actor: Actor): Promise<number> {
-  const orders = await prisma.transportOrder.findMany({
-    where: ordersWhereForActor(actor),
+  const threads = await prisma.chatThread.findMany({
+    where: { order: ordersWhereForActor(actor), messages: { some: { senderUserId: { not: actor.userId } } } },
     select: { id: true },
-    take: 500,
-    orderBy: { updatedAt: "desc" },
   });
-  if (orders.length === 0) return 0;
-  const ids = orders.map((o) => o.id);
+  if (threads.length === 0) return 0;
   const rows = await prisma.$queryRaw<{ n: bigint }[]>`
     SELECT count(*)::bigint AS n
     FROM "ChatMessage" m
-    JOIN "ChatThread" t ON t.id = m."threadId"
-    LEFT JOIN "ChatReadState" r ON r."threadId" = t.id AND r."userId" = ${actor.userId}::uuid
-    WHERE t."orderId" = ANY(${ids}::uuid[])
+    LEFT JOIN "ChatReadState" r ON r."threadId" = m."threadId" AND r."userId" = ${actor.userId}::uuid
+    WHERE m."threadId" = ANY(${threads.map((t) => t.id)}::uuid[])
       AND m."senderUserId" <> ${actor.userId}::uuid
       AND m."createdAt" > COALESCE(r."lastReadAt", 'epoch'::timestamptz)`;
   return Number(rows[0]?.n ?? 0);

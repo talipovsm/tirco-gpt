@@ -22,7 +22,8 @@ import { getSettings } from "./settings.service";
 type LoadParsed = z.output<typeof loadInputSchema>;
 type ListQuery = z.output<typeof loadListQuerySchema>;
 
-export const EDITABLE_LOAD_STATUSES: LoadStatus[] = ["DRAFT", "PUBLISHED"];
+/** Груз со ставками (BIDDING) тоже можно изменить: ставки снимаются, участники торгов получают уведомление. */
+export const EDITABLE_LOAD_STATUSES: LoadStatus[] = ["DRAFT", "PUBLISHED", "BIDDING"];
 export const CANCELLABLE_LOAD_STATUSES: LoadStatus[] = ["DRAFT", "PUBLISHED", "BIDDING"];
 
 /** Точки груза с координатами: указанные пользователем или найденные геокодером (справочник → кэш → провайдер). */
@@ -170,13 +171,10 @@ export async function updateLoad(actor: Actor, loadId: string, input: LoadParsed
     await lockLoad(tx, loadId);
     await expireStaleBids(tx, loadId);
     const current = await tx.load.findUniqueOrThrow({ where: { id: loadId }, include: { stops: true } });
-    if (current.status === "BIDDING") {
-      throw new AppError("INVALID_STATE_TRANSITION", "Груз нельзя изменить: по нему уже есть предложения. Отмените груз и создайте новый.");
-    }
     if (!EDITABLE_LOAD_STATUSES.includes(current.status)) {
       throw new AppError("INVALID_STATE_TRANSITION", "Груз в текущем статусе изменить нельзя.");
     }
-    if (current.status === "PUBLISHED") {
+    if (current.status === "PUBLISHED" || current.status === "BIDDING") {
       // Опубликованный груз после правки должен по-прежнему проходить проверки публикации
       const settings = await getSettings(tx);
       if (settings.restrictedCargoTypes.includes(input.cargoType)) {
@@ -197,6 +195,8 @@ export async function updateLoad(actor: Actor, loadId: string, input: LoadParsed
         ...loadData(input),
         ...route,
         visibility: current.status === "DRAFT" ? "DRAFT" : invitees.length ? "INVITE_ONLY" : "MARKETPLACE",
+        // Ставки были сделаны на прежние условия — груз возвращается к приёму предложений
+        ...(current.status === "BIDDING" ? { status: "PUBLISHED" as const } : {}),
         stops: { create: stops },
         invitations: { create: invitees.map((carrierCompanyId) => ({ carrierCompanyId })) },
       },
@@ -225,8 +225,45 @@ export async function updateLoad(actor: Actor, loadId: string, input: LoadParsed
       },
       tx,
     );
-    return { id: updated.id, publicNumber: updated.publicNumber, status: updated.status };
+    const reset = current.status === "BIDDING" ? await resetBidsAfterChange(tx, actor, loadId, updated.publicNumber, load.companyId) : 0;
+    return { id: updated.id, publicNumber: updated.publicNumber, status: updated.status, bidsReset: reset };
   });
+}
+
+/**
+ * Условия груза изменились — ожидающие ставки сделаны на прежние условия: они отклоняются с пояснением,
+ * а перевозчики получают уведомление и могут предложить цену заново.
+ */
+async function resetBidsAfterChange(tx: Tx, actor: Actor, loadId: string, publicNumber: string, ownerCompanyId: string) {
+  const pending = await tx.bid.findMany({ where: { loadId, status: "PENDING" }, select: { id: true, carrierCompanyId: true } });
+  if (pending.length === 0) return 0;
+  const now = new Date();
+  await tx.bid.updateMany({
+    where: { id: { in: pending.map((b) => b.id) } },
+    data: { status: "REJECTED", decidedAt: now, decidedByUserId: actor.userId },
+  });
+  for (const b of pending) {
+    await tx.bidMessage.create({
+      data: {
+        bidId: b.id,
+        authorUserId: actor.userId,
+        authorCompanyId: ownerCompanyId,
+        side: "CUSTOMER",
+        type: "REJECTED",
+        message: "Условия груза изменены — предложите цену заново.",
+      },
+    });
+    await notify(tx, {
+      userIds: await companyUserIds(tx, b.carrierCompanyId, CARRIER_OFFICE_ROLES),
+      type: "BID_REJECTED",
+      title: `Условия груза ${publicNumber} изменены`,
+      body: "Ваше предложение снято, потому что заказчик изменил условия. Посмотрите новые условия и предложите цену заново.",
+      entityType: "Load",
+      entityId: loadId,
+      link: `/loads/${loadId}`,
+    });
+  }
+  return pending.length;
 }
 
 async function lockLoad(tx: Tx, loadId: string) {

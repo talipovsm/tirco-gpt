@@ -9,26 +9,24 @@ import { useAction } from "@/lib/client/use-action";
 
 export function LoadOwnerActions({ loadId, status, pendingBids }: { loadId: string; status: string; pendingBids: number }) {
   const { run, pending } = useAction();
-  const editable = status === "DRAFT" || status === "PUBLISHED";
+  const editable = status === "DRAFT" || status === "PUBLISHED" || status === "BIDDING";
   const cancellable = ["DRAFT", "PUBLISHED", "BIDDING"].includes(status);
   return (
     <>
-      {editable ? (
-        <Button asChild variant="outline">
-          <Link href={`/loads/${loadId}/edit`}>
-            <Pencil /> Редактировать
-          </Link>
-        </Button>
-      ) : (
-        status === "BIDDING" && (
-          <Tooltip content="По грузу уже есть предложения — редактирование недоступно. Отмените груз и создайте новый.">
-            <span tabIndex={0}>
-              <Button variant="outline" disabled>
-                <Pencil /> Редактировать
-              </Button>
-            </span>
-          </Tooltip>
-        )
+      {editable && (
+        <Tooltip
+          content={
+            status === "BIDDING" && pendingBids > 0
+              ? "После изменения условий текущие предложения будут сняты, перевозчики получат уведомление и смогут предложить цену заново."
+              : "Изменить условия груза"
+          }
+        >
+          <Button asChild variant="outline">
+            <Link href={`/loads/${loadId}/edit`}>
+              <Pencil /> Редактировать
+            </Link>
+          </Button>
+        </Tooltip>
       )}
       {status === "DRAFT" && (
         <Button

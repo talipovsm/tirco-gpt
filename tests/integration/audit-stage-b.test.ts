@@ -151,3 +151,24 @@ describe("SEC-06: менеджер грузовладельца", () => {
     expect((await prisma.companyMember.findUniqueOrThrow({ where: { id: member.id } })).role).toBe("SHIPPER");
   });
 });
+
+describe("Правка груза со ставками", () => {
+  let s: Scene;
+  beforeEach(async () => {
+    await resetDb();
+    s = await scene();
+  });
+
+  it("ставки снимаются, перевозчик получает уведомление и может предложить цену заново", async () => {
+    const { updateLoad } = await import("@/server/services/load.service");
+    const load = await createLoad(s.shipper, loadInput(), { publish: true });
+    const bid = await createBid(s.carrier, load.id, bidInput(4000));
+    const r = await updateLoad(s.shipper, load.id, loadInput({ title: "Электроника, 2 паллеты", weightKg: 18000 }));
+    expect(r.bidsReset).toBe(1);
+    expect(r.status).toBe("PUBLISHED");
+    expect((await prisma.bid.findUniqueOrThrow({ where: { id: bid.id } })).status).toBe("REJECTED");
+    expect(await prisma.notification.count({ where: { type: "BID_REJECTED", entityId: load.id } })).toBeGreaterThan(0);
+    const again = await createBid(s.carrier, load.id, bidInput(3800));
+    expect(again.status).toBe("PENDING");
+  });
+});

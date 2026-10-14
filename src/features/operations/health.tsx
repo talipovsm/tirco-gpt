@@ -75,11 +75,15 @@ export function OperationalMetric({
         {health && <HealthDot health={health} className="size-1.5" />}
         {value}
       </span>
-      <span className="text-caption text-muted-foreground w-full truncate">{label}</span>
+      <span
+        className={cn("text-caption w-full leading-tight break-words hyphens-auto", active ? "text-foreground" : "text-muted-foreground")}
+      >
+        {label}
+      </span>
     </>
   );
   const cls = cn(
-    "flex min-w-0 flex-col items-center rounded-[0.4375rem] px-1 py-1 text-center transition-[background-color,box-shadow] duration-(--duration-standard)",
+    "flex min-w-0 flex-col items-center rounded-[0.4375rem] px-0.5 py-1 text-center transition-[background-color,box-shadow] duration-(--duration-standard)",
     onClick && !active && "hover:bg-fill-quaternary",
     active && "bg-segment-thumb shadow-control",
   );

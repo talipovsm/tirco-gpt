@@ -194,7 +194,7 @@ export function CountryLabel({ code, city, className }: { code: string | null | 
   return (
     <span className={cn("inline-flex items-baseline gap-1", className)} title={countryName(code)}>
       <span>{city ?? countryName(code)}</span>
-      {city && code && <span className="text-caption text-tertiary-foreground font-medium tracking-wide">{code}</span>}
+      {city && code && <span className="text-caption text-muted-foreground font-medium tracking-wide">{code}</span>}
     </span>
   );
 }

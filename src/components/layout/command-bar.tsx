@@ -60,7 +60,7 @@ export function CommandTrigger({ onOpen, className }: { onOpen: () => void; clas
     >
       <Search className="size-3.5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-left">{t("nav.searchShort")}</span>
-      <kbd className="text-footnote text-tertiary-foreground font-sans">{shortcut}</kbd>
+      <kbd className="text-footnote text-muted-foreground font-sans">{shortcut}</kbd>
     </button>
   );
 }

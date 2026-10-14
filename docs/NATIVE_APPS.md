@@ -92,7 +92,7 @@ Workflow `.github/workflows/native.yml` запускается при измен
 | `macos-tirco`                               | `Tirco.app` (без нотаризации)                                              |
 | `windows-tirco`                             | папка с `tirco.exe` и DLL                                                  |
 
-Адрес API для сборок — переменная репозитория `TIRCO_API` (Settings → Secrets and variables → Actions → Variables). Секреты в код и в workflow не записываются.
+Адрес API для сборок — переменная репозитория `TIRCO_API` (Settings → Secrets and variables → Actions → Variables), обязательна: без неё задачи сборки останавливаются с ошибкой. Секреты в код и в workflow не записываются.
 
 ## Что нужно для публикации в магазины (не сделано)
 

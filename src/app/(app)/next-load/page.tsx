@@ -13,6 +13,7 @@ import { MapView, type MapLine, type MapPoint } from "@/features/tracking/map-vi
 import { guard, navKindFor, pageActor, sp, type SearchParams } from "@/server/page-context";
 import { getMovementMatches, nextLoadContext } from "@/server/services/next-load.service";
 import { redirect } from "next/navigation";
+import { forbiddenUrl } from "@/lib/auth/forbidden-link";
 
 export const metadata: Metadata = { title: "Следующий рейс" };
 
@@ -28,8 +29,7 @@ type Sort = (typeof SORTS)[number]["value"];
 
 export default async function NextLoadPage({ searchParams }: { searchParams: SearchParams }) {
   const actor = await pageActor();
-  if (navKindFor(actor) !== "carrier")
-    redirect("/forbidden?reason=" + encodeURIComponent("Раздел «Следующий рейс» доступен перевозчикам."));
+  if (navKindFor(actor) !== "carrier") redirect(forbiddenUrl("Раздел «Следующий рейс» доступен перевозчикам."));
   const params = await searchParams;
   const ctx = await guard(nextLoadContext(actor));
   const movementParam = sp(params, "movement");

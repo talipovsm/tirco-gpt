@@ -20,7 +20,7 @@
   /* ── Текст (label / secondaryLabel / tertiaryLabel) ── */
   --foreground: #1d1d1f;
   --card-foreground: #1d1d1f;
-  --muted-foreground: #6e6e73; /* 5.1:1 на белом, 4.6:1 на фоне */
+  --muted-foreground: #636368; /* 6:1 на белом, ≥ 4.6:1 на серых заливках и сайдбаре (UX-01) */
   --tertiary-foreground: #8e8e93; /* только плейсхолдеры и неактивное */
 
   /* ── Линии ── */
@@ -72,7 +72,7 @@
   --sidebar: rgb(236 236 240 / 0.74);
   --sidebar-solid: #ececf0;
   --sidebar-foreground: #1d1d1f;
-  --sidebar-muted: #6e6e73;
+  --sidebar-muted: #636368;
   --sidebar-active: rgb(0 0 0 / 0.075);
   --sidebar-accent: var(--primary);
   --sidebar-border: rgb(0 0 0 / 0.1);

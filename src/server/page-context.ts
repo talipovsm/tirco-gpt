@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { getCurrentActor } from "@/lib/auth/session";
+import { forbiddenUrl } from "@/lib/auth/forbidden-link";
 import type { Actor } from "@/lib/auth/actor";
 import type { Permission } from "@/lib/permissions";
 import { isCarrierRole, isCustomerRole } from "@/lib/permissions";
@@ -61,7 +62,7 @@ export async function guard<T>(promise: Promise<T>): Promise<T> {
     if (isAppError(e)) {
       if (e.code === "NOT_FOUND") notFound();
       if (e.code === "UNAUTHORIZED") redirect("/login");
-      if (e.code === "FORBIDDEN") redirect(`/forbidden?reason=${encodeURIComponent(e.message)}`);
+      if (e.code === "FORBIDDEN") redirect(forbiddenUrl(e.message));
     }
     throw e;
   }

@@ -2,6 +2,7 @@ import { AlertTriangle, Droplets, Fuel, Gauge, MapPin, Receipt, Route, Truck } f
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { forbiddenUrl } from "@/lib/auth/forbidden-link";
 import { DataTable } from "@/components/common/data-table";
 import { FilterBar } from "@/components/common/filter-bar";
 import { EmptyState, KpiCard, MoneyDisplay, PageHeader } from "@/components/common/misc";
@@ -31,7 +32,7 @@ export const metadata: Metadata = { title: "Топливо" };
 
 export default async function FuelPage({ searchParams }: { searchParams: SearchParams }) {
   const actor = await pageActor();
-  if (navKindFor(actor) !== "carrier") redirect("/forbidden?reason=" + encodeURIComponent("Раздел «Топливо» доступен перевозчикам."));
+  if (navKindFor(actor) !== "carrier") redirect(forbiddenUrl("Раздел «Топливо» доступен перевозчикам."));
   if (!actor.permissions.has("FUEL_VIEW")) redirect("/forbidden?need=FUEL_VIEW");
   const raw = Object.fromEntries(Object.entries(await searchParams).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]));
   const parsed = fuelListQuerySchema.safeParse(raw);

@@ -95,6 +95,7 @@ type Settings = {
   confirmationWindowHours: number;
   autoConfirmOnTimeout: boolean;
   requirePodForClose: boolean;
+  requireProofOnDelivery: boolean;
   restrictedCargoTypes: string[];
   requireVerifiedToPublish: boolean;
   requireVerifiedToBid: boolean;
@@ -184,6 +185,16 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         <Checkbox id="s-pod" checked={s.requirePodForClose} onCheckedChange={(c) => setS({ ...s, requirePodForClose: c === true })} />
         <Label htmlFor="s-pod" className="leading-snug font-normal">
           Требовать подтверждение доставки (POD или CMR) для закрытия перевозки
+        </Label>
+      </div>
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="s-proof"
+          checked={s.requireProofOnDelivery}
+          onCheckedChange={(c) => setS({ ...s, requireProofOnDelivery: c === true })}
+        />
+        <Label htmlFor="s-proof" className="leading-snug font-normal">
+          Отмечать доставку только с фото груза, POD или CMR
         </Label>
       </div>
       <div className="flex items-start gap-2">

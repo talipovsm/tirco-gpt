@@ -90,6 +90,7 @@ export const platformSettingsSchema = z
       .default(72),
     autoConfirmOnTimeout: booleanish.default(true),
     requirePodForClose: booleanish,
+    requireProofOnDelivery: booleanish.default(false),
     restrictedCargoTypes: z.array(z.enum(["GENERAL", "ELECTRONICS", "CLOTHING", "FOOD", "EQUIPMENT", "AUTOMOTIVE", "CHEMICAL", "OTHER"])),
     requireVerifiedToPublish: booleanish,
     requireVerifiedToBid: booleanish.default(false),

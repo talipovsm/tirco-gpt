@@ -29,9 +29,13 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
               >
                 Повторить
               </button>
-              <a href="/" className="bg-fill-tertiary text-body inline-flex h-9 items-center rounded-sm px-4 font-medium">
+              <button
+                type="button"
+                onClick={() => window.location.assign("/")}
+                className="bg-fill-tertiary text-body inline-flex h-9 items-center rounded-sm px-4 font-medium"
+              >
                 На главную
-              </a>
+              </button>
             </div>
           </div>
         </main>

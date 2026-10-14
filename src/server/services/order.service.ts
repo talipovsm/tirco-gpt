@@ -5,6 +5,8 @@ import type { ActionSource, OrderStatus } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import type { Actor } from "@/lib/auth/actor";
 import { prisma, type Tx } from "@/lib/db/prisma";
+import { DEFAULT_TZ } from "@/lib/format";
+import { defaultTimezone } from "@/lib/geo/countries";
 import { AppError, errors } from "@/lib/errors";
 import { financeSummary } from "@/lib/money";
 import {
@@ -827,13 +829,23 @@ export async function reportDelivered(
       },
       tx,
     );
+    // BL-06: срок — по местному времени точки разгрузки (его видят обе стороны), а не всегда по Алматы
+    const deliveryStop = await tx.loadStop.findFirst({
+      where: { loadId: updated.loadId, type: "DELIVERY" },
+      orderBy: { sequence: "desc" },
+      select: { city: true, country: true, timezone: true },
+    });
+    const dueTz = deliveryStop?.timezone ?? (deliveryStop ? defaultTimezone(deliveryStop.country) : DEFAULT_TZ);
+    const dueText = confirmationDueAt
+      ? `${confirmationDueAt.toLocaleString("ru-RU", { timeZone: dueTz, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} по местному времени${deliveryStop ? ` места разгрузки (${deliveryStop.city})` : ""}`
+      : null;
     await notify(tx, {
       userIds: await orderParticipantUserIds(tx, updated, { customer: true, carrier: true }),
       excludeUserId: actor.userId,
       type: "STATUS_CHANGED",
       title: `${updated.publicNumber}: груз доставлен`,
-      body: confirmationDueAt
-        ? `Проверьте документы и подтвердите получение или откройте спор до ${confirmationDueAt.toLocaleString("ru-RU", { timeZone: "Asia/Almaty" })} (Алматы). После этого выплата перевозчику будет выполнена автоматически.`
+      body: dueText
+        ? `Проверьте документы и подтвердите получение или откройте спор до ${dueText}. После этого выплата перевозчику будет выполнена автоматически.`
         : "Проверьте документы и подтвердите получение груза.",
       entityType: "TransportOrder",
       entityId: orderId,

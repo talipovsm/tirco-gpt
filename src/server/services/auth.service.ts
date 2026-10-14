@@ -4,7 +4,8 @@ import type { MemberRole } from "@/generated/prisma/enums";
 import { audit, AuditAction } from "@/lib/audit/audit";
 import type { Actor, RequestMeta } from "@/lib/auth/actor";
 import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from "@/lib/auth/password";
-import { enforceRateLimit } from "@/lib/auth/rate-limit";
+import { assertFailuresBelowLimit, enforceRateLimit, recordFailedAttempt, resetFailedAttempts } from "@/lib/auth/rate-limit";
+import { DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { createSession, destroySession, setActiveCompany } from "@/lib/auth/session";
 import { generateToken, sha256 } from "@/lib/auth/tokens";
 import { runWithDataMode, type DataMode } from "@/lib/db/data-mode";
@@ -228,13 +229,17 @@ export async function getInvitePreview(token: string) {
 export async function login(input: z.output<typeof loginSchema>, meta: RequestMeta) {
   return inReal(async () => {
     enforceRateLimit("login", meta.ip ?? "anon");
-    enforceRateLimit("loginAccount", input.email);
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       include: { memberships: { where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" }, take: 1 } },
     });
+    // Общий демо-аккаунт демо-стенда входят все посетители — лимит на учётную запись к нему не применяется
+    // (остаётся лимит по IP). Для остальных считаются только неудачные попытки (SEC-05).
+    const accountLimited = !(user && sharedDemoAccount(user.email, user.platformRole));
+    if (accountLimited) assertFailuresBelowLimit("loginAccount", input.email);
     const valid = await verifyPassword(input.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
     if (!user || !valid || user.deletedAt) {
+      if (accountLimited) recordFailedAttempt("loginAccount", input.email);
       if (user) {
         await audit(
           { userId: user.id, active: null, ip: meta.ip, userAgent: meta.userAgent },
@@ -247,6 +252,15 @@ export async function login(input: z.output<typeof loginSchema>, meta: RequestMe
     if (user.status === "BLOCKED") {
       throw new AppError("FORBIDDEN", "Учётная запись заблокирована. Обратитесь в поддержку Tirco.");
     }
+    // Администратор платформы с общеизвестным демо-паролем в production не входит (SEC-01)
+    if (user.platformRole === "PLATFORM_ADMIN" && process.env.NODE_ENV === "production" && input.password === DEMO_PASSWORD) {
+      logger.warn("auth.admin_demo_password", { userId: user.id });
+      throw new AppError(
+        "FORBIDDEN",
+        "Вход администратора с демо-паролем запрещён. Назначьте новый пароль: ADMIN_PASSWORD=… npm run admin:grant -- --email <адрес> --reset-password --confirm.",
+      );
+    }
+    if (accountLimited) resetFailedAttempts("loginAccount", input.email);
     // Режим выбран пользователем при входе и проверяется сервером; дальше он хранится только в серверной сессии.
     // Публичный демо-аккаунт демо-стенда входит только в демо-базу.
     const dataMode: DataMode = sharedDemoAccount(user.email, user.platformRole) ? "demo" : input.dataMode;

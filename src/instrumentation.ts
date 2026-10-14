@@ -50,7 +50,28 @@ function warnAboutConfiguration() {
       "STORAGE_DRIVER=local: документы хранятся в файловой системе контейнера и пропадут при передеплое, если каталог не на постоянном томе. Используйте S3.",
     );
   }
+  if (!process.env.NEXT_PUBLIC_MAP_STYLE_URL && !process.env.NEXT_PUBLIC_GEOAPIFY_KEY) {
+    warn(
+      "Не задан провайдер карт (NEXT_PUBLIC_GEOAPIFY_KEY или NEXT_PUBLIC_MAP_STYLE_URL): карта использует публичные тайлы OpenStreetMap, не предназначенные для production-нагрузки.",
+    );
+  }
+  void warnAboutAdminDemoPassword(warn);
   if ((process.env.EMAIL_DRIVER ?? "log") === "log") {
     warn("EMAIL_DRIVER=log: письма (сброс пароля, приглашения) не отправляются, а только пишутся в лог (токены скрыты).");
+  }
+}
+
+/** SEC-01: администратор платформы с общеизвестным демо-паролем (вход ему запрещён — нужно назначить новый пароль). */
+async function warnAboutAdminDemoPassword(warn: (msg: string) => void) {
+  try {
+    const { adminsWithDemoPassword } = await import("@/server/services/platform-admin.service");
+    const ids = await adminsWithDemoPassword();
+    if (ids.length) {
+      warn(
+        `Администраторов платформы с демо-паролем: ${ids.length}. Вход им запрещён — назначьте пароль: ADMIN_PASSWORD=… npm run admin:grant -- --email <адрес> --reset-password --confirm.`,
+      );
+    }
+  } catch (e) {
+    console.warn(JSON.stringify({ level: "warn", msg: "config.admin_check_failed", error: String(e) }));
   }
 }

@@ -21,6 +21,7 @@
     "routes:backfill": "tsx --conditions=react-server scripts/backfill-routes.ts",
     "seed:demo": "tsx --conditions=react-server prisma/seed-demo.ts",
     "demo:logins": "tsx --conditions=react-server scripts/ensure-demo-logins.ts",
+    "admin:grant": "tsx --conditions=react-server scripts/admin-grant.ts",
     "seed:demo:reset": "tsx --conditions=react-server prisma/seed-demo.ts --reset",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",

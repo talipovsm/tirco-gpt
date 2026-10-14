@@ -1,11 +1,26 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { acceptBid, createBid } from "@/server/services/bid.service";
 import { createLoad, getLoadDetail, listLoads } from "@/server/services/load.service";
 import { loadListQuerySchema } from "@/lib/validation/load";
-import { actorFor, loadInput, makeCompany, makeUser, resetDb, scene } from "./helpers";
+import { login } from "@/server/services/auth.service";
+import { adminsWithDemoPassword, grantPlatformAdmin, revokePlatformAdmin } from "@/server/services/platform-admin.service";
+import { hashPassword } from "@/lib/auth/password";
+import { DEMO_PASSWORD } from "@/lib/demo-accounts";
+import { actorFor, expectAppError, loadInput, makeCompany, makeUser, PASSWORD, resetDb, scene } from "./helpers";
 
 type Scene = Awaited<ReturnType<typeof scene>>;
+
+// Cookie-хранилище для next/headers вне сервера Next.js (вход создаёт сессию)
+const jar = new Map<string, string>();
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)! } : undefined),
+    set: (name: string, value: string) => void jar.set(name, value),
+    delete: (name: string) => void jar.delete(name),
+  }),
+  headers: async () => new Headers({ "user-agent": "vitest", "x-forwarded-for": "10.0.0.9" }),
+}));
 
 const PRIVATE = {
   notes: "SECRET-OWNER-NOTE",
@@ -74,5 +89,89 @@ describe("SEC-02: приватные поля груза", () => {
     const mine = await listLoads(s.shipper, loadListQuerySchema.parse({ scope: "mine" }));
     expect(JSON.stringify(mine.items)).toContain(PRIVATE.notes);
     expect(await prisma.load.count()).toBe(1);
+  });
+});
+
+describe("SEC-05: лимит входов считает только неудачные попытки", () => {
+  beforeEach(async () => {
+    await resetDb();
+    vi.stubEnv("DISABLE_RATE_LIMIT", "0");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  const meta = (i: number) => ({ ip: `10.1.${Math.floor(i / 200)}.${i % 200}`, userAgent: "vitest" });
+  const attempt = (email: string, password: string, i: number) => login({ email, password, dataMode: "real" }, meta(i));
+
+  it("20 успешных входов подряд не блокируют учётную запись", async () => {
+    const u = await makeUser();
+    for (let i = 0; i < 20; i++) await attempt(u.email, PASSWORD, i);
+  });
+
+  it("11-я неудачная попытка отклоняется лимитом, успешный вход сбрасывает счётчик", async () => {
+    const u = await makeUser();
+    for (let i = 0; i < 9; i++) await expectAppError(attempt(u.email, "wrong-password", i), "UNAUTHORIZED");
+    await attempt(u.email, PASSWORD, 100);
+    for (let i = 0; i < 10; i++) await expectAppError(attempt(u.email, "wrong-password", 200 + i), "UNAUTHORIZED");
+    await expectAppError(attempt(u.email, PASSWORD, 300), "RATE_LIMITED");
+  });
+});
+
+describe("SEC-01: администратор с демо-паролем в production", () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("не получает сессию в production, но входит вне production", async () => {
+    const admin = await makeUser({ admin: true });
+    await prisma.user.update({ where: { id: admin.id }, data: { passwordHash: await hashPassword(DEMO_PASSWORD) } });
+    const input = { email: admin.email, password: DEMO_PASSWORD, dataMode: "real" as const };
+    await login(input, { ip: "10.2.0.1", userAgent: "vitest" });
+    vi.stubEnv("NODE_ENV", "production");
+    await expectAppError(login(input, { ip: "10.2.0.1", userAgent: "vitest" }), "FORBIDDEN");
+  });
+});
+
+describe("OPS-01 / SEC-07: назначение администраторов платформы", () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it("создаёт администратора на пустой базе, повторный запуск идемпотентен, другие таблицы не меняются", async () => {
+    const before = await prisma.company.count();
+    const r1 = await grantPlatformAdmin({
+      email: "Root@Example.com",
+      password: "very-strong-pass-1",
+      create: { firstName: "Иван", lastName: "Петров" },
+    });
+    expect(r1).toMatchObject({ created: true, promoted: true });
+    const r2 = await grantPlatformAdmin({ email: "root@example.com" });
+    expect(r2).toMatchObject({ created: false, promoted: false, passwordReset: false });
+    const u = await prisma.user.findUniqueOrThrow({ where: { email: "root@example.com" } });
+    expect(u.platformRole).toBe("PLATFORM_ADMIN");
+    expect(await prisma.company.count()).toBe(before);
+    expect(await prisma.auditLog.count({ where: { entityId: u.id } })).toBe(2);
+  });
+
+  it("отклоняет короткий и демо-пароль, назначает роль существующему пользователю", async () => {
+    await expect(grantPlatformAdmin({ email: "x@example.com", password: "short", create: { firstName: "a", lastName: "b" } })).rejects.toThrow();
+    await expect(grantPlatformAdmin({ email: "x@example.com", password: DEMO_PASSWORD, create: { firstName: "a", lastName: "b" } })).rejects.toThrow();
+    const user = await makeUser();
+    expect(await grantPlatformAdmin({ email: user.email })).toMatchObject({ promoted: true, created: false });
+  });
+
+  it("последнего администратора снять нельзя, второго — можно", async () => {
+    const a = await makeUser({ admin: true });
+    await expect(revokePlatformAdmin(a.email)).rejects.toThrow(/последний/);
+    const b = await makeUser({ admin: true });
+    expect(await revokePlatformAdmin(b.email)).toMatchObject({ revoked: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: b.id } })).platformRole).toBe("USER");
+  });
+
+  it("находит администраторов с демо-паролем", async () => {
+    const a = await makeUser({ admin: true });
+    expect(await adminsWithDemoPassword()).toEqual([]);
+    await prisma.user.update({ where: { id: a.id }, data: { passwordHash: await hashPassword(DEMO_PASSWORD) } });
+    expect(await adminsWithDemoPassword()).toEqual([a.id]);
   });
 });

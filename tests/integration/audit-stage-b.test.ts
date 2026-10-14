@@ -125,3 +125,29 @@ describe("BL-01: отмена по соглашению сторон", () => {
     await expectAppError(proposeCancellation(s.driverActor, orderId, "Не поеду"), "FORBIDDEN");
   });
 });
+
+describe("SEC-06: менеджер грузовладельца", () => {
+  let s: Scene;
+  beforeEach(async () => {
+    await resetDb();
+    s = await scene();
+  });
+
+  it("создаёт груз и принимает ставку, но не подписывает договор, не отменяет и не управляет компанией", async () => {
+    const { makeUser, actorFor } = await import("./helpers");
+    const { inviteMember, updateMember } = await import("@/server/services/company.service");
+    const u = await makeUser({ role: "SHIPPER_MANAGER", companyId: s.shipperCo.id });
+    const manager = await actorFor(u.id, s.shipperCo.id);
+    const load = await createLoad(manager, loadInput(), { publish: true });
+    const bid = await createBid(s.carrier, load.id, bidInput());
+    const { orderId, contractId } = await acceptBid(manager, bid.id);
+    const c = await prisma.contract.findUniqueOrThrow({ where: { id: contractId } });
+    await expectAppError(signContract(manager, contractId, { password: PASSWORD, documentHash: c.contentHash }), "FORBIDDEN");
+    await expectAppError(cancelOrder(manager, orderId, "передумали"), "FORBIDDEN");
+    await expectAppError(inviteMember(manager, s.shipperCo.id, { email: "x@example.com", role: "SHIPPER" }), "FORBIDDEN");
+    // руководитель назначает и меняет роль менеджера
+    const member = await prisma.companyMember.findFirstOrThrow({ where: { userId: u.id } });
+    await updateMember(s.shipper, member.id, { role: "SHIPPER" });
+    expect((await prisma.companyMember.findUniqueOrThrow({ where: { id: member.id } })).role).toBe("SHIPPER");
+  });
+});

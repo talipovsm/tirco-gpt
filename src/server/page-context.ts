@@ -4,7 +4,7 @@ import { getCurrentActor } from "@/lib/auth/session";
 import { forbiddenUrl } from "@/lib/auth/forbidden-link";
 import type { Actor } from "@/lib/auth/actor";
 import type { Permission } from "@/lib/permissions";
-import { isCarrierRole, isCustomerRole } from "@/lib/permissions";
+import { isCarrierRole, isCustomerRole, isForwarderRole } from "@/lib/permissions";
 import type { NavKind } from "@/components/layout/nav-config";
 
 /** Актор для серверной страницы; без сессии — на /login. */
@@ -24,7 +24,7 @@ export async function pageActorWith(permission: Permission): Promise<Actor> {
 export function navKindFor(actor: Actor): NavKind {
   const r = actor.active?.role;
   if (!r) return actor.isAdmin ? "admin" : "none";
-  if (r === "FORWARDER") return "forwarder";
+  if (isForwarderRole(r)) return "forwarder";
   if (isCustomerRole(r)) return "customer";
   if (isCarrierRole(r)) return "carrier";
   return "driver";

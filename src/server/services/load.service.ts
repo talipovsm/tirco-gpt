@@ -16,7 +16,7 @@ import { requireLoadRelation } from "./access";
 import { expireStaleBids } from "./bid.service";
 import { actualLoadWhere } from "@/lib/validation/bid";
 import { companyRatings } from "./company.service";
-import { CARRIER_OFFICE_ROLES, companyUserIds, notify } from "./notification.service";
+import { CARRIER_OFFICE_ROLES, companyUserIds, CUSTOMER_ROLES, notify } from "./notification.service";
 import { getSettings } from "./settings.service";
 
 type LoadParsed = z.output<typeof loadInputSchema>;
@@ -526,7 +526,7 @@ export async function askQuestion(actor: Actor, loadId: string, question: string
     const q = await tx.loadQuestion.create({ data: { loadId, companyId: membership.companyId, askedByUserId: actor.userId, question } });
     const full = await tx.load.findUniqueOrThrow({ where: { id: loadId }, select: { publicNumber: true } });
     await notify(tx, {
-      userIds: await companyUserIds(tx, load.companyId, ["SHIPPER", "FORWARDER"]),
+      userIds: await companyUserIds(tx, load.companyId, CUSTOMER_ROLES),
       type: "LOAD_QUESTION",
       title: `Вопрос по грузу ${full.publicNumber}`,
       body: question.slice(0, 200),

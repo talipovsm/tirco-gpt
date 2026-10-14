@@ -48,8 +48,8 @@ class Actor {
   Workspace get workspace {
     final r = active?.role;
     if (r == null) return isAdmin ? Workspace.admin : Workspace.none;
-    if (r == 'FORWARDER') return Workspace.forwarder;
-    if (r == 'SHIPPER') return Workspace.customer;
+    if (r == 'FORWARDER' || r == 'FORWARDER_MANAGER') return Workspace.forwarder;
+    if (r == 'SHIPPER' || r == 'SHIPPER_MANAGER') return Workspace.customer;
     if (r == 'CARRIER_ADMIN' || r == 'CARRIER_DISPATCHER') return Workspace.carrier;
     return Workspace.driver;
   }

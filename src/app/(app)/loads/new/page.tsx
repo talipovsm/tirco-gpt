@@ -1,3 +1,4 @@
+import { isForwarderRole } from "@/lib/permissions";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/common/misc";
 import { LoadWizard } from "@/features/loads/load-wizard";
@@ -16,7 +17,7 @@ export default async function NewLoadPage() {
         description="Заполните 4 шага — перевозчики увидят груз на бирже и предложат цену."
         back={{ href: "/loads", label: "Мои грузы" }}
       />
-      <LoadWizard mode="create" carriers={carriers} isForwarder={actor.active?.role === "FORWARDER"} />
+      <LoadWizard mode="create" carriers={carriers} isForwarder={isForwarderRole(actor.active?.role)} />
     </>
   );
 }

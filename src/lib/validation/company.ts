@@ -7,12 +7,14 @@ export const companyUpdateSchema = companyCreateSchema.omit({ type: true, regist
 
 export const inviteSchema = z.object({
   email: emailSchema,
-  role: z.enum(["SHIPPER", "CARRIER_ADMIN", "CARRIER_DISPATCHER", "FORWARDER", "DRIVER"]),
+  role: z.enum(["SHIPPER", "SHIPPER_MANAGER", "CARRIER_ADMIN", "CARRIER_DISPATCHER", "FORWARDER", "FORWARDER_MANAGER", "DRIVER"]),
   driverProfileId: z.uuid().optional().nullable(),
 });
 
 export const memberUpdateSchema = z.object({
-  role: z.enum(["SHIPPER", "CARRIER_ADMIN", "CARRIER_DISPATCHER", "FORWARDER", "DRIVER"]).optional(),
+  role: z
+    .enum(["SHIPPER", "SHIPPER_MANAGER", "CARRIER_ADMIN", "CARRIER_DISPATCHER", "FORWARDER", "FORWARDER_MANAGER", "DRIVER"])
+    .optional(),
   status: z.enum(["ACTIVE", "DISABLED"]).optional(),
 });
 

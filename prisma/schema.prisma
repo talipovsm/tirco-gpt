@@ -40,9 +40,13 @@ enum VerificationStatus {
 
 enum MemberRole {
   SHIPPER
+  /// Менеджер грузовладельца: грузы и перевозки без подписи договоров, отмен, платежей и управления компанией (SEC-06)
+  SHIPPER_MANAGER
   CARRIER_ADMIN
   CARRIER_DISPATCHER
   FORWARDER
+  /// Менеджер экспедитора — те же ограничения
+  FORWARDER_MANAGER
   DRIVER
 }
 

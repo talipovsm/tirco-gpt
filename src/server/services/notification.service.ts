@@ -91,7 +91,7 @@ export async function companyUserIds(tx: Tx, companyId: string | null | undefine
   return members.map((m) => m.userId);
 }
 
-export const CUSTOMER_ROLES: MemberRole[] = ["SHIPPER", "FORWARDER"];
+export const CUSTOMER_ROLES: MemberRole[] = ["SHIPPER", "SHIPPER_MANAGER", "FORWARDER", "FORWARDER_MANAGER"];
 export const CARRIER_OFFICE_ROLES: MemberRole[] = ["CARRIER_ADMIN", "CARRIER_DISPATCHER"];
 
 // ───────── API для пользователя ─────────

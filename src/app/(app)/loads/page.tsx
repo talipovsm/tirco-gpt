@@ -1,3 +1,4 @@
+import { isForwarderRole } from "@/lib/permissions";
 import { PackagePlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -26,7 +27,7 @@ export default async function MyLoadsPage({ searchParams }: { searchParams: Sear
   return (
     <>
       <PageHeader
-        title={actor.active?.role === "FORWARDER" ? "Грузы" : "Мои грузы"}
+        title={isForwarderRole(actor.active?.role) ? "Грузы" : "Мои грузы"}
         description="Все грузы вашей компании: черновики, опубликованные, в торгах и в перевозке."
         actions={
           <Button asChild>

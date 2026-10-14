@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { driverSchema, vehicleSchema } from "@/lib/validation/company";
 import {
@@ -25,7 +25,7 @@ import {
   updateVehicle,
 } from "@/server/services/fleet.service";
 import { createLoad } from "@/server/services/load.service";
-import { runMaintenance } from "@/server/services/maintenance.service";
+import { resetRetentionScheduleForTests, retentionDays, runMaintenance } from "@/server/services/maintenance.service";
 import { globalSearch } from "@/server/services/search.service";
 import { expectAppError, loadInput, makeUser, resetDb, scene } from "./helpers";
 
@@ -225,5 +225,41 @@ describe("Поиск и обслуживание (QA-01)", () => {
     const r = await runMaintenance(new Date());
     expect(r).toBeTruthy();
     expect(await prisma.passwordResetToken.count({ where: { userId: u.id } })).toBe(1);
+  });
+
+  it("DATA-02: сроки хранения — по настройке, история идущей перевозки не удаляется", async () => {
+    const { orderId: closedId } = await newOrder(s);
+    const { orderId: activeId } = await newOrder(s);
+    await prisma.transportOrder.update({ where: { id: closedId }, data: { currentStatus: "CLOSED" } });
+    const old = new Date(Date.now() - 400 * 86_400_000);
+    const tracking = (orderId: string) =>
+      prisma.trackingEvent.create({ data: { orderId, type: "MANUAL_LOCATION", source: "WEB", createdAt: old, recordedAt: old } });
+    await tracking(closedId);
+    await tracking(activeId);
+    const oldAudit = await prisma.auditLog.create({ data: { action: "TEST_OLD", entityType: "Test", createdAt: old } });
+    await prisma.telemetryReading.create({ data: { vehicleId: s.vehicle.id, source: "GPS_TRACKER", provider: "demo", recordedAt: old } });
+
+    // Без настройки ничего не удаляется
+    resetRetentionScheduleForTests();
+    expect((await runMaintenance(new Date())).retention).toBeNull();
+    expect(await prisma.trackingEvent.count({ where: { createdAt: old } })).toBe(2);
+
+    vi.stubEnv("AUDIT_RETENTION_DAYS", "365");
+    vi.stubEnv("TRACKING_RETENTION_DAYS", "365");
+    vi.stubEnv("TELEMETRY_RETENTION_DAYS", "90");
+    try {
+      const r = await runMaintenance(new Date());
+      expect(r.retention).toEqual({ auditLog: 1, trackingEvents: 1, telemetryReadings: 1 });
+      expect(await prisma.auditLog.count({ where: { id: oldAudit.id } })).toBe(0);
+      expect(await prisma.trackingEvent.count({ where: { orderId: activeId, createdAt: old } })).toBe(1);
+      // Повтор в те же сутки не запускает чистку
+      expect((await runMaintenance(new Date())).retention).toBeNull();
+      // Слишком короткий срок (опечатка) игнорируется
+      vi.stubEnv("AUDIT_RETENTION_DAYS", "7");
+      expect(retentionDays("AUDIT_RETENTION_DAYS")).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+      resetRetentionScheduleForTests();
+    }
   });
 });

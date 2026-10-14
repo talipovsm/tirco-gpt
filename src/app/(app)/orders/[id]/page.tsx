@@ -25,7 +25,7 @@ import { SecureDealPanel, type SecureDealPanelView } from "@/features/orders/sec
 import { OrderActions } from "@/features/orders/order-actions";
 import { OrderStatusTimeline, type HistoryEntry } from "@/features/orders/order-status-timeline";
 import { OrderTrackingHeader } from "@/features/orders/order-tracking-header";
-import { JourneyTimeline } from "@/features/operations/journey-timeline";
+import { ClosingChecklist, type ClosingStep } from "@/features/orders/closing-checklist";
 import { orderProgress } from "@/lib/state-machine/order-progress";
 import { MapView, type MapPoint } from "@/features/tracking/map-view";
 import { routeLines } from "@/features/tracking/route-line";
@@ -107,6 +107,38 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           },
         ]
       : []),
+  ];
+
+  // UX-04: что осталось до закрытия сделки — вместо второго таймлайна (этапы рейса показаны в шапке трекинга и на вкладке «Обзор»)
+  const delivered = ["DELIVERED", "CLOSED"].includes(order.currentStatus);
+  const closingSteps: ClosingStep[] = [
+    {
+      key: "contract",
+      label: "Договор подписан обеими сторонами",
+      done: contract?.status === "SIGNED",
+      hint: "Подписать — на вкладке «Договор»",
+    },
+    { key: "resources", label: "Назначены машина и водитель", done: !!order.vehicleId && !!order.driverId, hint: "Назначает перевозчик" },
+    ...(secureLive
+      ? [
+          {
+            key: "payment",
+            label: "Оплата обеспечена безопасной сделкой",
+            done: !["PAYMENT_PENDING", "PAYMENT_AUTHORIZED"].includes(secureStatus ?? ""),
+            hint: "Обеспечивает заказчик на вкладке «Финансы»",
+          },
+        ]
+      : []),
+    { key: "delivered", label: "Груз доставлен", done: delivered, hint: "Отмечает водитель или перевозчик" },
+    ...(detail.requirePod
+      ? [{ key: "pod", label: "Загружен POD или CMR", done: detail.podCount > 0, hint: "На вкладке «Документы»" }]
+      : []),
+    {
+      key: "receipt",
+      label: "Получение подтверждено",
+      done: !!order.receiptConfirmedAt || order.currentStatus === "CLOSED",
+      hint: "Подтверждает заказчик после доставки",
+    },
   ];
 
   const summary = (
@@ -548,15 +580,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           />
         </div>
         <aside className="space-y-6 xl:sticky xl:top-20 xl:self-start">
-          <InsetGroup header="Этапы рейса">
-            <div className="px-4 py-3.5">
-              <JourneyTimeline
-                status={order.currentStatus}
-                stops={stops}
-                history={order.statusHistory.map((h) => ({ status: h.toStatus, at: String(h.createdAt) }))}
-              />
-            </div>
-          </InsetGroup>
+          {order.currentStatus !== "CANCELLED" && <ClosingChecklist steps={closingSteps} />}
           {summary}
         </aside>
       </div>

@@ -28,6 +28,7 @@ import { useAction } from "@/lib/client/use-action";
 import { enumOptions } from "@/lib/i18n";
 import { CURRENCIES } from "@/lib/money";
 import { EMPTY_LIMITS, limitsBody, type LimitsValue } from "./limits-form";
+import { TimeInput } from "@/components/common/date-time-field";
 
 type Opt = { id: string; label: string };
 
@@ -52,10 +53,10 @@ function LimitsFields({ v, set, currency }: { v: LimitsValue; set: (v: LimitsVal
       </Field>
       <div className="grid grid-cols-2 gap-2">
         <Field id="l-from" label="С">
-          <Input type="time" value={v.allowedFrom} onChange={f("allowedFrom")} />
+          <TimeInput value={v.allowedFrom} onChange={(t) => set({ ...v, allowedFrom: t })} />
         </Field>
         <Field id="l-to" label="До">
-          <Input type="time" value={v.allowedTo} onChange={f("allowedTo")} />
+          <TimeInput value={v.allowedTo} onChange={(t) => set({ ...v, allowedTo: t })} />
         </Field>
       </div>
       <fieldset className="sm:col-span-3">

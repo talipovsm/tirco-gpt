@@ -2,7 +2,7 @@
 import { Check, MapPin, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/common/field";
 import { DefinitionList, MoneyDisplay } from "@/components/common/misc";
@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { loadInputSchema, type LoadInput } from "@/lib/validation/load";
 import { RoutePreview } from "./route-preview";
 import { defaultWizardValues, emptyStop, type WizardValues } from "./wizard-values";
+import { DateInput, TimeInput } from "@/components/common/date-time-field";
 
 function toPayload(v: WizardValues): LoadInput {
   return {
@@ -256,14 +257,47 @@ export function LoadWizard({
                       <Input {...form.register(`stops.${i}.fullAddress`)} />
                     </Field>
                     <Field id={`stops.${i}.date`} label="Дата" error={err(`stops.${i}.date`)} required={isFirst}>
-                      <Input type="date" {...form.register(`stops.${i}.date`)} />
+                      <Controller
+                        control={form.control}
+                        name={`stops.${i}.date`}
+                        render={({ field }) => (
+                          <DateInput
+                            id={`stops.${i}.date`}
+                            value={(field.value as string) ?? ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                          />
+                        )}
+                      />
                     </Field>
                     <div className="grid grid-cols-2 gap-2">
                       <Field id={`stops.${i}.timeFrom`} label="С">
-                        <Input type="time" {...form.register(`stops.${i}.timeFrom`)} />
+                        <Controller
+                          control={form.control}
+                          name={`stops.${i}.timeFrom`}
+                          render={({ field }) => (
+                            <TimeInput
+                              id={`stops.${i}.timeFrom`}
+                              value={(field.value as string) ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          )}
+                        />
                       </Field>
                       <Field id={`stops.${i}.timeTo`} label="До" error={err(`stops.${i}.timeTo`)}>
-                        <Input type="time" {...form.register(`stops.${i}.timeTo`)} />
+                        <Controller
+                          control={form.control}
+                          name={`stops.${i}.timeTo`}
+                          render={({ field }) => (
+                            <TimeInput
+                              id={`stops.${i}.timeTo`}
+                              value={(field.value as string) ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          )}
+                        />
                       </Field>
                     </div>
                     {(isFirst || isLast) && (

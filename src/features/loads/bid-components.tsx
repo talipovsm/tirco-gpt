@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRightLeft, Check, Gavel, MessageCircleQuestion, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { Field, FormError } from "@/components/common/field";
@@ -20,6 +20,7 @@ import { label } from "@/lib/i18n";
 import { CURRENCIES, priceDeltaPercent } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { DateInput } from "@/components/common/date-time-field";
 
 // ─────────── Предложить цену (перевозчик) ───────────
 
@@ -106,10 +107,32 @@ export function BidDialog({ loadId, currency, targetPrice }: { loadId: string; c
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field id="bid-ready" label="Дата готовности">
-                <Input type="date" {...form.register("readyDate")} />
+                <Controller
+                  control={form.control}
+                  name="readyDate"
+                  render={({ field }) => (
+                    <DateInput
+                      id="bid-ready"
+                      value={(field.value as string | null | undefined) ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
               </Field>
               <Field id="bid-valid" label="Предложение действует до">
-                <Input type="date" {...form.register("validUntil")} />
+                <Controller
+                  control={form.control}
+                  name="validUntil"
+                  render={({ field }) => (
+                    <DateInput
+                      id="bid-valid"
+                      value={(field.value as string | null | undefined) ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
               </Field>
             </div>
             <Field id="bid-terms" label="Дополнительные условия">

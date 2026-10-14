@@ -14,6 +14,7 @@ import { useAction } from "@/lib/client/use-action";
 import { formatDate } from "@/lib/format";
 import { enumOptions, label } from "@/lib/i18n";
 import type { FinanceSummary } from "@/lib/money";
+import { DateInput } from "@/components/common/date-time-field";
 
 type Payment = {
   id: string;
@@ -220,7 +221,7 @@ export function FinancePanel({
             </NativeSelect>
           </Field>
           <Field id="p-due" label="Срок оплаты">
-            <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+            <DateInput value={form.dueDate} onChange={(dueDate) => setForm({ ...form, dueDate })} />
           </Field>
           <Field id="p-note" label="Комментарий">
             <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} maxLength={500} />

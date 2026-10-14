@@ -36,21 +36,34 @@ jobs:
             echo "::endgroup::"
           done
 
+  # Без TIRCO_API сборки не выполняются. В pull request это предупреждение (проверки analyze/test проходят,
+  # сборки пропускаются), при push в main и ручном запуске — ошибка: релизные сборки без адреса API не собираются.
   config:
     runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.api.outputs.build }}
     steps:
       - name: TIRCO_API задан
+        id: api
         env:
           TIRCO_API: ${{ vars.TIRCO_API }}
+          EVENT: ${{ github.event_name }}
         run: |
+          problem=""
           if [ -z "$TIRCO_API" ]; then
-            echo "::error::Не задана переменная репозитория TIRCO_API (Settings → Secrets and variables → Actions → Variables) — адрес API Tirco для сборок."
-            exit 1
+            problem="Не задана переменная репозитория TIRCO_API (Settings → Secrets and variables → Actions → Variables) — адрес API Tirco для сборок."
+          else
+            case "$TIRCO_API" in https://*) ;; *) problem="TIRCO_API должен начинаться с https://";; esac
           fi
-          case "$TIRCO_API" in https://*) ;; *) echo "::error::TIRCO_API должен начинаться с https://"; exit 1;; esac
+          if [ -z "$problem" ]; then echo "build=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "build=false" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "pull_request" ]; then echo "::warning::$problem Сборки пропущены."; exit 0; fi
+          echo "::error::$problem"
+          exit 1
 
   android:
     needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -71,6 +84,7 @@ jobs:
 
   ios:
     needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     strategy:
@@ -89,6 +103,7 @@ jobs:
 
   macos:
     needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -105,6 +120,7 @@ jobs:
 
   windows:
     needs: [checks, config]
+    if: needs.config.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:

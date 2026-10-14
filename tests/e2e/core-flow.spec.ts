@@ -104,7 +104,7 @@ test("полный сценарий цифровой перевозки", async 
   await shipper.waitForURL(/\/loads\/[0-9a-f-]{36}$/);
   const loadUrl = shipper.url();
   const loadHeading = await shipper.getByRole("heading", { level: 1 }).innerText();
-  const loadNumber = loadHeading.match(/CF-L-\d{6}/)![0];
+  const loadNumber = loadHeading.match(/TR-L-\d{6}/)![0];
   await expect(shipper.getByRole("heading", { level: 1 })).toContainText("Опубликован");
   // Карточка груза: километраж маршрута (оценка без ключа провайдера)
   await expect(shipper.getByTestId("route-distance").first()).toContainText("(оценка)");
@@ -132,7 +132,7 @@ test("полный сценарий цифровой перевозки", async 
   await confirmInDialog(shipper, "Принять предложение");
   await shipper.waitForURL(/\/orders\/[0-9a-f-]{36}\?tab=contract/);
   const orderUrl = shipper.url().split("?")[0];
-  const orderNumber = (await shipper.getByRole("heading", { level: 1 }).innerText()).match(/CF-O-\d{6}/)![0];
+  const orderNumber = (await shipper.getByRole("heading", { level: 1 }).innerText()).match(/TR-O-\d{6}/)![0];
   // Карточка перевозки: километраж маршрута груза
   await expect(shipper.getByTestId("order-summary").getByTestId("route-distance")).toContainText("(оценка)");
 

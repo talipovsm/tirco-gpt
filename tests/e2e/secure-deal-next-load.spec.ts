@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 /**
  * Безопасная сделка и следующий рейс на демо-данных (seed):
- * CF-O-000004 — Китай → Алматы, $3 000, доставлено, оплата обеспечена (PAYMENT_RESERVED).
+ * TR-O-000004 — Китай → Алматы, $3 000, доставлено, оплата обеспечена (PAYMENT_RESERVED).
  * Водитель указывает направление → заказчик подтверждает получение → выплата → CLOSED →
  * перевозчик подбирает следующий груз из Алматы.
  */
@@ -36,10 +36,10 @@ test("безопасная сделка → выплата → закрытие 
 
   // ── Заказчик: оплата обеспечена, подтверждает получение ──
   const shipper = await login(browser, "shipper@tirco.demo");
-  await shipper.page.goto("/orders?q=CF-O-000004");
+  await shipper.page.goto("/orders?q=TR-O-000004");
   // Список перевозок — split view: строка открывает контекстную панель, из неё — карточка перевозки
-  await shipper.page.getByTestId("shipment-row").filter({ hasText: "CF-O-000004" }).first().click();
-  await expect(shipper.page.getByTestId("shipment-panel")).toContainText("CF-O-000004");
+  await shipper.page.getByTestId("shipment-row").filter({ hasText: "TR-O-000004" }).first().click();
+  await expect(shipper.page.getByTestId("shipment-panel")).toContainText("TR-O-000004");
   await shipper.page.getByTestId("panel-open-order").click();
   await shipper.page.waitForURL(/\/orders\/[0-9a-f-]{36}/);
   const orderUrl = new URL(shipper.page.url());

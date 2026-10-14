@@ -270,7 +270,7 @@ export function AppShell({
       {/* Таб-бар iOS (узкий экран): ≤ 4 раздела + «Ещё» */}
       <nav
         aria-label={t("nav.tabBar")}
-        className="material-bar hairline-t fixed inset-x-0 bottom-0 z-20 grid pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="material-tabbar hairline-t fixed inset-x-0 bottom-0 z-20 grid pb-[env(safe-area-inset-bottom)] lg:hidden"
         style={{ gridTemplateColumns: `repeat(${primary.length + (hasMore ? 1 : 0)}, minmax(0,1fr))` }}
       >
         {primary.map((item) => {

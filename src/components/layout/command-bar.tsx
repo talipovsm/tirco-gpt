@@ -237,7 +237,7 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
           >
             {commands.length === 0 && (
               <p className="text-subheadline text-muted-foreground px-3 py-8 text-center">
-                {loading ? "Ищем…" : "Ничего не найдено. Попробуйте номер перевозки (CF-O-…), город или госномер."}
+                {loading ? "Ищем…" : "Ничего не найдено. Попробуйте номер перевозки (TR-O-…), город или госномер."}
               </p>
             )}
             {commands.map((c, i) => {

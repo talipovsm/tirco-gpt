@@ -23,7 +23,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       ) : empty ? (
         <EmptyState
           title="Ничего не найдено"
-          description="Попробуйте номер заказа (CF-O-…), груза (CF-L-…), название компании или госномер."
+          description="Попробуйте номер заказа (TR-O-…), груза (TR-L-…), название компании или госномер."
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

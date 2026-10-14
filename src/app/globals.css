@@ -635,6 +635,12 @@
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
+/* Нижняя панель вкладок на телефоне: плотнее панели сверху — текст списка под ней не должен читаться сквозь значки (UX-07) */
+@utility material-tabbar {
+  background-color: color-mix(in srgb, var(--bar-solid) 93%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
 @utility material-menu {
   background-color: var(--menu);
   backdrop-filter: blur(24px) saturate(180%);

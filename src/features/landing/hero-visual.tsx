@@ -125,7 +125,7 @@ export function HeroVisual() {
           aria-hidden
         >
           <div className="flex items-center justify-end gap-2 text-[11px] text-slate-400 sm:justify-between">
-            <span className="id-code hidden sm:inline">CF-O-000214</span>
+            <span className="id-code hidden sm:inline">TR-O-000214</span>
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 font-medium whitespace-nowrap text-blue-300">
               <span className="size-1.5 rounded-full bg-blue-400" /> В пути
             </span>

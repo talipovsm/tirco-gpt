@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { navItems } from "@/components/layout/nav-config";
 
 async function signIn(page: Page, email = "carrier@tirco.demo") {
   await page.goto("/login");
@@ -65,6 +66,7 @@ test("мобильное меню открывает каждый раздел �
   for (const path of ["/marketplace", "/orders", "/messages", "/dashboard"]) {
     await nav.locator(`a[href="${path}"]`).click();
     await expect.poll(() => new URL(page.url()).pathname).toBe(path);
+    await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("main")).not.toContainText("Страница не найдена");
     await fitsViewport(page);
   }
@@ -73,7 +75,14 @@ test("мобильное меню открывает каждый раздел �
     const menu = page.getByRole("dialog", { name: "Все разделы" });
     await menu.locator(`a[href="${path}"]`).click();
     await expect.poll(() => new URL(page.url()).pathname).toBe(path);
+    await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
     await expect(menu).toBeHidden();
+    if (path === "/vehicles") {
+      await page.getByTestId("fleet-row").first().click();
+      await expect(page.getByRole("dialog", { name: "Автомобиль", exact: true })).toBeVisible();
+      await page.goBack();
+      await expect(page.getByRole("dialog", { name: "Автомобиль", exact: true })).toBeHidden();
+    }
     await expect(page.getByRole("main")).not.toContainText("Страница не найдена");
     await fitsViewport(page);
   }
@@ -106,3 +115,28 @@ test("операции на desktop сохраняют список и конт�
   await fitsViewport(page);
   await page.screenshot({ path: testInfo.outputPath("operations-desktop.png") });
 });
+
+for (const [kind, email] of [
+  ["customer", "shipper@tirco.demo"],
+  ["forwarder", "forwarder@tirco.demo"],
+  ["driver", "driver@tirco.demo"],
+] as const) {
+  test(`мобильные переходы по роли ${kind}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signIn(page, email);
+    const nav = page.getByRole("navigation", { name: "Разделы", exact: true });
+    for (const item of navItems(kind)) {
+      if (item.primary) {
+        await nav.locator(`a[href="${item.href}"]`).click();
+      } else {
+        await nav.getByRole("button", { name: "Ещё", exact: true }).click();
+        await page.getByRole("dialog", { name: "Все разделы" }).locator(`a[href="${item.href}"]`).click();
+      }
+      await expect.poll(() => new URL(page.url()).pathname).toBe(item.href);
+      await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByRole("main")).not.toContainText("Страница не найдена");
+      await expect(page.getByRole("main")).not.toContainText("Произошла ошибка");
+      await fitsViewport(page);
+    }
+  });
+}

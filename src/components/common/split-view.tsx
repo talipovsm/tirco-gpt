@@ -24,6 +24,7 @@ export function SplitView({
   backLabel,
   listLabel,
   testId,
+  detailTitle = "Детали перевозки",
 }: {
   list: React.ReactNode;
   map: React.ReactNode;
@@ -34,6 +35,7 @@ export function SplitView({
   backLabel: string;
   listLabel: string;
   testId?: string;
+  detailTitle?: string;
 }) {
   const desktop = React.useSyncExternalStore(subscribeDesktop, desktopSnapshot, serverSnapshot);
   const [view, setView] = React.useState<"list" | "map">("list");
@@ -78,8 +80,8 @@ export function SplitView({
         <Sheet open={hasDetail} onOpenChange={(open) => { if (!open) onBack(); }}>
           <SheetContent side="bottom" className="h-[92dvh] max-h-[92dvh]" data-testid="workspace-detail-sheet">
             <SheetHeader className="shrink-0 pt-2 pb-3">
-              <SheetTitle>Детали перевозки</SheetTitle>
-              <SheetDescription className="sr-only">{backLabel}. Сводка, маршрут, документы и чат выбранной перевозки.</SheetDescription>
+              <SheetTitle>{detailTitle}</SheetTitle>
+              <SheetDescription className="sr-only">{backLabel}. Данные и доступные действия выбранного объекта.</SheetDescription>
             </SheetHeader>
             <div className="min-h-0 flex-1">{detail}</div>
           </SheetContent>

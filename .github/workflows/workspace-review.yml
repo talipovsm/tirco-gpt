@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
       - name: Format workspace files
         run: |
-          npx prettier --write src/components/common/split-view.tsx src/features/operations/live-workspace.tsx src/features/operations/health.tsx src/components/layout/app-shell.tsx src/components/common/url-tabs.tsx src/components/layout/command-bar.tsx src/components/layout/notification-bell.tsx src/components/layout/user-menu.tsx src/features/operations/shipment-panel.tsx tests/e2e/workspace-mobile.spec.ts
+          npx prettier --write src/components/common/split-view.tsx src/features/operations/live-workspace.tsx src/features/operations/health.tsx src/components/layout/app-shell.tsx src/components/common/url-tabs.tsx src/components/layout/command-bar.tsx src/components/layout/notification-bell.tsx src/components/layout/user-menu.tsx src/features/operations/shipment-panel.tsx src/features/fleet/fleet-workspace.tsx tests/e2e/workspace-mobile.spec.ts
           git diff > workspace-format.patch
           cat workspace-format.patch
       - run: npm run typecheck
@@ -51,7 +51,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Browser journeys and mobile review
-        run: npm run test:e2e
+        run: npm run build && npx playwright test tests/e2e/workspace-mobile.spec.ts
       - name: Screenshots and browser report
         if: always()
         uses: actions/upload-artifact@v4

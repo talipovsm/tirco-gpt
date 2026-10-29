@@ -268,10 +268,10 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setModeDialog(true)}
-              className="hidden min-h-11 items-center rounded-lg sm:inline-flex"
+              className="inline-flex min-h-11 items-center rounded-lg"
               aria-label={`Режим данных: ${demo ? "демо-база" : "реальная база"}. Сменить режим`}
             >
-              <DataModeBadge mode={actor.dataMode} />
+              <DataModeBadge mode={actor.dataMode} className="max-sm:size-11 max-sm:justify-center max-sm:px-0 max-sm:[&>span]:sr-only" />
             </button>
             <NotificationBell />
             <span className="bg-border mx-1 hidden h-7 w-px sm:block" aria-hidden />

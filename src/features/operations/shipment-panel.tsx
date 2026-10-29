@@ -43,7 +43,7 @@ export function ShipmentDetailPanel({
           <button
             type="button"
             onClick={onClose}
-            className="bg-muted text-muted-foreground hover:text-foreground grid size-8 shrink-0 place-items-center rounded-lg transition-colors"
+            className="bg-muted text-muted-foreground hover:text-foreground grid size-11 shrink-0 place-items-center rounded-lg transition-colors"
             aria-label="Закрыть панель"
           >
             <X className="size-4" aria-hidden />
@@ -111,7 +111,7 @@ export function ShipmentDetailPanel({
               {o.driver?.phone && (
                 <a
                   href={`tel:${o.driver.phone.replace(/\s/g, "")}`}
-                  className="text-link bg-primary/8 grid size-8 shrink-0 place-items-center rounded-lg"
+                  className="text-link bg-primary/8 grid size-11 shrink-0 place-items-center rounded-lg"
                   aria-label={`Позвонить водителю ${o.driver.fullName}`}
                 >
                   <Phone className="size-3.5" aria-hidden />
@@ -149,17 +149,17 @@ export function ShipmentDetailPanel({
           </Link>
         </Button>
         <div className="grid grid-cols-3 gap-2">
-          <Button asChild variant="secondary" size="sm" className="min-w-0 px-1 text-[11px]">
+          <Button asChild variant="secondary" size="sm" className="min-h-11 min-w-0 px-1 text-[11px]">
             <Link href={`/orders/${o.id}?tab=route`}>
               <MapPinned className="size-3.5" /> Маршрут
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="min-w-0 px-1 text-[11px]">
+          <Button asChild variant="secondary" size="sm" className="min-h-11 min-w-0 px-1 text-[11px]">
             <Link href={`/orders/${o.id}?tab=documents`}>
               <FileText className="size-3.5" /> Документы
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="min-w-0 px-1 text-[11px]">
+          <Button asChild variant="secondary" size="sm" className="min-h-11 min-w-0 px-1 text-[11px]">
             <Link href={`/orders/${o.id}?tab=chat`}>
               <MessageSquare className="size-3.5" /> Чат
             </Link>

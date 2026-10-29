@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowUpRight, MapPinned } from "lucide-react";
 import { SearchField } from "@/components/common/search-field";
 import { SplitView } from "@/components/common/split-view";
@@ -14,7 +15,7 @@ import { ShipmentList } from "./shipment-list";
 type Filter = "all" | "moving" | "delayed" | "arriving" | "waiting";
 
 const FILTERS: { key: Filter; label: string; health?: Health; match: (h: Health) => boolean }[] = [
-  { key: "all", label: "Активно", match: (h) => h !== "done" && h !== "cancelled" },
+  { key: "all", label: "Все", match: () => true },
   { key: "moving", label: "В пути", health: "moving", match: (h) => h === "moving" || h === "arriving" || h === "delayed" },
   { key: "delayed", label: "Задержка", health: "delayed", match: (h) => h === "delayed" },
   { key: "arriving", label: "Прибытие", health: "arriving", match: (h) => h === "arriving" },
@@ -49,7 +50,7 @@ export function SegmentTabs({
   label: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className="flex min-w-0 scrollbar-none gap-4 overflow-x-auto px-4 sm:gap-5 sm:px-5">
+    <div role="tablist" aria-label={label} className="grid min-w-0 grid-cols-2 gap-x-3 px-3 sm:flex sm:flex-wrap sm:gap-x-5 sm:px-5">
       {tabs.map((t, index) => (
         <button
           key={t.key}
@@ -74,7 +75,7 @@ export function SegmentTabs({
             document.getElementById(`${idPrefix}-${next.key}`)?.focus();
           }}
           className={cn(
-            "flex min-h-14 shrink-0 items-center gap-2 border-b-2 px-0.5 text-[13px] font-medium whitespace-nowrap transition-colors",
+            "flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-b-2 px-1 text-xs font-medium transition-colors sm:justify-start sm:text-[13px]",
             value === t.key ? "border-primary text-link" : "text-muted-foreground hover:text-foreground border-transparent",
           )}
         >
@@ -105,7 +106,6 @@ export function LiveWorkspace({
   actions,
   objects,
   now,
-  initialSelected,
   tabs = [],
   empty,
   listFooter,
@@ -131,9 +131,8 @@ export function LiveWorkspace({
   filterInput?: boolean;
   testId?: string;
 }) {
-  const [selectedId, setSelectedId] = React.useState<string | null>(
-    initialSelected && objects.some((o) => o.id === initialSelected) ? initialSelected : null,
-  );
+  const params = useSearchParams();
+  const selectedId = params.get("selected");
   const [filter, setFilter] = React.useState<Filter>("all");
   const [q, setQ] = React.useState("");
   const [tab, setTab] = React.useState("objects");
@@ -157,11 +156,10 @@ export function LiveWorkspace({
   }, [now]);
 
   const select = React.useCallback((id: string | null) => {
-    setSelectedId(id);
     const url = new URL(window.location.href);
     if (id) url.searchParams.set("selected", id);
     else url.searchParams.delete("selected");
-    window.history.replaceState(window.history.state, "", url);
+    window.history.pushState(null, "", url);
   }, []);
 
   const term = q.trim().toLowerCase();
@@ -228,7 +226,7 @@ export function LiveWorkspace({
         </div>
       )}
       <div
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain"
         role={allTabs.length > 1 ? "tabpanel" : undefined}
         id={`${tabsId}-${tab}-panel`}
         aria-labelledby={allTabs.length > 1 ? `${tabsId}-${tab}` : undefined}
@@ -271,19 +269,23 @@ export function LiveWorkspace({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto p-4 sm:p-6 lg:overflow-hidden xl:p-7">
+    <div className="flex min-h-0 flex-col gap-3 p-4 sm:gap-5 sm:p-6 lg:h-full lg:overflow-hidden xl:p-7">
       <header className="flex shrink-0 flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-muted-foreground mb-1.5 text-[10px] font-semibold tracking-[.14em] uppercase">Управление перевозками</p>
+          <p className="text-muted-foreground mb-1.5 hidden text-[10px] font-semibold tracking-[.14em] uppercase sm:block">Управление перевозками</p>
           <h1 className="text-[25px] leading-tight font-semibold tracking-[-.045em] sm:text-[29px]">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2 text-xs sm:text-[13px]">{subtitle}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <div className="flex w-full flex-wrap items-center gap-2 pt-0.5 sm:w-auto">
           {attention && (attention.count ?? 0) > 0 && (
             <button
               type="button"
-              onClick={() => setTab("attention")}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 text-xs font-medium text-amber-900"
+              onClick={() => {
+                select(null);
+                setTab("attention");
+                document.getElementById(`${tabsId}-attention`)?.scrollIntoView({ block: "nearest" });
+              }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 text-xs font-medium text-amber-900"
             >
               <AlertCircle className="size-4" aria-hidden /> Внимание: {attention.count} <ArrowUpRight className="size-3.5" aria-hidden />
             </button>
@@ -293,7 +295,7 @@ export function LiveWorkspace({
       </header>
       {metrics && (
         <div
-          className="grid shrink-0 grid-cols-3 gap-2.5 sm:grid-cols-5 sm:gap-3"
+          className="grid shrink-0 grid-cols-5 gap-1.5 sm:gap-3"
           role="group"
           aria-label="Фильтр по состоянию"
           data-testid="ops-indicators"
@@ -306,6 +308,7 @@ export function LiveWorkspace({
               health={item.health}
               active={filter === item.key}
               onClick={() => {
+                select(null);
                 setFilter(item.key);
                 setTab("objects");
               }}

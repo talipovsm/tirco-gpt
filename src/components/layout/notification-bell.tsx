@@ -108,7 +108,7 @@ export function NotificationBell() {
           setOpen(true);
           void load();
         }}
-        className="border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-accent hover:text-link relative grid size-10 place-items-center rounded-xl border transition-colors"
+        className="border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-accent hover:text-link relative grid size-11 place-items-center rounded-xl border transition-colors"
         aria-label={unread ? `Уведомления, непрочитанных: ${unread}` : "Уведомления"}
         data-testid="notification-bell"
       >

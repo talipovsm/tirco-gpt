@@ -1,10 +1,10 @@
 "use client";
-import { Building2, CornerDownLeft, Loader2, Package, Search, Truck, type LucideIcon } from "lucide-react";
+import { Building2, CornerDownLeft, Loader2, Package, Search, Truck, X, type LucideIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { StatusBadge } from "@/components/common/status-badge";
-import { api } from "@/lib/client/api";
+import { api, errorMessage } from "@/lib/client/api";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { navItems, type NavKind } from "./nav-config";
@@ -74,6 +74,7 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
   const [q, setQ] = React.useState("");
   const [res, setRes] = React.useState<SearchResult | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [searchError, setSearchError] = React.useState<string | null>(null);
   const [active, setActive] = React.useState(0);
   const listId = React.useId();
   const listRef = React.useRef<HTMLDivElement>(null);
@@ -95,11 +96,18 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        setRes(await api<SearchResult>(`/api/search?q=${encodeURIComponent(term)}`, { signal: ctrl.signal }));
-      } catch {
-        /* прерванный запрос */
+        const result = await api<SearchResult>(`/api/search?q=${encodeURIComponent(term)}`, { signal: ctrl.signal });
+        if (!ctrl.signal.aborted) {
+          setRes(result);
+          setSearchError(null);
+        }
+      } catch (error) {
+        if (!ctrl.signal.aborted) {
+          setRes(null);
+          setSearchError(errorMessage(error));
+        }
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       }
     }, 200);
     return () => {
@@ -215,11 +223,14 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
+                setRes(null);
+                setSearchError(null);
+                setLoading(false);
                 setActive(0);
               }}
               onKeyDown={onKeyDown}
               placeholder={t("nav.searchHint")}
-              className="text-title3 placeholder:text-tertiary-foreground h-14 flex-1 bg-transparent font-normal outline-none"
+              className="text-title3 placeholder:text-tertiary-foreground h-14 min-w-0 flex-1 bg-transparent font-normal outline-none"
               role="combobox"
               aria-expanded="true"
               aria-controls={listId}
@@ -227,7 +238,11 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
               aria-label="Поиск и команды"
               data-testid="command-input"
             />
+            <DialogPrimitive.Close className="text-muted-foreground hover:bg-muted grid size-11 shrink-0 place-items-center rounded-lg" aria-label="Закрыть поиск">
+              <X className="size-5" aria-hidden />
+            </DialogPrimitive.Close>
           </div>
+          {searchError && <p role="alert" className="text-danger px-4 py-3 text-sm">{searchError} Разделы приложения доступны ниже.</p>}
           <div
             ref={listRef}
             id={listId}

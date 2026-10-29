@@ -91,19 +91,19 @@ export function OperationalMetric({
       </span>
       <span
         className={cn(
-          "num block text-[1.5rem] leading-none font-semibold tracking-[-.06em] sm:mt-4 sm:text-[1.9rem]",
+          "num block text-[1.35rem] leading-none font-semibold tracking-[-.06em] sm:mt-4 sm:text-[1.9rem]",
           !active && health === "delayed" && value > 0 && "text-delayed",
         )}
       >
         {value}
       </span>
-      <span className={cn("mt-2 block text-[11px] font-medium sm:text-[13px]", active ? "text-[#35462a]" : "text-muted-foreground")}>
+      <span className={cn("mt-2 block text-[10px] font-medium sm:text-[13px]", active ? "text-[#35462a]" : "text-muted-foreground")}>
         {label}
       </span>
     </>
   );
   const cls = cn(
-    "min-w-0 rounded-2xl border p-3.5 text-left transition-[background-color,border-color,box-shadow] duration-200 sm:p-4",
+    "min-w-0 rounded-2xl border px-1.5 py-3 text-center sm:text-left transition-[background-color,border-color,box-shadow] duration-200 sm:p-4",
     active ? "border-[#cce66b] bg-[#dcf57b] text-[#1c2a19]" : "border-border bg-card text-foreground",
     onClick && !active && "hover:border-primary/35 hover:shadow-sm",
   );

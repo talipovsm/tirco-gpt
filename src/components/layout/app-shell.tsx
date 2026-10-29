@@ -46,7 +46,7 @@ export function TircoMark({ className }: { className?: string }) {
 export function Logo({ className, dark, compact }: { className?: string; dark?: boolean; compact?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-3", className)}>
-      <TircoMark className="size-9" />
+      <TircoMark className="size-8 sm:size-9" />
       {!compact && (
         <span className={cn("text-[23px] font-extrabold tracking-[-0.06em]", dark ? "text-white" : "text-foreground")}>
           tirco<span className="text-link">.</span>
@@ -232,7 +232,7 @@ export function AppShell({
           demo && "border-t-warning border-t-2",
         )}
       >
-        <div className="flex h-16 min-w-0 items-center gap-3 px-4 sm:px-6 lg:h-20 lg:px-7">
+        <div className="flex h-16 min-w-0 items-center gap-2 px-3 sm:px-6 lg:h-20 lg:px-7">
           <div className="flex items-center gap-2 lg:hidden">
             <Link href={home} aria-label="Tirco — на главную">
               <Logo compact />
@@ -254,12 +254,12 @@ export function AppShell({
             <p className="truncate text-[14px] font-semibold lg:mt-1">{activeItem?.label ?? "Рабочее пространство"}</p>
           </div>
           {searchable && <CommandTrigger onOpen={() => setCommandOpen(true)} className="mr-auto hidden w-full max-w-[360px] xl:flex" />}
-          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
             {searchable && (
               <button
                 type="button"
                 onClick={() => setCommandOpen(true)}
-                className="border-border text-muted-foreground hover:bg-muted grid size-10 place-items-center rounded-xl border xl:hidden"
+                className="border-border text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl border xl:hidden"
                 aria-label="Поиск и команды"
               >
                 <Search className="size-[18px]" />
@@ -268,7 +268,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setModeDialog(true)}
-              className="rounded-lg"
+              className="hidden min-h-11 items-center rounded-lg sm:inline-flex"
               aria-label={`Режим данных: ${demo ? "демо-база" : "реальная база"}. Сменить режим`}
             >
               <DataModeBadge mode={actor.dataMode} />
@@ -285,7 +285,7 @@ export function AppShell({
         className={cn(
           "min-w-0 outline-none",
           workspace
-            ? "relative h-[calc(100dvh-8.25rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] overflow-hidden lg:h-[calc(100dvh-5rem-env(safe-area-inset-top))]"
+            ? "relative pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:h-[calc(100dvh-5rem-env(safe-area-inset-top))] lg:overflow-hidden lg:pb-0"
             : "mx-auto w-full max-w-[1600px] px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:pt-8 lg:pb-16",
         )}
       >
@@ -343,17 +343,27 @@ export function AppShell({
       <DataModeSwitchDialog current={actor.dataMode} open={modeDialog} onOpenChange={setModeDialog} />
       {searchable && <CommandBar kind={kind} open={commandOpen} onOpenChange={setCommandOpen} />}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="bg-background">
-          <div className="px-5 pt-3 pb-4">
+        <SheetContent side="bottom" className="bg-background" aria-describedby={undefined}>
+          <div className="shrink-0 px-5 pt-3 pr-16 pb-4">
             <SheetTitle className="text-title2">Все разделы</SheetTitle>
             <p className="text-muted-foreground mt-1 text-sm">{WORKSPACE_LABELS[kind]}</p>
           </div>
           <div
-            className="space-y-5 overflow-y-auto overscroll-contain px-4 pt-2 pb-8"
-            onClickCapture={(e) => {
+            className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 pt-2 pb-8"
+            onClick={(e) => {
               if ((e.target as HTMLElement).closest("a")) setMoreOpen(false);
             }}
           >
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                setModeDialog(true);
+              }}
+              className="border-border bg-card flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border px-4 text-sm font-medium"
+            >
+              Режим данных <DataModeBadge mode={actor.dataMode} />
+            </button>
             {groupBySection(items).map((group, gi) => (
               <InsetGroup key={group.section ?? gi} header={group.section}>
                 <InsetList>

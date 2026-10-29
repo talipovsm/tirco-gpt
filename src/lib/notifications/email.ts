@@ -39,16 +39,19 @@ export function redactSecrets(text: string): string {
   return text.replace(/([?&]token=)[^&\s]+/gi, "$1[REDACTED]").replace(/(\/invite\/)[A-Za-z0-9_-]+/g, "$1[REDACTED]");
 }
 
-type Transport = { sendMail(m: { from: string; to: string; subject: string; text: string }): Promise<unknown> };
+type Transport = { sendMail(m: { from: string; to: string; subject: string; text: string; messageId?: string }): Promise<unknown> };
 let transport: Promise<Transport> | null = null;
 
 async function smtpTransport(): Promise<Transport> {
   transport ??= import("nodemailer").then((m) => {
     const nodemailer = (m as unknown as { default?: typeof m }).default ?? m;
-    if (process.env.SMTP_URL) return nodemailer.createTransport(process.env.SMTP_URL);
+    // Keep one delivery attempt bounded below the durable worker's lease.
+    const timeouts = { connectionTimeout: 20_000, greetingTimeout: 20_000, socketTimeout: 60_000 };
+    if (process.env.SMTP_URL) return nodemailer.createTransport({ url: process.env.SMTP_URL, ...timeouts });
     const port = Number(process.env.SMTP_PORT ?? 587);
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
+      ...timeouts,
       port,
       secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "true" : port === 465,
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD ?? "" } : undefined,
@@ -67,7 +70,7 @@ export function setEmailTransportForTests(t: Transport | null) {
  * и раскрывать существование адреса), а пишутся в лог; две попытки с паузой.
  * Возвращает true, если письмо принято SMTP-сервером.
  */
-export async function deliverEmail(to: string, subject: string, text: string): Promise<boolean> {
+export async function deliverEmail(to: string, subject: string, text: string, messageId?: string): Promise<boolean> {
   const driver = emailDriver();
   if (driver === "none") return false;
   // Адреса демо-домена (демо-аккаунты и персонажи демо-базы) не существуют — писем им не отправляем
@@ -80,7 +83,7 @@ export async function deliverEmail(to: string, subject: string, text: string): P
   const from = process.env.EMAIL_FROM ?? "Tirco <no-reply@localhost>";
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      await (await smtpTransport()).sendMail({ from, to, subject, text });
+      await (await smtpTransport()).sendMail({ from, to, subject, text, ...(messageId ? { messageId } : {}) });
       logger.info("email.sent", { to: maskEmail(to), subject });
       return true;
     } catch (e) {

@@ -1350,6 +1350,14 @@ model ChatReadState {
 
 // ───────────────────────────── Notifications ─────────────────────────────
 
+enum NotificationDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  SKIPPED
+  FAILED
+}
+
 model Notification {
   id         String           @id @default(uuid()) @db.Uuid
   userId     String           @db.Uuid
@@ -1363,10 +1371,33 @@ model Notification {
   createdAt  DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime         @updatedAt @db.Timestamptz(3)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+/// Durable external delivery. SMTP is at-least-once: a crash after acceptance can cause a duplicate.
+model NotificationDelivery {
+  id             String                     @id @default(uuid()) @db.Uuid
+  notificationId String                     @db.Uuid
+  channel        String
+  status         NotificationDeliveryStatus @default(PENDING)
+  attempts       Int                        @default(0)
+  nextAttemptAt  DateTime                   @default(now()) @db.Timestamptz(3)
+  lockedUntil    DateTime?                  @db.Timestamptz(3)
+  lockToken      String?                    @db.Uuid
+  sentAt         DateTime?                  @db.Timestamptz(3)
+  lastError      String?
+  createdAt      DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                   @updatedAt @db.Timestamptz(3)
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([status, nextAttemptAt])
+  @@index([status, lockedUntil])
 }
 
 // ───────────────────────────── Finance ─────────────────────────────

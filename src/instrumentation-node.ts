@@ -10,6 +10,12 @@
 export async function registerNode() {
   const production = process.env.NODE_ENV === "production";
   if (production) warnAboutConfiguration();
+  // Separate short polling interval: notification delivery must not wait for the 10-minute payment job.
+  const notificationRaw = process.env.JOB_NOTIFICATION_INTERVAL_SEC;
+  const notificationSeconds = notificationRaw === undefined || notificationRaw === "" ? (production ? 30 : 0) : Number(notificationRaw);
+  if (Number.isFinite(notificationSeconds) && notificationSeconds > 0 && process.env.NODE_ENV !== "test") {
+    await scheduleNotifications(notificationSeconds);
+  }
   const raw = process.env.JOB_SECURE_DEAL_INTERVAL_MIN;
   const minutes = raw === undefined || raw === "" ? (production ? 10 : 0) : Number(raw);
   if (!Number.isFinite(minutes) || minutes <= 0) return;
@@ -33,6 +39,30 @@ export async function registerNode() {
     }
   };
   const timer = setInterval(() => void tick(), minutes * 60_000);
+  timer.unref?.();
+}
+
+async function scheduleNotifications(seconds: number) {
+  const { randomBytes } = await import("node:crypto");
+  process.env.CRON_SECRET ||= randomBytes(32).toString("hex");
+  let running = false;
+  const tick = async () => {
+    if (running) return;
+    running = true;
+    try {
+      const res = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/system/jobs/notifications`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) console.error(JSON.stringify({ level: "error", msg: "job.notifications.http", status: res.status }));
+    } catch (error) {
+      console.error(JSON.stringify({ level: "error", msg: "job.notifications.unreachable", error: String(error) }));
+    } finally {
+      running = false;
+    }
+  };
+  const timer = setInterval(() => void tick(), seconds * 1000);
   timer.unref?.();
 }
 

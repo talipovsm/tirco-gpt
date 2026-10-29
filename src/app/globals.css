@@ -7,7 +7,7 @@
  */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Work surfaces */
   --background: #f3f5f9;
@@ -143,6 +143,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
+
     --background: #0b1220;
     --card: #121e32;
     --surface-secondary: #18263d;
@@ -207,6 +209,13 @@
     --map-route: #80a3ff;
     --map-land: #121e32;
   }
+}
+
+/* Native popups may use an OS background while inheriting the select's text color. */
+select option,
+select optgroup {
+  background-color: var(--card);
+  color: var(--foreground);
 }
 
 /* Пониженная прозрачность и браузеры без backdrop-filter — непрозрачные материалы */

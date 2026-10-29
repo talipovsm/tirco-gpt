@@ -5,6 +5,7 @@ import { InsetGroup, InsetList, ListRow } from "@/components/common/inset-group"
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatDate, formatRelative, formatWeight } from "@/lib/format";
+import { describePosition } from "@/features/tracking/position-freshness";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { LiveObject } from "@/server/services/operations.service";
@@ -27,6 +28,7 @@ export function ShipmentDetailPanel({
   className?: string;
 }) {
   const ref = new Date(now);
+  const position = describePosition(o.position, ref);
   return (
     <section className={cn("flex h-full min-h-0 flex-col", className)} aria-labelledby={`panel-${o.id}`} data-testid="shipment-panel">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -76,11 +78,9 @@ export function ShipmentDetailPanel({
                 <ListRow
                   title="Позиция"
                   value={
-                    o.position
-                      ? o.position.source === "tracking"
-                        ? `отметка ${formatRelative(o.position.at, ref)}`
-                        : "оценка по маршруту"
-                      : "нет данных"
+                    <span title={position.description} data-position-source={position.source}>
+                      {position.label}
+                    </span>
                   }
                 />
                 <ListRow

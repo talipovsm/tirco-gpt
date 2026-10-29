@@ -24,6 +24,7 @@ type Props = {
   lastLocationAt: string | null;
   documents: { id: string; type: string; filename: string; createdAt: string }[];
   carrierPhone: string | null;
+  children?: React.ReactNode;
 };
 
 /** Мобильный экран водителя: одна большая кнопка, соответствующая текущему статусу. */
@@ -31,7 +32,7 @@ type Props = {
 const QUICK =
   "bg-card text-link hover:bg-surface-secondary active:bg-muted text-footnote h-[4.5rem] flex-col gap-1.5 rounded-xl font-medium lg:h-[4.5rem] [&_svg]:size-5";
 
-export function DriverTripActions({ orderId, status, lastLocationAt, documents, carrierPhone }: Props) {
+export function DriverTripActions({ orderId, status, lastLocationAt, documents, carrierPhone, children }: Props) {
   const router = useRouter();
   const step: DriverStep = driverNextStep(status);
   const { run, pending } = useAction();
@@ -87,7 +88,7 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
 
   return (
     <div className="space-y-3">
-      <div className="bg-card rounded-xl p-4">
+      <div className="bg-card rounded-xl p-4" data-testid="driver-next-action">
         <p className="text-section">Следующее действие</p>
         <p className="mt-1 mb-3.5">{step.hint}</p>
         <div className="space-y-2">
@@ -150,6 +151,8 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
         </p>
       </div>
 
+      {children}
+
       <div className="grid grid-cols-3 gap-2">
         <Button variant="ghost" className={QUICK} onClick={() => setUploadOpen(true)}>
           <Upload /> Фото / документ
@@ -171,7 +174,7 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
       </div>
 
       {documents.length > 0 && (
-        <div className="bg-card rounded-xl px-4 py-3">
+        <div className="bg-card rounded-xl px-4 py-3" data-testid="driver-documents">
           <p className="text-section mb-2">Загруженные документы</p>
           <ul className="space-y-1.5">
             {documents.map((d) => (

@@ -6,13 +6,14 @@ import * as React from "react";
 import type { Health } from "@/lib/operations";
 import { cn } from "@/lib/utils";
 import { BASEMAP_FAILED_TEXT, cssColor, healthColors, mapStyle, useDarkScheme, watchBasemap } from "./map-style";
+import { describePosition } from "./position-freshness";
 
 /** Объект карты: перевозка/машина с позицией и маршрутом. */
 export type MapObject = {
   id: string;
   label: string;
   health: Health;
-  position: { lat: number; lng: number } | null;
+  position: { lat: number; lng: number; source?: "tracking" | "estimated"; at?: string | null } | null;
   /** Маршрут [lng, lat] по точкам загрузки → границы → разгрузки. */
   route: [number, number][];
 };
@@ -35,14 +36,14 @@ function boundsOf(points: [number, number][]) {
   ] as [[number, number], [number, number]];
 }
 
-function markerStyle(el: HTMLElement, color: string, selected: boolean) {
+function markerStyle(el: HTMLElement, color: string, selected: boolean, estimated = false) {
   const size = selected ? 22 : 14;
   el.style.cssText = [
     `width:${size}px`,
     `height:${size}px`,
     "border-radius:9999px",
-    `background:${color}`,
-    "border:2.5px solid #fff",
+    `background:${estimated ? cssColor("--card", "#ffffff") : color}`,
+    `border:2.5px ${estimated ? "dashed" : "solid"} ${estimated ? color : "#ffffff"}`,
     `box-shadow:0 1px 3px rgb(0 0 0 / .3)${selected ? `, 0 0 0 6px ${color}38` : ""}`,
     "padding:0",
     "cursor:pointer",
@@ -62,6 +63,7 @@ export function MapWorkspace({
   padding,
   className,
   emptyLabel = "Нет объектов с координатами",
+  now,
 }: {
   objects: MapObject[];
   selectedId?: string | null;
@@ -70,6 +72,7 @@ export function MapWorkspace({
   padding?: Partial<Padding>;
   className?: string;
   emptyLabel?: string;
+  now?: string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<MLMap | null>(null);
@@ -206,11 +209,16 @@ export function MapWorkspace({
     const seen = new Set<string>();
     for (const o of list) {
       if (!o.position) continue;
+      const position = describePosition(o.position, now ? new Date(now) : new Date());
+      const markerLabel = position.source === "unknown" ? o.label : `${o.label}. ${position.label}`;
+      const estimated = position.source === "estimated";
       seen.add(o.id);
       const existing = markers.current.get(o.id);
       if (existing) {
-        markerStyle(existing.el, colors[o.health], o.id === selectedId);
-        existing.el.setAttribute("aria-label", o.label);
+        markerStyle(existing.el, colors[o.health], o.id === selectedId, estimated);
+        existing.el.setAttribute("aria-label", markerLabel);
+        existing.el.title = `${markerLabel}. ${position.description}`;
+        existing.el.dataset.positionSource = position.source;
         existing.el.setAttribute("aria-pressed", String(o.id === selectedId));
         const { lng: fromLng, lat: fromLat } = existing;
         const { lng: toLng, lat: toLat } = o.position;
@@ -234,10 +242,12 @@ export function MapWorkspace({
       }
       const el = document.createElement("button");
       el.type = "button";
-      el.setAttribute("aria-label", o.label);
+      el.setAttribute("aria-label", markerLabel);
+      el.title = `${markerLabel}. ${position.description}`;
+      el.dataset.positionSource = position.source;
       el.setAttribute("aria-pressed", String(o.id === selectedId));
       el.dataset.objectId = o.id;
-      markerStyle(el, colors[o.health], o.id === selectedId);
+      markerStyle(el, colors[o.health], o.id === selectedId, estimated);
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         onSelectRef.current?.(o.id);
@@ -260,7 +270,7 @@ export function MapWorkspace({
         fitted.current = true;
       }
     }
-  }, [ready, objectsKey, selectedId, padKey, styleRev]);
+  }, [ready, objectsKey, selectedId, padKey, styleRev, now]);
 
   // Выбранная перевозка: маршрут прорисовывается от загрузки к разгрузке, камера переходит к объекту
   React.useEffect(() => {
@@ -339,6 +349,21 @@ export function MapWorkspace({
             aria-label={`Карта операций: объектов ${objects.length}`}
           />
           {!ready && <div className="skeleton absolute inset-0 rounded-none" aria-hidden />}
+          {ready && objects.some((o) => o.position?.source) && (
+            <div
+              className="material-menu shadow-menu text-footnote text-muted-foreground pointer-events-none absolute top-3 left-3 flex max-w-[calc(100%_-_4.5rem)] flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2.5 py-1.5"
+              role="group"
+              aria-label="Источник позиции на карте"
+              data-testid="map-position-legend"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <span className="bg-foreground size-2.5 rounded-full" aria-hidden /> GPS
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="border-foreground size-2.5 rounded-full border-2 border-dashed" aria-hidden /> Примерная позиция
+              </span>
+            </div>
+          )}
           {basemapFailed && (
             <p
               className="material-menu shadow-menu text-footnote pointer-events-none absolute bottom-2 left-2 max-w-[80%] rounded-sm px-2 py-1"

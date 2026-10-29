@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { formatShortDate } from "@/lib/format";
+import { describePosition } from "@/features/tracking/position-freshness";
 import { cn } from "@/lib/utils";
 import type { LiveObject } from "@/server/services/operations.service";
 import { HealthDot } from "./health";
@@ -21,18 +22,22 @@ export function ShipmentList({
   objects,
   selectedId,
   onSelect,
+  now,
   className,
 }: {
   objects: LiveObject[];
   selectedId?: string | null;
   onSelect: (id: string) => void;
+  now: string;
   className?: string;
 }) {
+  const ref = new Date(now);
   return (
     <ul className={cn("px-2 pb-2", className)} data-testid="shipment-list">
       {objects.map((o, i) => {
         const selected = o.id === selectedId;
         const prevSelected = i > 0 && objects[i - 1].id === selectedId;
+        const position = describePosition(o.position, ref);
         return (
           <li key={o.id} className="animate-rise-in" style={{ animationDelay: `${Math.min(i, 8) * 20}ms` }}>
             <button
@@ -65,6 +70,14 @@ export function ShipmentList({
                   <span className="id-code">{o.publicNumber}</span> · {o.statusLabel}
                   {o.vehicle && <> · {o.vehicle.plateNumber}</>}
                   {o.driver && <> · {o.driver.fullName}</>}
+                </span>
+                <span
+                  className={cn("text-footnote mt-0.5 block pl-4", selected ? "opacity-85" : "text-muted-foreground")}
+                  title={position.description}
+                  data-testid="position-freshness"
+                  data-position-source={position.source}
+                >
+                  {position.label}
                 </span>
                 {o.progress > 0 && o.progress < 1 && (
                   <span

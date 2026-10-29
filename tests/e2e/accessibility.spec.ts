@@ -67,4 +67,9 @@ test("нет горизонтальной прокрутки на телефон
     expect(overflow, path).toBeLessThanOrEqual(1);
   }
   await context.close();
+  const driver = await signIn(browser, "driver@tirco.demo", { width: 360 });
+  await driver.page.goto("/driver");
+  const driverOverflow = await driver.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(driverOverflow, "/driver").toBeLessThanOrEqual(1);
+  await driver.context.close();
 });

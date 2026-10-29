@@ -37,7 +37,7 @@ function boundsOf(points: [number, number][]) {
 }
 
 function markerStyle(el: HTMLElement, color: string, selected: boolean, estimated = false) {
-  const size = selected ? 22 : 14;
+  const size = selected ? 24 : 16;
   el.style.cssText = [
     `width:${size}px`,
     `height:${size}px`,
@@ -335,7 +335,7 @@ export function MapWorkspace({
   const hasData = objects.some((o) => o.position || o.route.length > 1);
 
   return (
-    <div className={cn("bg-muted relative overflow-hidden", className)}>
+    <div className={cn("bg-muted relative isolate overflow-hidden", className)}>
       {failed ? (
         <div className="text-subheadline text-muted-foreground absolute inset-0 grid place-items-center p-6 text-center">
           Карта недоступна в этом браузере — объекты перечислены в списке.
@@ -351,7 +351,7 @@ export function MapWorkspace({
           {!ready && <div className="skeleton absolute inset-0 rounded-none" aria-hidden />}
           {ready && objects.some((o) => o.position?.source) && (
             <div
-              className="material-menu shadow-menu text-footnote text-muted-foreground pointer-events-none absolute top-3 left-3 flex max-w-[calc(100%_-_4.5rem)] flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2.5 py-1.5"
+              className="bg-card/95 border-border text-muted-foreground pointer-events-none absolute top-3 left-3 flex max-w-[calc(100%_-_4.5rem)] flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-2.5 py-2 text-[10px] shadow-sm"
               role="group"
               aria-label="Источник позиции на карте"
               data-testid="map-position-legend"
@@ -366,14 +366,14 @@ export function MapWorkspace({
           )}
           {basemapFailed && (
             <p
-              className="material-menu shadow-menu text-footnote pointer-events-none absolute bottom-2 left-2 max-w-[80%] rounded-sm px-2 py-1"
+              className="bg-card/95 border-border text-muted-foreground pointer-events-none absolute bottom-3 left-3 max-w-[80%] rounded-lg border px-3 py-2 text-[11px] shadow-sm"
               role="status"
             >
               {BASEMAP_FAILED_TEXT}
             </p>
           )}
           {ready && !hasData && (
-            <p className="material-menu shadow-menu text-subheadline text-muted-foreground pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md px-3 py-2">
+            <p className="bg-card/95 border-border text-muted-foreground pointer-events-none absolute top-1/2 left-1/2 max-w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-xl border px-4 py-3 text-center text-xs shadow-sm">
               {emptyLabel}
             </p>
           )}
@@ -402,9 +402,9 @@ export function MapControls({
   style?: React.CSSProperties;
 }) {
   const btn =
-    "grid size-10 place-items-center text-foreground transition-colors duration-(--duration-micro) hover:bg-fill-quaternary active:bg-fill-tertiary focus-visible:relative focus-visible:z-10 lg:size-8";
+    "grid size-9 place-items-center text-foreground transition-colors duration-(--duration-micro) hover:bg-muted active:bg-muted focus-visible:relative focus-visible:z-10";
   return (
-    <div className="material-menu shadow-menu absolute z-[2] flex flex-col overflow-hidden rounded-md" style={style}>
+    <div className="bg-card/95 border-border absolute z-[2] flex flex-col overflow-hidden rounded-lg border shadow-sm" style={style}>
       <button type="button" className={btn} onClick={onZoomIn} aria-label="Приблизить">
         <Plus className="size-4" aria-hidden />
       </button>

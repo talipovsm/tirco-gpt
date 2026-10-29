@@ -87,39 +87,42 @@ export function JourneyTimeline({
       {steps.map((s, n) => {
         const last = n === steps.length - 1;
         return (
-          <li key={s.key} className={cn("relative flex gap-3", compact ? "pb-3" : "pb-4", last && "pb-0")}>
+          <li key={s.key} className={cn("relative flex gap-3.5", compact ? "pb-4" : "pb-5", last && "pb-0")}>
             {!last && (
               <span
                 aria-hidden
-                className={cn(
-                  "absolute top-[1.125rem] bottom-0.5 left-[7px] w-0.5 rounded-full",
-                  s.state === "done" ? "bg-primary" : "bg-border-strong",
-                )}
+                className={cn("absolute top-6 bottom-0 left-[11px] w-px", s.state === "done" ? "bg-primary" : "bg-border-strong")}
               />
             )}
             <span
               aria-hidden
               className={cn(
-                "relative z-[1] mt-0.5 grid size-4 shrink-0 place-items-center rounded-full transition-colors duration-(--duration-complex)",
+                "relative z-[1] mt-0.5 grid size-6 shrink-0 place-items-center rounded-lg transition-colors duration-(--duration-complex)",
                 s.state === "done" && "bg-primary text-primary-foreground",
                 s.state === "current" && (halted ? "border-delayed bg-card border-2" : "border-primary bg-card border-2"),
                 s.state === "next" && "border-primary/50 bg-card border-2",
                 s.state === "pending" && "border-border-strong bg-card border-2",
               )}
             >
-              {s.state === "done" && <Check className="size-2.5 [stroke-width:3.5]" />}
+              {s.state === "done" && <Check className="size-3 [stroke-width:3]" />}
               {s.state === "current" && (
                 <span className={cn("size-1.5 rounded-full", halted ? "bg-delayed" : "bg-primary text-link animate-live-pulse")} />
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <p className={cn(s.state === "pending" && "text-muted-foreground", s.state === "current" && "font-semibold")}>
+              <p
+                className={cn(
+                  "pt-0.5 text-xs leading-snug",
+                  s.state === "pending" && "text-muted-foreground",
+                  s.state === "current" && "font-semibold",
+                )}
+              >
                 {s.title}
                 {s.place && <span className="text-muted-foreground font-normal"> · {s.place}</span>}
                 <span className="sr-only"> — {STATE_LABEL[s.state]}</span>
               </p>
               {!compact && (s.at || s.hint || s.state === "current") && (
-                <p className="text-footnote text-muted-foreground num">
+                <p className="text-muted-foreground num mt-1 text-[11px]">
                   {s.state === "current" ? (halted ? "остановлено" : "сейчас") : s.at ? formatDateTime(s.at) : s.hint}
                 </p>
               )}

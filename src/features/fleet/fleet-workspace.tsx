@@ -264,23 +264,36 @@ export function FleetWorkspace({
   );
 
   return (
-    <SplitView
-      testId="fleet-workspace"
-      listLabel="Автопарк"
-      backLabel="Автопарк"
-      hasDetail={Boolean(selected)}
-      onBack={() => select(null)}
-      list={list}
-      map={
-        <MapWorkspace
-          objects={mapObjects}
-          selectedId={selectedId}
-          onSelect={select}
-          className="absolute inset-0"
-          emptyLabel="Нет машин в рейсе с координатами"
-        />
-      }
-      detail={detail}
-    />
+    <div className="h-full overflow-y-auto p-4 sm:p-6 lg:overflow-hidden xl:p-7">
+      <SplitView
+        testId="fleet-workspace"
+        listLabel="Автопарк"
+        backLabel="Автопарк"
+        hasDetail={Boolean(selected)}
+        onBack={() => select(null)}
+        list={list}
+        mapHeader={
+          <div className="flex items-center gap-3">
+            <span className="bg-accent text-link grid size-9 place-items-center rounded-xl">
+              <Satellite className="size-[18px]" />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold">Автопарк на карте</h2>
+              <p className="text-muted-foreground mt-1 text-xs">Последние отметки машин в рейсе</p>
+            </div>
+          </div>
+        }
+        map={
+          <MapWorkspace
+            objects={mapObjects}
+            selectedId={selectedId}
+            onSelect={select}
+            className="absolute inset-0"
+            emptyLabel="Нет машин в рейсе с координатами"
+          />
+        }
+        detail={detail}
+      />
+    </div>
   );
 }

@@ -80,7 +80,7 @@ export function FilterBar({
 
   return (
     <form
-      className={cn(bare ? "px-3 pb-2" : "mb-4", className)}
+      className={cn(bare ? "px-3 pb-3" : "border-border bg-card mb-5 rounded-2xl border p-4", className)}
       onSubmit={(e) => {
         e.preventDefault();
         apply(values);

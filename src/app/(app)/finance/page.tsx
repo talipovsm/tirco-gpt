@@ -44,9 +44,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         description="Стоимость перевозок, оплаты и остатки — по каждому рейсу. Платформа не хранит деньги и не проводит платежи сама."
       />
       {totals.length > 0 && (
-        <div className="bg-card mb-4 grid grid-cols-1 divide-y-(length:--hairline) overflow-hidden rounded-lg md:grid-cols-2 md:divide-x-(length:--hairline) md:divide-y-0 xl:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {totals.map(([cur, t]) => (
-            <div key={cur} className="px-4 py-3">
+            <div key={cur} className="border-border bg-card shadow-panel rounded-2xl border p-5">
               <p className="text-section mb-1.5">{cur}</p>
               <dl className="grid grid-cols-3 gap-2">
                 <div>
@@ -82,7 +82,11 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
       ) : (
         <div className="space-y-3" data-testid="finance-groups">
           {[...groups.values()].map(({ order, items }) => (
-            <section key={order.id} className="bg-card overflow-hidden rounded-lg" aria-labelledby={`fg-${order.id}`}>
+            <section
+              key={order.id}
+              className="border-border bg-card shadow-panel overflow-hidden rounded-2xl border"
+              aria-labelledby={`fg-${order.id}`}
+            >
               <header className="bg-surface-secondary hairline-b text-body flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5">
                 <h2 id={`fg-${order.id}`} className="font-semibold">
                   <Link href={`/orders/${order.id}?tab=finance`} className="hover:text-link">

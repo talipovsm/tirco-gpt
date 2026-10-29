@@ -1,5 +1,5 @@
 "use client";
-import { CheckCircle2, LocateFixed, MapPin, MessageSquare, Phone, Upload } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, CircleArrowRight, LocateFixed, MapPin, MessageSquare, Phone, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -27,10 +27,9 @@ type Props = {
   children?: React.ReactNode;
 };
 
-/** Мобильный экран водителя: одна большая кнопка, соответствующая текущему статусу. */
-/** Быстрые действия водителя, как кнопки под карточкой в Картах: значок акцентом и подпись под ним. */
+/** Мобильная рабочая карточка: текущая задача, связь с диспетчером и документы. */
 const QUICK =
-  "bg-card text-link hover:bg-surface-secondary active:bg-muted text-footnote h-[4.5rem] flex-col gap-1.5 rounded-xl font-medium lg:h-[4.5rem] [&_svg]:size-5";
+  "border-border bg-card text-foreground hover:border-primary/45 hover:bg-accent text-footnote h-24 min-w-0 flex-col gap-2 rounded-xl border px-2 whitespace-normal font-medium [&_svg]:size-5 [&_svg]:text-link";
 
 export function DriverTripActions({ orderId, status, lastLocationAt, documents, carrierPhone, children }: Props) {
   const router = useRouter();
@@ -79,18 +78,23 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
         return r !== undefined;
       }}
       trigger={
-        <Button size="xl" className="w-full" data-testid={`driver-action-${to}`}>
-          {text}
+        <Button size="xl" className="h-14 w-full justify-between px-5 text-base" data-testid={`driver-action-${to}`}>
+          {text} <ArrowUpRight className="size-5" aria-hidden />
         </Button>
       }
     />
   );
 
   return (
-    <div className="space-y-3">
-      <div className="bg-card rounded-xl p-4" data-testid="driver-next-action">
-        <p className="text-section">Следующее действие</p>
-        <p className="mt-1 mb-3.5">{step.hint}</p>
+    <div className="min-w-0 space-y-4">
+      <div className="border-primary/25 bg-card shadow-control rounded-2xl border p-5 sm:p-6" data-testid="driver-next-action">
+        <div className="mb-3 flex items-center gap-2.5">
+          <span className="bg-accent text-link grid size-9 shrink-0 place-items-center rounded-lg">
+            <CircleArrowRight className="size-5" aria-hidden />
+          </span>
+          <p className="text-body font-semibold">Следующее действие</p>
+        </div>
+        <p className="text-foreground mb-4 text-base leading-relaxed">{step.hint}</p>
         <div className="space-y-2">
           {step.primary?.kind === "transition" &&
             (step.primary.to === "DELIVERED" ? (
@@ -101,7 +105,7 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
           {step.primary?.kind === "location" && (
             <Button
               size="xl"
-              className="w-full"
+              className="h-14 w-full text-base"
               onClick={sendLocation}
               loading={locating}
               loadingText="Определяем..."
@@ -146,7 +150,8 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground text-footnote mt-3 text-center">
+        <p className="border-border text-muted-foreground text-footnote mt-4 flex items-start gap-2 border-t pt-3">
+          <LocateFixed className="mt-px size-4 shrink-0" aria-hidden />
           {lastLocationAt ? `Последнее местоположение: ${formatRelative(lastLocationAt)}` : "Местоположение ещё не отправлялось"}
         </p>
       </div>
@@ -174,21 +179,25 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
       </div>
 
       {documents.length > 0 && (
-        <div className="bg-card rounded-xl px-4 py-3" data-testid="driver-documents">
-          <p className="text-section mb-2">Загруженные документы</p>
-          <ul className="space-y-1.5">
+        <div className="bg-card border-border rounded-2xl border p-4 sm:p-5" data-testid="driver-documents">
+          <p className="text-body mb-3 font-semibold">
+            Загруженные документы <span className="text-muted-foreground font-normal">· {documents.length}</span>
+          </p>
+          <ul className="divide-border divide-y">
             {documents.map((d) => (
-              <li key={d.id} className="flex items-center gap-2">
-                <CheckCircle2 className="text-success size-4" aria-hidden />
-                <a
-                  href={`/api/documents/${d.id}/download?inline=1`}
-                  className="text-link truncate hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {label("DocumentType", d.type)} — {d.filename}
-                </a>
-                <span className="text-muted-foreground text-footnote ml-auto shrink-0">{formatDateTime(d.createdAt)}</span>
+              <li key={d.id} className="flex items-start gap-2.5 py-3 first:pt-0 last:pb-0">
+                <CheckCircle2 className="text-success mt-0.5 size-4 shrink-0" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={`/api/documents/${d.id}/download?inline=1`}
+                    className="text-link text-body block font-medium break-words hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {label("DocumentType", d.type)} — {d.filename}
+                  </a>
+                  <span className="text-muted-foreground text-footnote mt-1 block">{formatDateTime(d.createdAt)}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -219,9 +228,9 @@ export function DriverTripActions({ orderId, status, lastLocationAt, documents, 
           <ChatPanel orderId={orderId} canSend className="mt-2 h-full max-h-none flex-1 border-0" />
         </SheetContent>
       </Sheet>
-      <p className="text-center">
-        <Link href={`/orders/${orderId}`} className="text-link text-body hover:underline">
-          Подробнее о рейсе
+      <p className="pt-1 text-center">
+        <Link href={`/orders/${orderId}`} className="text-link text-body inline-flex items-center gap-2 font-semibold hover:underline">
+          Подробнее о рейсе <ArrowUpRight className="size-4" aria-hidden />
         </Link>
       </p>
       <span className="sr-only">

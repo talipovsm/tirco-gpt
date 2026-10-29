@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { Route } from "lucide-react";
 import { RouteDistance, type RouteSummary } from "@/components/common/route-distance";
 import { api } from "@/lib/client/api";
 import { t } from "@/lib/i18n";
@@ -49,14 +50,22 @@ export function RoutePreview({ stops }: { stops: PreviewStop[] }) {
     return <p className="text-muted-foreground text-body">{t("route.notCalculated")}</p>;
   }
   return (
-    <div className="text-body space-y-1" data-testid="route-preview" aria-live="polite">
-      <RouteDistance
-        route={{ routeDistanceKm: d.distanceKm, routeDurationMin: d.durationMin, routeSource: d.source }}
-        className="font-medium"
-      />
-      {d.located < d.total && (
-        <p className="text-muted-foreground text-footnote">{t("route.partial", { located: d.located, total: d.total })}</p>
-      )}
+    <div
+      className="bg-accent border-primary/15 text-body flex items-start gap-3 rounded-xl border p-4"
+      data-testid="route-preview"
+      aria-live="polite"
+    >
+      <Route className="text-link mt-0.5 size-5 shrink-0" aria-hidden />
+      <div className="space-y-1">
+        <p className="text-caption text-muted-foreground font-medium">Расчёт маршрута</p>
+        <RouteDistance
+          route={{ routeDistanceKm: d.distanceKm, routeDurationMin: d.durationMin, routeSource: d.source }}
+          className="font-medium"
+        />
+        {d.located < d.total && (
+          <p className="text-muted-foreground text-footnote">{t("route.partial", { located: d.located, total: d.total })}</p>
+        )}
+      </div>
     </div>
   );
 }

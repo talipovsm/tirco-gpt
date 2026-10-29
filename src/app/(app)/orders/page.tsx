@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Plus, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/common/filter-bar";
 import { Pagination } from "@/components/common/pagination";
 import type { OrderStatus } from "@/generated/prisma/enums";
@@ -35,7 +38,22 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   return (
     <LiveWorkspace
       title={kind === "customer" || kind === "carrier" ? "Мои перевозки" : "Перевозки"}
-      subtitle={`Найдено: ${data.total}`}
+      subtitle={`Все этапы перевозки в одном рабочем пространстве · Найдено: ${data.total}`}
+      actions={
+        kind === "carrier" ? (
+          <Button asChild variant="secondary">
+            <Link href="/marketplace">
+              <Search /> Найти груз
+            </Link>
+          </Button>
+        ) : kind === "customer" || kind === "forwarder" ? (
+          <Button asChild>
+            <Link href="/loads/new">
+              <Plus /> Создать груз
+            </Link>
+          </Button>
+        ) : undefined
+      }
       objects={objects}
       now={new Date().toISOString()}
       initialSelected={selected}

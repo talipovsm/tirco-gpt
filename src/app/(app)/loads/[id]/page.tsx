@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircleQuestion } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, MessageCircleQuestion, Package, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CompanyBadge, DefinitionList, EmptyState, MoneyDisplay, PageHeader } from "@/components/common/misc";
@@ -41,13 +41,15 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
     );
 
   const overview = (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Card>
         <CardHeader>
-          <CardTitle>Кратко</CardTitle>
+          <CardTitle>Параметры груза</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <RouteChain stops={load.stops} className="text-base font-medium" />
+          <div className="bg-accent border-primary/15 rounded-xl border px-4 py-4">
+            <RouteChain stops={load.stops} className="text-title3 font-semibold" />
+          </div>
           <DefinitionList
             items={[
               { label: "Загрузка", value: formatDateRange(load.loadingDateFrom, load.loadingDateTo) },
@@ -72,9 +74,12 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Заказчик</CardTitle>
+          <CardTitle>Компания-заказчик</CardTitle>
         </CardHeader>
-        <CardContent className="text-body space-y-2">
+        <CardContent className="text-body space-y-4">
+          <div className="bg-accent text-link grid size-12 place-items-center rounded-xl text-lg font-bold" aria-hidden>
+            {load.company.legalName.slice(0, 2).toUpperCase()}
+          </div>
           <CompanyBadge
             id={load.company.id}
             name={load.company.legalName}
@@ -141,7 +146,7 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
           ) : (
             <ul className="space-y-3">
               {load.questions.map((q) => (
-                <li key={q.id} className="bg-fill-quaternary text-body rounded-lg p-3">
+                <li key={q.id} className="bg-surface-secondary border-border text-body space-y-2 rounded-xl border p-4">
                   <p>
                     <span className="font-medium">{q.company.legalName}:</span> {q.question}
                   </p>
@@ -164,7 +169,7 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
   const bidsTab = (
     <div className="space-y-3">
       {canBid && !myActiveBid && (
-        <div className="bg-info-bg flex flex-wrap items-center justify-between gap-3 rounded-lg p-4">
+        <div className="bg-info-bg border-info/20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5">
           <p className="text-info text-body">Предложите свою цену — заказчик получит уведомление.</p>
           <BidDialog loadId={load.id} currency={load.currency} targetPrice={load.targetPrice} />
         </div>
@@ -239,6 +244,49 @@ export default async function LoadDetailPage({ params }: { params: Promise<{ id:
           </>
         }
       />
+      <section className="bg-card border-border mb-6 overflow-hidden rounded-2xl border shadow-sm" aria-label="Сводка груза">
+        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="bg-primary text-primary-foreground grid size-10 shrink-0 place-items-center rounded-xl">
+              <MapPin className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-caption text-muted-foreground mb-0.5 font-semibold tracking-[0.08em] uppercase">Маршрут перевозки</p>
+              <RouteChain stops={load.stops} className="text-title3 font-semibold" />
+            </div>
+          </div>
+          {load.routeDistanceKm != null && <RouteDistance route={load} className="text-body font-semibold" />}
+        </div>
+        <div className="[&>*]:border-border grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="flex items-start gap-3 px-5 py-5 sm:px-6">
+            <Package className="text-muted-foreground mt-1 size-5 shrink-0" aria-hidden />
+            <div>
+              <p className="text-caption text-muted-foreground">Вес и объём</p>
+              <p className="text-title3 mt-1 font-semibold">
+                {formatWeight(load.weightKg)}
+                {load.volumeM3 ? ` · ${formatVolume(load.volumeM3)}` : ""}
+              </p>
+              <p className="text-footnote text-muted-foreground mt-1">{load.bodyType ? label("BodyType", load.bodyType) : "Любой кузов"}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 px-5 py-5 sm:px-6">
+            <CalendarDays className="text-muted-foreground mt-1 size-5 shrink-0" aria-hidden />
+            <div>
+              <p className="text-caption text-muted-foreground">Погрузка</p>
+              <p className="text-body mt-1 font-semibold">{formatDateRange(load.loadingDateFrom, load.loadingDateTo)}</p>
+              <p className="text-footnote text-muted-foreground mt-1">Плановое окно загрузки</p>
+            </div>
+          </div>
+          <div className="bg-accent/45 flex items-start gap-3 px-5 py-5 sm:px-6">
+            <Wallet className="text-link mt-1 size-5 shrink-0" aria-hidden />
+            <div>
+              <p className="text-caption text-muted-foreground">Целевая стоимость</p>
+              <p className="text-title2 mt-1 font-bold">{priceText}</p>
+              <p className="text-footnote text-muted-foreground mt-1">{label("PriceType", load.priceType)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
       {load.status === "CANCELLED" && (
         <p className="bg-danger-bg text-danger text-body mb-4 rounded-lg px-3 py-2">
           Груз отменён{load.cancelReason ? `: ${load.cancelReason}` : ""}.

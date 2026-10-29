@@ -13,9 +13,10 @@ import {
 import type { ClientActor } from "@/lib/auth/actor";
 import { api, errorMessage } from "@/lib/client/api";
 import { label } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 /** Текущая компания внизу сайдбара (и в «Ещё» на телефоне): название, роль, смена компании. */
-export function CompanySwitcher({ actor }: { actor: ClientActor }) {
+export function CompanySwitcher({ actor, inverse = false }: { actor: ClientActor; inverse?: boolean }) {
   const router = useRouter();
   const active = actor.active;
   const switchTo = async (companyId: string) => {
@@ -32,17 +33,28 @@ export function CompanySwitcher({ actor }: { actor: ClientActor }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="hover:bg-fill-quaternary data-[state=open]:bg-fill-tertiary flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors duration-(--duration-micro)"
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+          inverse ? "border-white/10 bg-white/5 text-white hover:bg-white/10" : "border-border bg-card text-foreground hover:bg-muted",
+        )}
         aria-label="Текущая компания"
       >
-        <span className="bg-fill-secondary text-muted-foreground grid size-8 shrink-0 place-items-center rounded-sm" aria-hidden>
+        <span
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-lg",
+            inverse ? "text-sidebar-foreground bg-white/10" : "bg-accent text-link",
+          )}
+          aria-hidden
+        >
           <Building2 className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{active?.company.legalName ?? "Нет компании"}</span>
-          <span className="text-footnote text-muted-foreground block truncate">{active ? label("MemberRole", active.role) : ""}</span>
+          <span className="block truncate text-[12px] font-semibold">{active?.company.legalName ?? "Нет компании"}</span>
+          <span className={cn("mt-0.5 block truncate text-[10px]", inverse ? "text-sidebar-muted" : "text-muted-foreground")}>
+            {active ? label("MemberRole", active.role) : ""}
+          </span>
         </span>
-        <ChevronsUpDown className="text-tertiary-foreground size-3.5 shrink-0" aria-hidden />
+        <ChevronsUpDown className={cn("size-3.5 shrink-0", inverse ? "text-sidebar-muted" : "text-muted-foreground")} aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-64">
         <DropdownMenuLabel>{actor.memberships.length > 1 ? "Сменить компанию" : "Компания"}</DropdownMenuLabel>

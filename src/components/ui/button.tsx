@@ -4,30 +4,28 @@ import { Slot } from "radix-ui";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/**
- * Кнопки macOS/iOS: заливка акцентом — только главное действие, второстепенные — серая заливка без рамки.
- * Нажатие затемняет кнопку, а не уменьшает её. На касаниях высота ≥ 44 px, на десктопе — плотнее.
- */
+/** Action hierarchy shared by all workspaces; compact controls remain readable on desktop. */
 const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-sm text-body font-medium transition-[background-color,color,filter,opacity] duration-(--duration-micro) disabled:pointer-events-none disabled:opacity-40 aria-busy:cursor-progress [&_svg]:size-[1.125em] [&_svg]:shrink-0",
+  "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent text-body font-semibold transition-[background-color,border-color,color,box-shadow,opacity] duration-(--duration-micro) disabled:pointer-events-none disabled:opacity-45 aria-busy:cursor-progress [&_svg]:size-[1.125em] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover active:brightness-90",
+        default: "bg-primary text-primary-foreground shadow-control hover:bg-primary-hover active:brightness-90",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive-hover active:brightness-90",
-        outline: "bg-card text-foreground shadow-control hover:bg-surface-secondary active:bg-muted",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary-hover active:bg-fill",
-        ghost: "text-foreground hover:bg-fill-quaternary active:bg-fill-tertiary",
+        outline: "border-border-strong bg-card text-foreground hover:border-primary/40 hover:bg-accent active:bg-muted",
+        secondary:
+          "border-border bg-secondary text-secondary-foreground hover:border-border-strong hover:bg-secondary-hover active:bg-fill",
+        ghost: "text-foreground hover:bg-fill-tertiary active:bg-fill-secondary",
         link: "text-link underline-offset-2 hover:underline",
         success: "bg-success-solid text-white hover:bg-success-solid-hover active:brightness-90",
       },
       size: {
-        default: "h-11 px-4 lg:h-8 lg:px-3",
-        sm: "h-9 px-3 text-callout lg:h-7 lg:px-2.5",
-        lg: "h-12 px-5 text-headline lg:h-10 lg:px-4",
-        xl: "h-14 rounded-xl px-6 text-title3 font-semibold [&_svg]:size-5",
-        icon: "size-11 lg:size-8",
-        "icon-sm": "size-9 lg:size-7",
+        default: "h-11 px-4",
+        sm: "h-9 px-3 text-callout",
+        lg: "h-12 px-5 text-headline",
+        xl: "h-14 rounded-lg px-6 text-title3 [&_svg]:size-5",
+        icon: "size-11",
+        "icon-sm": "size-9",
       },
     },
     compoundVariants: [{ variant: "link", class: "h-auto px-0 lg:h-auto lg:px-0" }],

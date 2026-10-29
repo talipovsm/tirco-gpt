@@ -108,11 +108,11 @@ export function NotificationBell() {
           setOpen(true);
           void load();
         }}
-        className="text-foreground hover:bg-fill-quaternary relative grid size-10 place-items-center rounded-full transition-colors duration-(--duration-micro) lg:size-8"
+        className="border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-accent hover:text-link relative grid size-10 place-items-center rounded-xl border transition-colors"
         aria-label={unread ? `Уведомления, непрочитанных: ${unread}` : "Уведомления"}
         data-testid="notification-bell"
       >
-        <Bell className="size-5 lg:size-[1.125rem]" aria-hidden />
+        <Bell className="size-[18px]" aria-hidden />
         {unread > 0 && (
           <span
             key={unread}

@@ -54,13 +54,13 @@ export function CommandTrigger({ onOpen, className }: { onOpen: () => void; clas
       onClick={onOpen}
       aria-keyshortcuts="Meta+K Control+K"
       className={cn(
-        "bg-fill-tertiary text-muted-foreground hover:bg-fill-secondary text-body flex h-7 items-center gap-1.5 rounded-md px-2 transition-colors duration-(--duration-micro)",
+        "border-border bg-background text-muted-foreground hover:border-primary/40 hover:bg-card flex h-11 items-center gap-3 rounded-xl border px-3.5 text-sm transition-colors",
         className,
       )}
     >
-      <Search className="size-3.5 shrink-0" aria-hidden />
+      <Search className="size-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-left">{t("nav.searchShort")}</span>
-      <kbd className="text-footnote text-muted-foreground font-sans">{shortcut}</kbd>
+      <kbd className="border-border bg-card text-muted-foreground rounded-md border px-1.5 py-0.5 font-sans text-[10px]">{shortcut}</kbd>
     </button>
   );
 }

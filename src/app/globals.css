@@ -1,230 +1,221 @@
 @import "tailwindcss";
 
-/*
- * Tirco — визуальный язык системных приложений Apple (macOS Mail/Finder/Settings, iOS Settings/Wallet).
- * Светлая и тёмная темы переключаются по системе. Цвет — только состояние и главное действие;
- * группы разделяются волосяными линиями, тени есть только у плавающих поверхностей.
- * Документация: docs/design-system.md.
+/* Tirco Control — operational workspaces, clear decisions, reliable information.
+ * Inter typography, cobalt actions, lime brand accents, bordered surfaces.
+ * Semantic names are shared by the web app, maps and public pages.
+ * See docs/design-system.md for component and accessibility rules.
  */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
-  /* ── Поверхности ── */
-  --background: #f2f2f7; /* systemGroupedBackground */
-  --card: #ffffff; /* secondarySystemGroupedBackground */
-  --surface-secondary: #f7f7f9; /* шапки таблиц, вложенные области */
-  --elevated: #ffffff; /* диалоги, поповеры без материала */
-  --muted: #ededf0;
+  /* Work surfaces */
+  --background: #f3f5f9;
+  --card: #ffffff;
+  --surface-secondary: #f7f9fc;
+  --elevated: #ffffff;
+  --muted: #eaf0f6;
 
-  /* ── Текст (label / secondaryLabel / tertiaryLabel) ── */
-  --foreground: #1d1d1f;
-  --card-foreground: #1d1d1f;
-  --muted-foreground: #636368; /* 6:1 на белом, ≥ 4.6:1 на серых заливках и сайдбаре (UX-01) */
-  --tertiary-foreground: #8e8e93; /* только плейсхолдеры и неактивное */
+  /* Content hierarchy */
+  --foreground: #15213a;
+  --card-foreground: #15213a;
+  --muted-foreground: #5c6b82;
+  --tertiary-foreground: #68778e;
 
-  /* ── Линии ── */
-  --border: rgb(60 60 67 / 0.17); /* separator */
-  --border-strong: #c6c6c8; /* opaqueSeparator */
-  --input: #8e8e93; /* граница поля: 3.3:1 (WCAG 1.4.11) */
+  /* Structure and focus */
+  --border: #dfe5ef;
+  --border-strong: #c0ccdc;
+  --input: #8190a7;
   --hairline: 1px;
 
-  /* ── Заливки контролов (systemFill …) ── */
-  --fill: rgb(120 120 128 / 0.2);
-  --fill-secondary: rgb(120 120 128 / 0.16);
-  --fill-tertiary: rgb(118 118 128 / 0.12);
-  --fill-quaternary: rgb(116 116 128 / 0.08);
+  --fill: #dfe6f0;
+  --fill-secondary: #e7edf5;
+  --fill-tertiary: #eef2f8;
+  --fill-quaternary: #f5f7fb;
 
-  /* ── Акцент ── */
-  --primary: #0068d6; /* заливка главного действия, белый текст 5.3:1 */
-  --primary-hover: #0058b8;
+  /* Brand and action */
+  --primary: #2854d9;
+  --primary-hover: #2046bd;
   --primary-foreground: #ffffff;
-  --link: #0068d6; /* текстовый акцент: 5.3:1 на белом, 4.8:1 на фоне */
-  --ring: color-mix(in srgb, var(--primary) 60%, transparent);
-  --secondary: var(--fill-tertiary);
-  --secondary-hover: var(--fill-secondary);
+  --link: #284bc2;
+  --ring: #7192f1;
+  --brand-lime: #dcf57b;
+  --brand-lime-foreground: #17243a;
+  --navy: #101b32;
+  --secondary: #edf1f8;
+  --secondary-hover: #e1e8f3;
   --secondary-foreground: var(--foreground);
-  --accent: color-mix(in srgb, var(--primary) 11%, var(--card));
+  --accent: #edf1ff;
   --accent-foreground: var(--link);
-  --destructive: #d70015;
-  --destructive-hover: #b80012;
+  --destructive: #c43345;
+  --destructive-hover: #a82638;
   --destructive-foreground: #ffffff;
-  --selection: var(--primary);
-  --selection-foreground: #ffffff;
-  --selection-muted: rgb(0 0 0 / 0.07);
-  --segment-thumb: #ffffff;
+  --selection: #eaf0ff;
+  --selection-foreground: #2145b3;
+  --selection-muted: #e7edf6;
+  --segment-thumb: #edf1ff;
 
   /* ── Состояния объектов (текст ≥ 4.5:1 на карточке и на своём фоне) ──
      success — доставлено/завершено · info — движется/в процессе · warning — ждёт действия
      delayed — опаздывает · danger — ошибка/спор/отмена · neutral — не начато */
-  --success: #1f7a35;
-  --success-hover: #1a682d;
-  --success-solid: #1f7a35; /* заливка кнопки в обеих темах, белый текст 5.3:1 */
-  --success-solid-hover: #1a682d;
-  --warning: #946200;
-  --info: #00718f;
-  --delayed: #c43c00;
-  --danger: #d70015;
-  --neutral: #6e6e73;
-  --rating: #ffcc00; /* только заливка звёзд */
+  --success: #166b4c;
+  --success-hover: #10563d;
+  --success-solid: #166b4c;
+  --success-solid-hover: #10563d;
+  --warning: #8a5900;
+  --info: #2460a7;
+  --delayed: #b64816;
+  --danger: #c43345;
+  --neutral: #5c6b82;
+  --rating: #a96500;
 
-  /* ── Материалы (полупрозрачные панели окна) ── */
-  --sidebar: rgb(236 236 240 / 0.74);
-  --sidebar-solid: #ececf0;
-  --sidebar-foreground: #1d1d1f;
-  --sidebar-muted: #636368;
-  --sidebar-active: rgb(0 0 0 / 0.075);
-  --sidebar-accent: var(--primary);
-  --sidebar-border: rgb(0 0 0 / 0.1);
-  --bar: rgb(255 255 255 / 0.76);
+  /* Navigation stays navy in both color schemes. */
+  --sidebar: #101b32;
+  --sidebar-solid: #101b32;
+  --sidebar-foreground: #f1f5ff;
+  --sidebar-muted: #a6b3cb;
+  --sidebar-active: #dcf57b;
+  --sidebar-active-foreground: #172333;
+  --sidebar-accent: var(--brand-lime);
+  --sidebar-border: #28354c;
+  --bar: #ffffff;
   --bar-solid: #ffffff;
-  --menu: rgb(248 248 250 / 0.84);
-  --menu-solid: #f8f8fa;
-  --overlay: rgb(0 0 0 / 0.22);
+  --menu: #ffffff;
+  --menu-solid: #ffffff;
+  --overlay: rgb(9 19 39 / 0.46);
 
-  /* ── Тени: контур 0.5 px + мягкая тень, только у плавающих поверхностей ── */
-  --elev-menu: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 10px 32px -6px rgb(0 0 0 / 0.2);
-  --elev-dialog: 0 0 0 0.5px rgb(0 0 0 / 0.1), 0 24px 64px -12px rgb(0 0 0 / 0.32);
-  --elev-control: 0 0.5px 1px rgb(0 0 0 / 0.12), 0 0 0 0.5px rgb(0 0 0 / 0.06);
+  --elev-menu: 0 12px 36px -12px rgb(23 42 76 / 0.22), 0 2px 8px rgb(23 42 76 / 0.05);
+  --elev-dialog: 0 32px 80px -20px rgb(9 19 39 / 0.32);
+  --elev-control: 0 1px 2px rgb(23 42 76 / 0.05);
+  --elev-panel: 0 4px 18px -12px rgb(23 42 76 / 0.16);
 
   /* ── Карта: цвета объектов (маркеры, линии), читаются и из JS ── */
-  --map-moving: #007aff;
-  --map-arriving: #30b0c7;
-  --map-waiting: #d99a00;
-  --map-delayed: #ff9500;
-  --map-attention: #ff3b30;
-  --map-done: #34c759;
-  --map-cancelled: #8e8e93;
-  --map-route: #007aff;
-  --map-land: #f2f2f7;
+  --map-moving: #2854d9;
+  --map-arriving: #1599a0;
+  --map-waiting: #b48220;
+  --map-delayed: #de761d;
+  --map-attention: #cc4257;
+  --map-done: #16815e;
+  --map-cancelled: #7e8da4;
+  --map-route: #2854d9;
+  --map-land: #eff3f8;
 
-  /* ── Типографика: iOS-шкала (узкие экраны) ── */
-  --fs-large-title: 1.875rem;
+  /* A readable work scale; metadata may be smaller, never the primary content. */
+  --fs-large-title: 1.75rem;
   --lh-large-title: 2.25rem;
   --fs-title1: 1.5rem;
   --lh-title1: 1.875rem;
-  --fs-title2: 1.25rem;
+  --fs-title2: 1.125rem;
   --lh-title2: 1.625rem;
-  --fs-title3: 1.0625rem;
+  --fs-title3: 1rem;
   --lh-title3: 1.375rem;
   --fs-headline: 0.9375rem;
   --lh-headline: 1.25rem;
   --fs-body: 0.9375rem;
-  --lh-body: 1.3125rem;
+  --lh-body: 1.5rem;
   --fs-callout: 0.875rem;
-  --lh-callout: 1.1875rem;
-  --fs-subheadline: 0.8125rem;
-  --lh-subheadline: 1.125rem;
+  --lh-callout: 1.375rem;
+  --fs-subheadline: 0.875rem;
+  --lh-subheadline: 1.375rem;
   --fs-footnote: 0.75rem;
-  --lh-footnote: 1rem;
-  --fs-caption: 0.6875rem;
-  --lh-caption: 0.875rem;
+  --lh-footnote: 1.125rem;
+  --fs-caption: 0.75rem;
+  --lh-caption: 1rem;
 
   /* ── Motion ── */
-  --duration-micro: 100ms;
-  --duration-standard: 200ms;
-  --duration-complex: 340ms;
-  --duration-exit: 160ms;
+  --duration-micro: 140ms;
+  --duration-standard: 180ms;
+  --duration-complex: 260ms;
+  --duration-exit: 140ms;
 }
 
-/* macOS-шкала на широких экранах: плотнее, как в Mail и Finder */
+/* Larger titles on desktop, the same readable text size at every width. */
 @media (width >= 64rem) {
   :root {
-    --fs-large-title: 1.625rem;
-    --lh-large-title: 2rem;
-    --fs-title1: 1.375rem;
-    --lh-title1: 1.75rem;
-    --fs-title2: 1.0625rem;
-    --lh-title2: 1.375rem;
-    --fs-title3: 0.9375rem;
-    --lh-title3: 1.25rem;
-    --fs-headline: 0.8125rem;
-    --lh-headline: 1.125rem;
-    --fs-body: 0.8125rem;
-    --lh-body: 1.1875rem;
-    --fs-callout: 0.75rem;
-    --lh-callout: 1rem;
-    --fs-subheadline: 0.75rem;
-    --lh-subheadline: 1rem;
-    --fs-footnote: 0.6875rem;
-    --lh-footnote: 0.875rem;
-    --fs-caption: 0.6875rem;
-    --lh-caption: 0.875rem;
-  }
-}
-
-@media (min-resolution: 2dppx) {
-  :root {
-    --hairline: 0.5px;
+    --fs-large-title: 2rem;
+    --lh-large-title: 2.5rem;
+    --fs-title1: 1.625rem;
+    --lh-title1: 2.125rem;
+    --fs-title2: 1.25rem;
+    --lh-title2: 1.75rem;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #161618;
-    --card: #1f1f21;
-    --surface-secondary: #252527;
-    --elevated: #2c2c2e;
-    --muted: #2a2a2d;
+    color-scheme: dark;
 
-    --foreground: #f5f5f7;
-    --card-foreground: #f5f5f7;
-    --muted-foreground: #a1a1a6; /* 7.1:1 на карточке */
-    --tertiary-foreground: #77777c;
+    --background: #0b1220;
+    --card: #121e32;
+    --surface-secondary: #18263d;
+    --elevated: #18253a;
+    --muted: #1e2d45;
 
-    --border: rgb(84 84 88 / 0.55);
-    --border-strong: #3a3a3c;
-    --input: #77777c;
+    --foreground: #e9effa;
+    --card-foreground: #e9effa;
+    --muted-foreground: #a2afc5;
+    --tertiary-foreground: #93a3be;
 
-    --fill: rgb(120 120 128 / 0.36);
-    --fill-secondary: rgb(120 120 128 / 0.32);
-    --fill-tertiary: rgb(118 118 128 / 0.24);
-    --fill-quaternary: rgb(118 118 128 / 0.18);
+    --border: #2b3b55;
+    --border-strong: #40516d;
+    --input: #667996;
 
-    --primary: #0071e3; /* белый текст 4.7:1 */
-    --primary-hover: #0a7ff0;
-    --link: #4aa3ff; /* 6.5:1 на карточке */
-    --accent: color-mix(in srgb, var(--primary) 22%, var(--card));
-    --destructive: #e5202a;
-    --destructive-hover: #f03a3f;
-    --selection-muted: rgb(255 255 255 / 0.1);
-    --segment-thumb: #5b5b5f;
+    --fill: #30405b;
+    --fill-secondary: #263650;
+    --fill-tertiary: #203049;
+    --fill-quaternary: #19273d;
 
-    --success: #30d158;
-    --success-hover: #4ad66d;
-    --warning: #ffd60a;
-    --info: #64d2ff;
-    --delayed: #ff9f0a;
-    --danger: #ff453a;
-    --neutral: #98989d;
-    --rating: #ffd60a;
+    --primary-hover: #3563ec;
+    --link: #a4b9ff;
+    --accent: #20345d;
+    --destructive: #c43345;
+    --destructive-hover: #d43d50;
+    --secondary: #23334e;
+    --secondary-hover: #30415e;
+    --selection: #243e75;
+    --selection-foreground: #dbe5ff;
+    --selection-muted: #22324b;
+    --segment-thumb: #243e75;
 
-    --sidebar: rgb(42 42 45 / 0.72);
-    --sidebar-solid: #2a2a2d;
-    --sidebar-foreground: #f5f5f7;
-    --sidebar-muted: #a1a1a6;
-    --sidebar-active: rgb(255 255 255 / 0.1);
-    --sidebar-border: rgb(0 0 0 / 0.5);
-    --bar: rgb(31 31 33 / 0.74);
-    --bar-solid: #1f1f21;
-    --menu: rgb(44 44 46 / 0.82);
-    --menu-solid: #2c2c2e;
-    --overlay: rgb(0 0 0 / 0.48);
+    --success: #7adcb2;
+    --success-hover: #a0e8ca;
+    --warning: #f5ca70;
+    --info: #8dbbfa;
+    --delayed: #ffb183;
+    --danger: #ff9aa9;
+    --neutral: #a2afc5;
+    --rating: #f5ca70;
 
-    --elev-menu: 0 0 0 0.5px rgb(255 255 255 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.5), 0 12px 36px -6px rgb(0 0 0 / 0.6);
-    --elev-dialog: 0 0 0 0.5px rgb(255 255 255 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.5), 0 28px 72px -12px rgb(0 0 0 / 0.7);
-    --elev-control: 0 0 0 0.5px rgb(255 255 255 / 0.08), 0 1px 1px rgb(0 0 0 / 0.3);
+    --sidebar: #0d172b;
+    --sidebar-solid: #0d172b;
+    --bar: #121e32;
+    --bar-solid: #121e32;
+    --menu: #18253a;
+    --menu-solid: #18253a;
+    --overlay: rgb(3 8 18 / 0.68);
 
-    --map-moving: #0a84ff;
-    --map-arriving: #40c8e0;
-    --map-waiting: #ffd60a;
-    --map-delayed: #ff9f0a;
-    --map-attention: #ff453a;
-    --map-done: #30d158;
-    --map-cancelled: #98989d;
-    --map-route: #0a84ff;
-    --map-land: #1c1c1e;
+    --elev-menu: 0 12px 40px -10px rgb(0 0 0 / 0.45);
+    --elev-dialog: 0 32px 80px -20px rgb(0 0 0 / 0.6);
+    --elev-control: 0 1px 2px rgb(0 0 0 / 0.12);
+    --elev-panel: 0 4px 18px -12px rgb(0 0 0 / 0.35);
+
+    --map-moving: #80a3ff;
+    --map-arriving: #6ad2ce;
+    --map-waiting: #f5ca70;
+    --map-delayed: #ffad76;
+    --map-attention: #ff91a2;
+    --map-done: #7adcb2;
+    --map-cancelled: #93a3be;
+    --map-route: #80a3ff;
+    --map-land: #121e32;
   }
+}
+
+/* Native popups may use an OS background while inheriting the select's text color. */
+select option,
+select optgroup {
+  background-color: var(--card);
+  color: var(--foreground);
 }
 
 /* Пониженная прозрачность и браузеры без backdrop-filter — непрозрачные материалы */
@@ -258,6 +249,9 @@
   --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-lime-foreground: var(--brand-lime-foreground);
+  --color-navy: var(--navy);
   --color-overlay: var(--overlay);
   --color-fill: var(--fill);
   --color-fill-secondary: var(--fill-secondary);
@@ -304,25 +298,25 @@
   --color-rating: var(--rating);
 
   --color-sidebar: var(--sidebar);
+  --color-sidebar-solid: var(--sidebar-solid);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-border: var(--sidebar-border);
   --color-bar: var(--bar);
   --color-menu: var(--menu);
 
-  /* Радиусы: xs — метки · sm — кнопки и поля · md — пункты меню, мелкие плашки · lg — группы и списки ·
-     xl — диалоги и поповеры · 2xl — шиты */
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.625rem;
-  --radius-xl: 0.875rem;
-  --radius-2xl: 1.25rem;
+  /* Controls 10–12 px, panels 16 px, overlays 20–24 px. */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
 
-  /* Тени: у карточек и кнопок их нет */
-  --shadow-xs: 0 0 #0000;
+  --shadow-xs: var(--elev-control);
   --shadow-sm: var(--elev-control);
   --shadow-md: var(--elev-menu);
   --shadow-lg: var(--elev-dialog);
@@ -330,17 +324,16 @@
   --shadow-control: var(--elev-control);
   --shadow-menu: var(--elev-menu);
   --shadow-dialog: var(--elev-dialog);
+  --shadow-panel: var(--elev-panel);
 
   --container-page: 87.5rem;
   --container-form: 46rem;
   --container-prose: 40rem;
 
-  /* SF Pro на устройствах Apple, Inter (кириллица, табличные цифры) — на остальных */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Кривая iOS: быстрый старт, долгое мягкое торможение, без перелёта */
-  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out: cubic-bezier(0.45, 0, 0.2, 1);
 
@@ -515,7 +508,7 @@
   }
   :focus-visible {
     outline: 3px solid var(--ring);
-    outline-offset: 1px;
+    outline-offset: 3px;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled),
@@ -537,18 +530,17 @@
   ::placeholder {
     color: var(--tertiary-foreground);
   }
-  /* Иконки lucide тоньше — ближе к SF Symbols */
   svg.lucide {
-    stroke-width: 1.75;
+    stroke-width: 1.8;
   }
 }
 
-/* ── Типографические роли (имена Apple) ── */
+/* Semantic type roles; names remain stable for all feature screens. */
 @utility text-large-title {
   font-size: var(--fs-large-title);
   line-height: var(--lh-large-title);
-  font-weight: 700;
-  letter-spacing: -0.024em;
+  font-weight: 720;
+  letter-spacing: -0.035em;
 }
 @utility text-title1 {
   font-size: var(--fs-title1);
@@ -602,12 +594,19 @@
   font-weight: 600;
   color: var(--muted-foreground);
 }
+@utility text-eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 /* Крупная цифра сводки */
 @utility text-figure {
-  font-size: var(--fs-title1);
-  line-height: var(--lh-title1);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.625rem, 2vw, 2rem);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
 @utility tabular {
@@ -624,30 +623,22 @@
     "zero" 1;
 }
 
-/* ── Материалы ── */
+/* Solid surface aliases retained for shared feature components. */
 @utility material-sidebar {
   background-color: var(--sidebar);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
 }
 @utility material-bar {
   background-color: var(--bar);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
-/* Нижняя панель вкладок на телефоне: плотнее панели сверху — текст списка под ней не должен читаться сквозь значки (UX-07) */
 @utility material-tabbar {
-  background-color: color-mix(in srgb, var(--bar-solid) 93%, transparent);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background-color: var(--bar-solid);
 }
 @utility material-menu {
   background-color: var(--menu);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border);
 }
 
-/* ── Волосяные линии (0.5 px на Retina) ── */
+/* Crisp structural dividers, including high-density displays. */
 @utility hairline {
   border-style: solid;
   border-width: var(--hairline);

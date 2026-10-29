@@ -37,21 +37,33 @@ export function DriverNextStep({
     );
   const quick = QUICK.filter((c) => c.city !== deliveryCity && c.city !== returnCity);
   return (
-    <div className="bg-card space-y-3 rounded-xl p-4" data-testid="driver-next-step">
-      <p className="flex items-center gap-2 font-semibold">
-        <Navigation className="text-link size-5" aria-hidden /> Что планируете дальше?
-      </p>
-      <p className="text-subheadline text-muted-foreground">
+    <div className="bg-card border-border space-y-4 rounded-2xl border p-5 sm:p-6" data-testid="driver-next-step">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#dcf57b] text-[#111c2e]">
+          <Navigation className="size-5" aria-hidden />
+        </span>
+        <div>
+          <p className="text-footnote text-muted-foreground mb-0.5">После доставки</p>
+          <p className="text-title3 font-semibold">Что планируете дальше?</p>
+        </div>
+      </div>
+      <p className="text-subheadline text-muted-foreground leading-relaxed">
         После разгрузки в {deliveryCity} диспетчер подберёт груз по пути — чтобы не ехать порожняком.
       </p>
       {plan && (
-        <p className="bg-accent text-link text-subheadline rounded-md px-3 py-2">
+        <p className="bg-accent text-link text-subheadline border-primary/20 rounded-xl border px-3.5 py-3">
           Ваш план: {plan.destinations.length ? plan.destinations.join(", ") : "свободен, грузы рядом"} · подходящих грузов: {plan.matches}
         </p>
       )}
       <div className="grid gap-2">
         {returnCity && (
-          <Button size="lg" variant="secondary" disabled={pending} onClick={() => send({ intent: "RETURN", destinations: [] })}>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-12 justify-start"
+            disabled={pending}
+            onClick={() => send({ intent: "RETURN", destinations: [] })}
+          >
             <RotateCcw /> Вернуться в {returnCity}
           </Button>
         )}
@@ -60,7 +72,8 @@ export function DriverNextStep({
             <Button
               key={c.city}
               size="lg"
-              variant="secondary"
+              variant="outline"
+              className="h-12 min-w-0 justify-start px-3 text-[13px]"
               disabled={pending}
               onClick={() => send({ intent: "CITY", destinations: [c] })}
             >
@@ -71,7 +84,7 @@ export function DriverNextStep({
         <Button
           size="lg"
           variant="ghost"
-          className="text-link"
+          className="text-link h-11"
           disabled={pending}
           onClick={() => send({ intent: "UNDECIDED", destinations: [] })}
         >

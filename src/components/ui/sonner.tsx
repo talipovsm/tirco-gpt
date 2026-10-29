@@ -1,10 +1,7 @@
 "use client";
 import { Toaster as Sonner } from "sonner";
 
-/**
- * Баннеры результата действий, как уведомления macOS/iOS: нейтральный материал, цвет — только у значка.
- * 4 с, не больше 3 одновременно, не забирают фокус (aria-live).
- */
+/** Результат действия остаётся читаемым поверх рабочей области и не забирает клавиатурный фокус. */
 export function Toaster() {
   return (
     <Sonner
@@ -12,14 +9,14 @@ export function Toaster() {
       position="top-right"
       closeButton
       visibleToasts={3}
-      offset={14}
-      mobileOffset={10}
-      gap={8}
+      offset={20}
+      mobileOffset={12}
+      gap={10}
       toastOptions={{
         duration: 4000,
         classNames: {
           toast:
-            "!material-menu !shadow-menu !text-foreground !font-sans !text-body !rounded-xl !border-0 !px-3.5 !py-3 !gap-2.5 !items-start",
+            "!bg-elevated !shadow-menu !text-foreground !font-sans !text-body !rounded-xl !border !border-border !px-4 !py-4 !gap-3 !items-start",
           title: "!font-semibold",
           description: "!text-subheadline !text-muted-foreground",
           icon: "!mt-px",
@@ -27,7 +24,7 @@ export function Toaster() {
           error: "[&_[data-icon]]:!text-danger",
           warning: "[&_[data-icon]]:!text-warning",
           info: "[&_[data-icon]]:!text-info",
-          closeButton: "!bg-elevated !text-muted-foreground !border-0 !shadow-menu",
+          closeButton: "!bg-card !text-muted-foreground !border !border-border !shadow-sm",
         },
       }}
     />

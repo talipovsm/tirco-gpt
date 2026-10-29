@@ -1,5 +1,7 @@
 "use client";
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
+import { AlertCircle, ArrowUpRight, MapPinned } from "lucide-react";
 import { SearchField } from "@/components/common/search-field";
 import { SplitView } from "@/components/common/split-view";
 import { MapWorkspace, type MapObject } from "@/features/tracking/map-workspace";
@@ -13,7 +15,7 @@ import { ShipmentList } from "./shipment-list";
 type Filter = "all" | "moving" | "delayed" | "arriving" | "waiting";
 
 const FILTERS: { key: Filter; label: string; health?: Health; match: (h: Health) => boolean }[] = [
-  { key: "all", label: "Активно", match: (h) => h !== "done" && h !== "cancelled" },
+  { key: "all", label: "Все", match: () => true },
   { key: "moving", label: "В пути", health: "moving", match: (h) => h === "moving" || h === "arriving" || h === "delayed" },
   { key: "delayed", label: "Задержка", health: "delayed", match: (h) => h === "delayed" },
   { key: "arriving", label: "Прибытие", health: "arriving", match: (h) => h === "arriving" },
@@ -33,7 +35,7 @@ export function toMapObject(o: LiveObject): MapObject {
 
 export type WorkspaceTab = { key: string; label: string; count?: number; content: React.ReactNode };
 
-/** Сегменты в стиле macOS: белый бегунок на сером треке, роль tablist для скринридеров. */
+/** Underlined workspace tabs with keyboard navigation and explicit action counts. */
 export function SegmentTabs({
   tabs,
   value,
@@ -48,12 +50,8 @@ export function SegmentTabs({
   label: string;
 }) {
   return (
-    <div
-      role="tablist"
-      aria-label={label}
-      className="bg-fill-tertiary flex h-9 scrollbar-none gap-0.5 overflow-x-auto rounded-md p-0.5 lg:h-7"
-    >
-      {tabs.map((t) => (
+    <div role="tablist" aria-label={label} className="grid min-w-0 grid-cols-2 gap-x-3 px-3 sm:flex sm:flex-wrap sm:gap-x-5 sm:px-5">
+      {tabs.map((t, index) => (
         <button
           key={t.key}
           type="button"
@@ -61,14 +59,37 @@ export function SegmentTabs({
           id={`${idPrefix}-${t.key}`}
           aria-selected={value === t.key}
           aria-controls={`${idPrefix}-${t.key}-panel`}
+          tabIndex={value === t.key ? 0 : -1}
           onClick={() => onChange(t.key)}
+          onKeyDown={(event) => {
+            const offset = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+            if (!offset && event.key !== "Home" && event.key !== "End") return;
+            event.preventDefault();
+            const next =
+              event.key === "Home"
+                ? tabs[0]
+                : event.key === "End"
+                  ? tabs[tabs.length - 1]
+                  : tabs[(index + offset + tabs.length) % tabs.length];
+            onChange(next.key);
+            document.getElementById(`${idPrefix}-${next.key}`)?.focus();
+          }}
           className={cn(
-            "text-callout lg:text-body flex min-w-0 flex-auto shrink-0 items-center justify-center gap-1 rounded-[0.4375rem] px-2 font-medium whitespace-nowrap transition-[background-color,box-shadow,color] duration-(--duration-standard) lg:px-1.5",
-            value === t.key ? "bg-segment-thumb shadow-control text-foreground" : "text-foreground/75 hover:text-foreground",
+            "flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-b-2 px-1 text-xs font-medium transition-colors sm:justify-start sm:text-[13px]",
+            value === t.key ? "border-primary text-link" : "text-muted-foreground hover:text-foreground border-transparent",
           )}
         >
           {t.label}
-          {t.count !== undefined && t.count > 0 && <span className="text-footnote text-muted-foreground num">{t.count}</span>}
+          {t.count !== undefined && (
+            <span
+              className={cn(
+                "num rounded-md px-1.5 py-0.5 text-[10px] leading-tight",
+                t.key === "attention" && t.count > 0 ? "bg-amber-100 text-amber-900" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {t.count}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -85,7 +106,6 @@ export function LiveWorkspace({
   actions,
   objects,
   now,
-  initialSelected,
   tabs = [],
   empty,
   listFooter,
@@ -111,9 +131,8 @@ export function LiveWorkspace({
   filterInput?: boolean;
   testId?: string;
 }) {
-  const [selectedId, setSelectedId] = React.useState<string | null>(
-    initialSelected && objects.some((o) => o.id === initialSelected) ? initialSelected : null,
-  );
+  const params = useSearchParams();
+  const selectedId = params.get("selected");
   const [filter, setFilter] = React.useState<Filter>("all");
   const [q, setQ] = React.useState("");
   const [tab, setTab] = React.useState("objects");
@@ -137,11 +156,10 @@ export function LiveWorkspace({
   }, [now]);
 
   const select = React.useCallback((id: string | null) => {
-    setSelectedId(id);
     const url = new URL(window.location.href);
     if (id) url.searchParams.set("selected", id);
     else url.searchParams.delete("selected");
-    window.history.replaceState(window.history.state, "", url);
+    window.history.pushState(null, "", url);
   }, []);
 
   const term = q.trim().toLowerCase();
@@ -176,74 +194,54 @@ export function LiveWorkspace({
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, select]);
 
-  const allTabs: WorkspaceTab[] = [{ key: "objects", label: "Объекты", count: visible.length, content: null }, ...tabs];
+  const allTabs: WorkspaceTab[] = [{ key: "objects", label: "Перевозки", count: visible.length, content: null }, ...tabs];
+  const attention = tabs.find((item) => item.key === "attention");
 
   const list = (
     <>
-      <div className="space-y-3 px-4 pt-4 pb-3">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-title1">{title}</h1>
-            {subtitle && <p className="text-footnote text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
-          </div>
-          {actions && <div className="flex shrink-0 items-center gap-1.5 pt-0.5">{actions}</div>}
-        </div>
-        {metrics && (
-          <div
-            className="bg-fill-tertiary grid grid-cols-5 gap-0.5 rounded-md p-0.5"
-            role="group"
-            aria-label="Фильтр по состоянию"
-            data-testid="ops-indicators"
-          >
-            {FILTERS.map((f) => (
-              <OperationalMetric
-                key={f.key}
-                label={f.label}
-                value={objects.filter((o) => f.match(o.health)).length}
-                health={f.health}
-                active={filter === f.key}
-                onClick={() => {
-                  setFilter(f.key);
-                  setTab("objects");
-                }}
-              />
-            ))}
+      <div className="border-border shrink-0 border-b">
+        {allTabs.length > 1 ? (
+          <SegmentTabs tabs={allTabs} value={tab} onChange={setTab} idPrefix={tabsId} label="Разделы панели" />
+        ) : (
+          <div className="flex min-h-16 items-center justify-between gap-3 px-5">
+            <h2 className="text-sm font-semibold">Перевозки</h2>
+            <span className="text-muted-foreground text-xs">
+              В списке: <span className="num text-foreground font-medium">{visible.length}</span>
+            </span>
           </div>
         )}
-        {allTabs.length > 1 && <SegmentTabs tabs={allTabs} value={tab} onChange={setTab} idPrefix={tabsId} label="Разделы панели" />}
       </div>
-      {controls}
-
+      {controls && <div className="border-border shrink-0 border-b px-1 pt-4 pb-2 sm:px-2">{controls}</div>}
+      {filterInput && tab === "objects" && (
+        <div className="shrink-0 px-3.5 py-4 sm:px-4">
+          <label className="block">
+            <span className="sr-only">Найти в списке</span>
+            <SearchField
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="Номер, город, машина, водитель"
+              data-testid="workspace-filter"
+            />
+          </label>
+        </div>
+      )}
       <div
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain"
         role={allTabs.length > 1 ? "tabpanel" : undefined}
         id={`${tabsId}-${tab}-panel`}
         aria-labelledby={allTabs.length > 1 ? `${tabsId}-${tab}` : undefined}
       >
         {tab === "objects" ? (
           <>
-            {filterInput && (
-              <div className="bg-card sticky top-0 z-[1] px-4 pb-2">
-                <label className="block">
-                  <span className="sr-only">Найти в списке</span>
-                  <SearchField
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Номер, город, машина, водитель"
-                    data-testid="workspace-filter"
-                  />
-                </label>
-              </div>
-            )}
             {visible.length === 0 ? (
               objects.length === 0 ? (
                 empty
               ) : (
-                <p className="text-subheadline text-muted-foreground px-4 py-8 text-center">
-                  Под фильтр ничего не попало.{" "}
+                <div className="text-muted-foreground px-5 py-12 text-center text-sm">
+                  <p>Под фильтр ничего не попало.</p>
                   <button
                     type="button"
-                    className="text-link font-medium hover:underline"
+                    className="text-link mt-3 font-medium hover:underline"
                     onClick={() => {
                       setFilter("all");
                       setQ("");
@@ -251,7 +249,7 @@ export function LiveWorkspace({
                   >
                     Сбросить фильтр
                   </button>
-                </p>
+                </div>
               )
             ) : (
               <ShipmentList
@@ -264,31 +262,97 @@ export function LiveWorkspace({
             {listFooter}
           </>
         ) : (
-          allTabs.find((t) => t.key === tab)?.content
+          <div className="py-4">{allTabs.find((item) => item.key === tab)?.content}</div>
         )}
       </div>
     </>
   );
 
   return (
-    <SplitView
-      testId={testId}
-      listLabel={title}
-      backLabel={title}
-      hasDetail={Boolean(selected)}
-      onBack={() => select(null)}
-      list={list}
-      map={
-        <MapWorkspace
-          objects={mapObjects}
-          now={referenceTime}
-          selectedId={selectedId}
-          onSelect={(id) => select(id)}
-          className="absolute inset-0"
-          emptyLabel="Нет объектов с координатами"
+    <div className="flex min-h-0 flex-col gap-3 p-4 sm:gap-5 sm:p-6 lg:h-full lg:overflow-hidden xl:p-7">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-muted-foreground mb-1.5 hidden text-[10px] font-semibold tracking-[.14em] uppercase sm:block">
+            Управление перевозками
+          </p>
+          <h1 className="text-[25px] leading-tight font-semibold tracking-[-.045em] sm:text-[29px]">{title}</h1>
+          {subtitle && <p className="text-muted-foreground mt-2 text-xs sm:text-[13px]">{subtitle}</p>}
+        </div>
+        <div className="flex w-full flex-wrap items-center gap-2 pt-0.5 sm:w-auto">
+          {attention && (attention.count ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                select(null);
+                setTab("attention");
+                document.getElementById(`${tabsId}-attention`)?.scrollIntoView({ block: "nearest" });
+              }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 text-xs font-medium text-amber-900"
+            >
+              <AlertCircle className="size-4" aria-hidden /> Внимание: {attention.count} <ArrowUpRight className="size-3.5" aria-hidden />
+            </button>
+          )}
+          {actions}
+        </div>
+      </header>
+      {metrics && (
+        <div
+          className="grid shrink-0 grid-cols-5 gap-1.5 sm:gap-3"
+          role="group"
+          aria-label="Фильтр по состоянию"
+          data-testid="ops-indicators"
+        >
+          {FILTERS.map((item) => (
+            <OperationalMetric
+              key={item.key}
+              label={item.label}
+              value={objects.filter((o) => item.match(o.health)).length}
+              health={item.health}
+              active={filter === item.key}
+              onClick={() => {
+                select(null);
+                setFilter(item.key);
+                setTab("objects");
+              }}
+            />
+          ))}
+        </div>
+      )}
+      <div className="min-h-0 shrink-0 lg:flex-1 lg:shrink">
+        <SplitView
+          testId={testId}
+          listLabel={title}
+          backLabel={title}
+          hasDetail={Boolean(selected)}
+          onBack={() => select(null)}
+          list={list}
+          mapHeader={
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-primary/8 text-link grid size-8 place-items-center rounded-lg">
+                  <MapPinned className="size-4" aria-hidden />
+                </span>
+                <div>
+                  <h2 className="text-[13px] font-semibold">Карта маршрутов</h2>
+                  <p className="text-muted-foreground mt-0.5 text-[10px]">Маршруты и последние отметки</p>
+                </div>
+              </div>
+              <span className="num bg-muted text-muted-foreground rounded-lg px-2 py-1 text-[11px]">{visible.length}</span>
+            </div>
+          }
+          map={
+            <MapWorkspace
+              objects={mapObjects}
+              now={referenceTime}
+              selectedId={selectedId}
+              onSelect={(id) => select(id)}
+              className="absolute inset-0"
+              emptyLabel="Нет объектов с координатами"
+            />
+          }
+          detail={selected && <ShipmentDetailPanel key={selected.id} object={selected} now={referenceTime} onClose={() => select(null)} />}
         />
-      }
-      detail={selected && <ShipmentDetailPanel key={selected.id} object={selected} now={referenceTime} onClose={() => select(null)} />}
-    />
+      </div>
+    </div>
   );
 }

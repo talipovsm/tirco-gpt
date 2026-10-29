@@ -2,7 +2,7 @@
 import { Tooltip as T } from "radix-ui";
 import * as React from "react";
 
-/** Подсказка macOS: маленькая плашка из материала меню, без стрелки. */
+/** Короткая подпись действия на контрастной поверхности. */
 function Tooltip({
   content,
   children,
@@ -13,16 +13,17 @@ function Tooltip({
   side?: "top" | "bottom" | "left" | "right";
 }) {
   return (
-    <T.Provider delayDuration={450}>
+    <T.Provider delayDuration={350}>
       <T.Root>
         <T.Trigger asChild>{children}</T.Trigger>
         <T.Portal>
           <T.Content
             side={side}
-            sideOffset={6}
-            className="material-menu shadow-menu text-footnote text-foreground data-[state=delayed-open]:animate-fade-in data-[state=closed]:animate-fade-out z-50 max-w-xs rounded-sm px-2 py-1"
+            sideOffset={8}
+            className="border-sidebar-border bg-sidebar text-sidebar-foreground shadow-menu text-footnote data-[state=delayed-open]:animate-fade-in data-[state=closed]:animate-fade-out z-50 max-w-xs rounded-lg border px-3 py-2 leading-relaxed"
           >
             {content}
+            <T.Arrow className="fill-sidebar" width={10} height={5} />
           </T.Content>
         </T.Portal>
       </T.Root>

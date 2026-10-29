@@ -93,7 +93,7 @@ export default async function FuelPage({ searchParams }: { searchParams: SearchP
               <Link
                 key={v.id}
                 href={`/fuel/vehicles/${v.id}`}
-                className="bg-card hover:bg-surface-secondary flex flex-col gap-3 rounded-lg p-4 transition-colors"
+                className="border-border bg-card shadow-panel hover:border-primary/40 hover:bg-surface-secondary flex flex-col gap-4 rounded-2xl border p-5 transition-colors"
                 data-testid="fleet-card"
               >
                 <div className="flex items-start justify-between gap-2">

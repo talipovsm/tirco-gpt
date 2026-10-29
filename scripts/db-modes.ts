@@ -9,9 +9,12 @@
  */
 import "dotenv/config";
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 import pg from "pg";
 import type { DataMode } from "@/lib/db/data-mode";
 import { dataModeConfig, normalizeSchemaMarker, prismaCliUrl, SCHEMA_MARKER, type DbTarget } from "@/lib/db/data-mode-config";
+
+const require = createRequire(import.meta.url);
 
 export async function readMarker(t: DbTarget): Promise<string | null> {
   const client = new pg.Client({ connectionString: t.connectionString });
@@ -48,7 +51,8 @@ async function writeMarker(t: DbTarget, mode: DataMode) {
 function migrate(t: DbTarget, mode: DataMode) {
   console.log(`→ Миграции ${mode.toUpperCase()} (схема ${t.schema})`);
   // Явная схема в URL: Prisma CLI создаёт её при необходимости; учётные данные не печатаются
-  execFileSync("npx", ["prisma", "migrate", "deploy"], {
+  // Windows не запускает npx.cmd через execFileSync без shell; Node запускает CLI на всех ОС.
+  execFileSync(process.execPath, [require.resolve("prisma/build/index.js"), "migrate", "deploy"], {
     stdio: "inherit",
     env: { ...process.env, DATABASE_URL: prismaCliUrl(t) },
   });

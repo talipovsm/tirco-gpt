@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Поле формы: подпись, подсказка и текст ошибки, связанные через aria-атрибуты.
- * layout="row" — как в macOS Settings: подпись слева, поле справа (на телефоне — друг под другом).
+ * layout="row" — двухколоночная форма настроек, на телефоне — вертикальная.
  */
 export function Field({
   id,
@@ -48,7 +48,7 @@ export function Field({
     </>
   );
   const labelEl = (
-    <Label htmlFor={id} className={cn("text-subheadline font-medium", layout === "row" && "sm:pt-1.5 lg:pt-1")}>
+    <Label htmlFor={id} className={cn("text-[13px] font-semibold", layout === "row" && "sm:pt-3")}>
       {label}
       {required && (
         <span className="text-muted-foreground" aria-hidden>
@@ -69,7 +69,7 @@ export function Field({
       </div>
     );
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("space-y-2", className)}>
       {labelEl}
       {child}
       {caption}

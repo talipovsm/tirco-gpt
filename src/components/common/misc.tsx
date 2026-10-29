@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
-/** Заголовок экрана: кнопка «назад» в стиле iOS, крупный заголовок, действия справа. */
+/** Заголовок рабочего экрана с контекстом и приоритетными действиями. */
 export function PageHeader({
   title,
   description,
@@ -23,20 +23,20 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="mb-5 flex flex-col gap-1">
+    <header className="mb-7 flex flex-col gap-3">
       {back && (
         <Link
           href={back.href}
-          className="text-link text-body -ml-1.5 inline-flex min-h-9 w-fit items-center gap-0.5 rounded-sm pr-1.5 hover:opacity-70 lg:min-h-7"
+          className="text-muted-foreground hover:text-link inline-flex min-h-9 w-fit items-center gap-1 rounded-lg text-xs font-medium"
         >
-          <ChevronLeft className="size-5 [stroke-width:2.25] lg:size-4" aria-hidden />
+          <ChevronLeft className="size-4" aria-hidden />
           {back.label}
         </Link>
       )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-large-title">{title}</h1>
-          {description && <div className="text-subheadline text-muted-foreground mt-0.5">{description}</div>}
+          <h1 className="text-large-title tracking-[-0.045em]">{title}</h1>
+          {description && <div className="text-muted-foreground mt-2 max-w-3xl text-sm leading-6">{description}</div>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -45,7 +45,7 @@ export function PageHeader({
   );
 }
 
-/** Пустое состояние, как ContentUnavailableView: серый символ, заголовок, пояснение, действие. */
+/** Пустое состояние с явным способом продолжить работу. */
 export function EmptyState({
   title,
   description,
@@ -60,10 +60,17 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("animate-fade-in flex flex-col items-center justify-center px-6 py-12 text-center", className)}>
-      <Icon className="text-tertiary-foreground mb-3 size-10 [stroke-width:1.5]" aria-hidden />
+    <div
+      className={cn(
+        "animate-fade-in border-border bg-card flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-14 text-center",
+        className,
+      )}
+    >
+      <span className="bg-accent mb-5 grid size-16 place-items-center rounded-2xl">
+        <Icon className="text-link size-7 [stroke-width:1.6]" aria-hidden />
+      </span>
       <p className="text-title3">{title}</p>
-      {description && <p className="text-subheadline text-muted-foreground mt-1 max-w-sm text-pretty">{description}</p>}
+      {description && <p className="text-muted-foreground mt-3 max-w-md text-sm leading-6 text-pretty">{description}</p>}
       {action &&
         (action.href ? (
           <Button asChild variant="secondary" className="text-link mt-4">
@@ -262,6 +269,7 @@ export function KpiCard({
   hint,
   href,
   tone = "neutral",
+  icon: Icon,
 }: {
   label: string;
   value: React.ReactNode;
@@ -274,16 +282,22 @@ export function KpiCard({
   const body = (
     <div
       className={cn(
-        "bg-card flex h-full flex-col rounded-lg px-4 py-3",
+        "border-border bg-card shadow-panel flex h-full flex-col rounded-2xl border p-5",
         href && "group-hover:bg-surface-secondary group-active:bg-muted transition-colors duration-(--duration-micro)",
       )}
     >
-      <p className="text-footnote text-muted-foreground flex items-center justify-between gap-2 font-medium">
-        <span className="min-w-0 truncate">{label}</span>
-        {href && <ChevronRight className="text-tertiary-foreground size-3.5 shrink-0" aria-hidden />}
+      <p className="text-muted-foreground flex items-center justify-between gap-3 text-xs font-medium">
+        <span className="min-w-0">{label}</span>
+        {Icon ? (
+          <span className="bg-accent text-link grid size-9 shrink-0 place-items-center rounded-xl">
+            <Icon className="size-[18px]" />
+          </span>
+        ) : (
+          href && <ChevronRight className="size-4 shrink-0" aria-hidden />
+        )}
       </p>
-      <p className={cn("text-figure mt-1", valueTone)}>{value}</p>
-      {hint && <p className="text-footnote text-muted-foreground mt-auto pt-1">{hint}</p>}
+      <p className={cn("num mt-3 text-[28px] leading-tight font-semibold tracking-tight", valueTone)}>{value}</p>
+      {hint && <p className="text-muted-foreground mt-auto pt-3 text-xs leading-5">{hint}</p>}
     </div>
   );
   return href ? (

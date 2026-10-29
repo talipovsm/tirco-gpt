@@ -3,7 +3,7 @@
  * Локальный запуск Tirco «в одну команду» — без Docker и без ручной установки PostgreSQL.
  *
  *   npm run setup   — .env, база данных, миграции, демо-данные
- *   npm run local   — запуск базы + приложения на http://localhost:3000
+ *   npm run local   — запуск базы + приложения на первом свободном порту от 3000
  *
  * Если в .env указан доступный PostgreSQL (например, из docker compose), используется он.
  * Иначе поднимается встроенный PostgreSQL 16 (npm-пакет embedded-postgres) в папке .local/pgdata.
@@ -11,16 +11,19 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { findAvailablePort, localAppUrl } from "./local-runtime.mjs";
 
+const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENV_FILE = path.join(ROOT, ".env");
 const DATA_DIR = path.join(ROOT, ".local", "pgdata");
 const EMBEDDED_PORT = 54329;
 const EMBEDDED_URL = (db) => `postgresql://postgres:postgres@localhost:${EMBEDDED_PORT}/${db}?schema=public`;
-const isWin = process.platform === "win32";
 
 const log = (m) => console.log(`\x1b[36m[tirco]\x1b[0m ${m}`);
 const fail = (m) => {
@@ -143,9 +146,11 @@ function dbName(url) {
 
 // ───────── Команды ─────────
 
-function run(cmd, args, env) {
-  const r = spawnSync(cmd, args, { cwd: ROOT, stdio: "inherit", shell: isWin, env: { ...process.env, ...env } });
-  if (r.status !== 0) throw new Error(`Команда завершилась с ошибкой: ${cmd} ${args.join(" ")}`);
+function run(script, args, env) {
+  const r = spawnSync(process.execPath, [script, ...args], { cwd: ROOT, stdio: "inherit", env: { ...process.env, ...env } });
+  if (r.error) throw r.error;
+  if (r.status !== 0)
+    throw new Error(`Команда завершилась с ошибкой (код ${r.status ?? r.signal}): ${path.basename(script)} ${args.join(" ")}`);
 }
 
 async function setup() {
@@ -154,26 +159,102 @@ async function setup() {
   const env = await ensureDatabase();
   try {
     log("Генерация Prisma Client...");
-    run("npx", ["prisma", "generate"], env);
+    run(require.resolve("prisma/build/index.js"), ["generate"], env);
     log("Применение миграций (реальная и демо-база)...");
-    run("npx", ["tsx", "scripts/db-modes.ts", "migrate"], env);
+    run(require.resolve("tsx/cli"), ["scripts/db-modes.ts", "migrate"], env);
     log("Загрузка демо-аккаунтов...");
-    run("npx", ["tsx", "--conditions=react-server", "prisma/seed.ts"], env);
+    run(require.resolve("tsx/cli"), ["--conditions=react-server", "prisma/seed.ts"], env);
     log("Загрузка демо-базы...");
-    run("npx", ["tsx", "--conditions=react-server", "prisma/seed-demo.ts"], env);
+    run(require.resolve("tsx/cli"), ["--conditions=react-server", "prisma/seed-demo.ts"], env);
   } finally {
     await stopEmbedded();
   }
   log("Готово! Запустите приложение: npm run local");
 }
 
+function openBrowser(url) {
+  const [command, args] =
+    process.platform === "win32"
+      ? ["rundll32.exe", ["url.dll,FileProtocolHandler", url]]
+      : process.platform === "darwin"
+        ? ["open", [url]]
+        : ["xdg-open", [url]];
+  const browser = spawn(command, args, { stdio: "ignore" });
+  browser.on("error", () => log(`Откройте в браузере: ${url}`));
+  browser.unref();
+}
+
+async function runningDevUrl() {
+  try {
+    // Next.js 16 хранит адрес и PID сервера в lock-файле именно этого проекта.
+    const { pid, port } = JSON.parse(readFileSync(path.join(ROOT, ".next/dev/lock"), "utf8"));
+    if (!Number.isInteger(pid) || pid < 1 || !Number.isInteger(port) || port < 1 || port > 65535) return null;
+    try {
+      process.kill(pid, 0);
+    } catch (error) {
+      if (error.code !== "EPERM") return null;
+    }
+    const url = `http://localhost:${port}`;
+    const [health, brand] = await Promise.all([
+      fetch(`${url}/api/health`, { signal: AbortSignal.timeout(8_000), redirect: "error" }),
+      fetch(`${url}/brand/tirco-logo.svg`, { signal: AbortSignal.timeout(8_000), redirect: "error" }),
+    ]);
+    const status = await health.json();
+    const logo = await brand.text();
+    if (
+      health.ok &&
+      brand.ok &&
+      status.success &&
+      status.data?.status === "ok" &&
+      logo === readFileSync(path.join(ROOT, "public/brand/tirco-logo.svg"), "utf8")
+    ) {
+      return url;
+    }
+  } catch {
+    // Нет живого сервера этого проекта: обычный запуск ниже.
+  }
+  return null;
+}
+
+async function openWhenReady(child, url) {
+  const deadline = Date.now() + 120_000;
+  while (child.exitCode === null && child.signalCode === null && !child.killed && Date.now() < deadline) {
+    try {
+      const response = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(5_000) });
+      await response.body?.cancel();
+      if (response.ok && child.exitCode === null && !child.killed) {
+        openBrowser(url);
+        return;
+      }
+    } catch {
+      // Next.js ещё запускается или компилирует первый запрос.
+    }
+    await delay(1_000);
+  }
+  if (child.exitCode === null && !child.killed) log(`Откройте в браузере: ${url}`);
+}
+
 async function dev(mode) {
-  run("node", ["scripts/copy-maplibre-worker.mjs"], {});
+  const existing = mode === "dev" ? await runningDevUrl() : null;
+  if (existing) {
+    log(`Tirco уже работает: ${existing}`);
+    if (process.argv.includes("--open")) openBrowser(existing);
+    return;
+  }
+  run(path.join(ROOT, "scripts/copy-maplibre-worker.mjs"), [], {});
+  const preferredPort = Number(process.env.PORT || readEnv().PORT || 3000);
+  const port = await findAvailablePort(preferredPort);
+  if (port !== preferredPort) log(`Порт ${preferredPort} занят. Выбран свободный порт ${port}.`);
   const env = await ensureDatabase();
-  const args = mode === "start" ? ["next", "start", "-p", "3000"] : ["next", "dev", "-p", "3000"];
-  log(`Запуск приложения: http://localhost:3000  (остановка — Ctrl+C)`);
+  const url = `http://localhost:${port}`;
+  const args = [require.resolve("next/dist/bin/next"), mode === "start" ? "start" : "dev", "-p", String(port)];
+  log(`Запуск приложения: ${url}  (остановка — Ctrl+C)`);
   log("Демо-вход: shipper@tirco.demo / Demo1234! (кнопки ролей — на странице входа)");
-  const child = spawn("npx", args, { cwd: ROOT, stdio: "inherit", shell: isWin, env: { ...process.env, ...env } });
+  const child = spawn(process.execPath, args, {
+    cwd: ROOT,
+    stdio: "inherit",
+    env: { ...process.env, ...env, PORT: String(port), APP_URL: localAppUrl(process.env.APP_URL ?? env.APP_URL, port) },
+  });
   const shutdown = async () => {
     child.kill("SIGINT");
     await stopEmbedded();
@@ -181,10 +262,15 @@ async function dev(mode) {
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+  child.on("error", async (error) => {
+    await stopEmbedded();
+    fail(`Не удалось запустить Next.js: ${error.message}`);
+  });
   child.on("exit", async (code) => {
     await stopEmbedded();
     process.exit(code ?? 0);
   });
+  if (process.argv.includes("--open")) void openWhenReady(child, url);
 }
 
 const cmd = process.argv[2];

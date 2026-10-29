@@ -1,4 +1,4 @@
-import { Truck } from "lucide-react";
+import { ArrowRight, MapPin, Truck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { roadKm } from "@/lib/geo/distance";
 import { formatDate, formatNumber, formatRelative } from "@/lib/format";
@@ -19,7 +19,7 @@ function daysFromNow(d: Date | string) {
   return Math.round((a - b) / DAY);
 }
 
-/** Показатель в строке сводки, как в Погоде и Акциях: мелкая подпись, значение, пояснение. */
+/** Ключевой факт рейса с отдельной подписью, значением и пояснением. */
 function Fact({
   label,
   value,
@@ -34,9 +34,9 @@ function Fact({
   testId?: string;
 }) {
   return (
-    <div className="min-w-0 px-4 py-3" data-testid={testId}>
+    <div className="min-w-0 px-4 py-4 sm:px-5" data-testid={testId}>
       <dt className="text-footnote text-muted-foreground">{label}</dt>
-      <dd className={cn("mt-0.5 truncate font-semibold", tone === "warning" && "text-warning")}>{value}</dd>
+      <dd className={cn("text-body mt-1 font-semibold break-words", tone === "warning" && "text-warning")}>{value}</dd>
       {hint && <dd className={cn("text-footnote mt-0.5", tone === "warning" ? "text-warning" : "text-muted-foreground")}>{hint}</dd>}
     </div>
   );
@@ -98,77 +98,76 @@ export function OrderTrackingHeader({
   const showMap = points.length > 0 && !finished;
 
   return (
-    <Card className="overflow-hidden" data-testid="order-tracking">
-      {showMap && <MapView points={points} lines={lines} className="bg-muted h-52 w-full sm:h-64" />}
-      <div className="space-y-4 px-4 pt-4 pb-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-          <p className="text-section">{ORDER_PHASE_LABELS[progress.phase]}</p>
-          {current && (
-            <p className="text-subheadline">
-              <span className="text-muted-foreground">Сейчас: </span>
-              <span className="font-semibold">{current.label}</span>
-              {progress.currentNote && <span className="text-muted-foreground"> · {progress.currentNote}</span>}
-            </p>
-          )}
-        </div>
-
-        {/* Прогресс по маршруту: откуда → куда, заполнение и маркер машины */}
-        <div>
-          <div className="flex items-end justify-between gap-3">
-            <span className="min-w-0">
-              <span className="text-footnote text-muted-foreground block">Откуда</span>
-              <span className="text-title3 inline-flex items-baseline gap-1">
-                {origin?.city}
-                <span className="text-caption text-muted-foreground font-medium">{origin?.country}</span>
-              </span>
-            </span>
-            <span className="min-w-0 text-right">
-              <span className="text-footnote text-muted-foreground block">Куда</span>
-              <span className="text-title3 inline-flex items-baseline gap-1">
-                {destination?.city}
-                <span className="text-caption text-muted-foreground font-medium">{destination?.country}</span>
-              </span>
-            </span>
+    <Card className="gap-0 overflow-hidden py-0" data-testid="order-tracking">
+      <div className={cn("grid", showMap && "lg:grid-cols-[minmax(0,1.5fr)_minmax(200px,1fr)]")}>
+        <div className="space-y-6 px-5 py-5 sm:px-6 sm:py-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-footnote text-muted-foreground mb-2 font-medium">Ход перевозки</p>
+              <p className="text-title3 font-semibold">{current?.label ?? ORDER_PHASE_LABELS[progress.phase]}</p>
+              {progress.currentNote && <p className="text-subheadline text-muted-foreground mt-1">{progress.currentNote}</p>}
+            </div>
+            <span className="bg-accent text-link num shrink-0 rounded-lg px-3 py-2 text-sm font-semibold">{percent}%</span>
           </div>
-          <div
-            className="relative mt-3 h-1"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={percent}
-            aria-label={`Выполнено этапов: ${percent}%`}
-          >
-            <div className="bg-fill-secondary absolute inset-0 rounded-full" />
+          <div>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+              <span className="min-w-0">
+                <span className="text-footnote text-muted-foreground mb-1 flex items-center gap-1">
+                  <MapPin className="size-3.5" aria-hidden /> {origin?.country}
+                </span>
+                <span className="text-title3 block font-semibold break-words">{origin?.city}</span>
+              </span>
+              <ArrowRight className="text-muted-foreground size-5" aria-hidden />
+              <span className="min-w-0 text-right">
+                <span className="text-footnote text-muted-foreground mb-1 block">{destination?.country}</span>
+                <span className="text-title3 block font-semibold break-words">{destination?.city}</span>
+              </span>
+            </div>
             <div
-              className={cn(
-                "animate-progress-grow absolute inset-y-0 left-0 origin-left rounded-full",
-                progress.phase === "CANCELLED"
-                  ? "bg-neutral"
-                  : progress.phase === "PAUSED"
-                    ? "bg-danger"
-                    : finished
-                      ? "bg-success"
-                      : "bg-primary",
+              className="relative mt-5 h-2"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={percent}
+              aria-label={`Выполнено этапов: ${percent}%`}
+            >
+              <div className="bg-fill-secondary absolute inset-0 rounded-full" />
+              <div
+                className={cn(
+                  "animate-progress-grow absolute inset-y-0 left-0 origin-left rounded-full",
+                  progress.phase === "CANCELLED"
+                    ? "bg-neutral"
+                    : progress.phase === "PAUSED"
+                      ? "bg-danger"
+                      : finished
+                        ? "bg-success"
+                        : "bg-primary",
+                )}
+                style={{ width: `${percent}%` }}
+              />
+              {moving && (
+                <span
+                  className="bg-primary text-primary-foreground ring-card absolute top-1/2 grid size-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg ring-[3px] transition-[left] duration-(--duration-complex)"
+                  style={{ left: `${Math.min(Math.max(percent, 3), 97)}%` }}
+                  aria-hidden
+                >
+                  <Truck className="size-4" />
+                </span>
               )}
-              style={{ width: `${percent}%` }}
-            />
-            {moving && (
-              <span
-                className="bg-primary text-primary-foreground ring-card absolute top-1/2 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full ring-[3px] transition-[left] duration-(--duration-complex)"
-                style={{ left: `${Math.min(Math.max(percent, 3), 97)}%` }}
-                aria-hidden
-              >
-                <Truck className="size-3.5" />
-              </span>
-            )}
+            </div>
+            <p className="text-footnote text-muted-foreground num mt-4 leading-relaxed">
+              {progress.steps.filter((s) => s.state === "done").length} из {progress.steps.length} этапов
+              {progress.nextLabel && !finished && <> · далее: {progress.nextLabel}</>}
+            </p>
           </div>
-          <p className="text-footnote text-muted-foreground num mt-2.5">
-            {progress.steps.filter((s) => s.state === "done").length} из {progress.steps.length} этапов
-            {progress.nextLabel && !finished && <> · далее: {progress.nextLabel}</>}
-          </p>
         </div>
+        {showMap && (
+          <div className="border-border relative min-h-48 border-t lg:border-t-0 lg:border-l">
+            <MapView points={points} lines={lines} className="bg-muted h-48 w-full lg:absolute lg:inset-0 lg:h-full" />
+          </div>
+        )}
       </div>
-      <dl className="hairline-t [&>div:nth-child(even)]:hairline-l xl:[&>div+div]:hairline-l max-xl:[&>div:nth-child(n+3)]:hairline-t grid grid-cols-2 xl:grid-cols-4">
+      <dl className="border-border bg-surface-secondary [&>div]:border-border grid grid-cols-2 border-t xl:grid-cols-4 xl:[&>div+div]:border-l [&>div:nth-child(even)]:border-l max-xl:[&>div:nth-child(n+3)]:border-t">
         <Fact
           label="Последняя позиция"
           testId="tracking-last-position"

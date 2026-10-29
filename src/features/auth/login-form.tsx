@@ -45,9 +45,10 @@ export function LoginForm() {
 
   return (
     <div>
-      <div className="text-center">
+      <div>
+        <p className="text-link mb-3 text-xs font-semibold tracking-[0.14em] uppercase">С возвращением</p>
         <h1 className="text-large-title">Вход в Tirco</h1>
-        <p className="text-subheadline text-muted-foreground mt-1">Цифровая платформа международных грузоперевозок</p>
+        <p className="text-muted-foreground mt-3 text-sm leading-6">Продолжите работу с грузами, рейсами и командой.</p>
       </div>
       <form onSubmit={onSubmit} className="mt-7 space-y-5" noValidate>
         <FormError message={error} />
@@ -89,9 +90,11 @@ export function LoginForm() {
         </Link>
       </p>
       {showDemo && (
-        <section className="mt-8">
-          <p className="text-section px-4">Демо-доступ · {isProduction ? "демо-стенд, данные публичны" : t("ui.localEnv")}</p>
-          <div className="bg-card mt-1.5 rounded-lg p-3">
+        <section className="border-border bg-background mt-8 rounded-2xl border p-4">
+          <p className="text-muted-foreground text-xs font-semibold">
+            Демо-доступ · {isProduction ? "демо-стенд, данные публичны" : t("ui.localEnv")}
+          </p>
+          <div className="mt-3">
             <div className="flex flex-wrap gap-1.5">
               {demoAccounts.map((d) => (
                 <Button
@@ -111,7 +114,7 @@ export function LoginForm() {
               ))}
             </div>
           </div>
-          <p className="text-footnote text-muted-foreground mt-1.5 px-4">Пароль для всех: {DEMO_PASSWORD}</p>
+          <p className="text-muted-foreground mt-3 text-xs">Пароль для всех: {DEMO_PASSWORD}</p>
         </section>
       )}
     </div>

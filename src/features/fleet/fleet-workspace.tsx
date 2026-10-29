@@ -1,6 +1,7 @@
 "use client";
 import { Fuel, Satellite, X } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { InsetGroup, InsetList, ListRow } from "@/components/common/inset-group";
 import { SplitView } from "@/components/common/split-view";
@@ -35,7 +36,6 @@ export function FleetWorkspace({
   canFuel,
   assignableOrders,
   now,
-  initialSelected,
   total,
 }: {
   vehicles: FleetVehicle[];
@@ -50,15 +50,13 @@ export function FleetWorkspace({
   initialSelected?: string | null;
   total: number;
 }) {
-  const [selectedId, setSelectedId] = React.useState<string | null>(
-    initialSelected && vehicles.some((v) => v.id === initialSelected) ? initialSelected : null,
-  );
+  const params = useSearchParams();
+  const selectedId = params.get("selected");
   const select = React.useCallback((id: string | null) => {
-    setSelectedId(id);
     const url = new URL(window.location.href);
     if (id) url.searchParams.set("selected", id);
     else url.searchParams.delete("selected");
-    window.history.replaceState(window.history.state, "", url);
+    window.history.pushState(null, "", url);
   }, []);
   const selected = vehicles.find((v) => v.id === selectedId) ?? null;
   const ref = new Date(now);
@@ -99,7 +97,7 @@ export function FleetWorkspace({
         {counts}
       </div>
       {controls}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain">
         {vehicles.length === 0 ? (
           <p className="text-subheadline text-muted-foreground px-4 py-10 text-center">
             Машин не найдено. {canManage ? "Добавьте машину, чтобы назначать её на перевозки." : ""}
@@ -116,6 +114,7 @@ export function FleetWorkspace({
                     type="button"
                     onClick={() => select(isSel ? null : v.id)}
                     aria-pressed={isSel}
+                    data-testid="fleet-row"
                     className={cn(
                       "block w-full rounded-md px-2.5 text-left transition-colors duration-(--duration-micro)",
                       isSel ? "bg-selection text-selection-foreground" : "hover:bg-fill-quaternary",
@@ -264,23 +263,37 @@ export function FleetWorkspace({
   );
 
   return (
-    <SplitView
-      testId="fleet-workspace"
-      listLabel="Автопарк"
-      backLabel="Автопарк"
-      hasDetail={Boolean(selected)}
-      onBack={() => select(null)}
-      list={list}
-      map={
-        <MapWorkspace
-          objects={mapObjects}
-          selectedId={selectedId}
-          onSelect={select}
-          className="absolute inset-0"
-          emptyLabel="Нет машин в рейсе с координатами"
-        />
-      }
-      detail={detail}
-    />
+    <div className="p-4 sm:p-6 lg:h-full lg:overflow-hidden xl:p-7">
+      <SplitView
+        testId="fleet-workspace"
+        listLabel="Автопарк"
+        detailTitle="Автомобиль"
+        backLabel="Автопарк"
+        hasDetail={Boolean(selected)}
+        onBack={() => select(null)}
+        list={list}
+        mapHeader={
+          <div className="flex items-center gap-3">
+            <span className="bg-accent text-link grid size-9 place-items-center rounded-xl">
+              <Satellite className="size-[18px]" />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold">Автопарк на карте</h2>
+              <p className="text-muted-foreground mt-1 text-xs">Последние отметки машин в рейсе</p>
+            </div>
+          </div>
+        }
+        map={
+          <MapWorkspace
+            objects={mapObjects}
+            selectedId={selectedId}
+            onSelect={select}
+            className="absolute inset-0"
+            emptyLabel="Нет машин в рейсе с координатами"
+          />
+        }
+        detail={detail}
+      />
+    </div>
   );
 }

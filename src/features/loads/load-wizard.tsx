@@ -1,5 +1,5 @@
 "use client";
-import { Check, MapPin, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Check, MapPin, Package, Plus, Route, ShieldCheck, Trash2, Truck, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-form";
@@ -63,6 +63,8 @@ const STEP_FIELDS: ((p: string) => boolean)[] = [
 ];
 
 const STEPS = ["Маршрут", "Груз", "Транспорт", "Цена и публикация"];
+const STEP_DETAILS = ["Откуда и куда везём", "Вес, объём и упаковка", "Машина и требования", "Условия и видимость"];
+const STEP_ICONS = [Route, Package, Truck, Wallet];
 
 export function LoadWizard({
   mode,
@@ -185,12 +187,15 @@ export function LoadWizard({
   const payloadPreview = toPayload(values);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-3">
       {mode === "create" && draftScope && (
-        <div className="bg-fill-quaternary space-y-2 rounded-lg px-4 py-3" data-testid="load-form-recovery">
+        <div className="bg-card border-border space-y-2 rounded-2xl border px-5 py-4 shadow-sm" data-testid="load-form-recovery">
           {recovery.pending ? (
             <>
-              <p className="text-body font-medium">Есть незавершённый груз</p>
+              <p className="text-body flex items-center gap-2 font-semibold">
+                <ShieldCheck className="text-link size-4" aria-hidden />
+                Есть незавершённый груз
+              </p>
               <p className="text-footnote text-muted-foreground">
                 Продолжите заполнение с сохранённого шага или удалите копию, чтобы начать заново. Данные сохранены только в этом браузере.
               </p>
@@ -221,500 +226,568 @@ export function LoadWizard({
           )}
         </div>
       )}
-      <fieldset disabled={Boolean(recovery.pending)} className="min-w-0 space-y-5">
+      <fieldset disabled={Boolean(recovery.pending)} className="grid min-w-0 items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
         {/* Индикатор шагов */}
-        <ol className="grid grid-cols-4 gap-2" aria-label="Шаги создания груза">
-          {STEPS.map((s, i) => (
-            <li key={s}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (i < step || (i > step && validate(i - 1))) {
-                    setStep(i);
-                    setPreview(false);
-                  }
-                }}
-                aria-current={i === step ? "step" : undefined}
-                className="flex w-full flex-col items-start gap-1.5 text-left"
-              >
-                <span
-                  className={cn(
-                    "h-1.5 w-full rounded-full transition-colors duration-(--duration-complex)",
-                    i < step ? "bg-primary/45" : i === step ? "bg-primary" : "bg-fill-secondary",
-                  )}
-                />
-                <span className={cn("text-footnote sm:text-body", i === step ? "font-medium" : "text-muted-foreground")}>
-                  <span className="hidden sm:inline">Шаг {i + 1}. </span>
-                  {s}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
-
-        <FormError message={formError} />
-
-        {!preview && step === 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Маршрут</CardTitle>
-              <p className="text-muted-foreground text-body">
-                Укажите точки загрузки, транзита/границы и доставки. Время — местное для каждой точки.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-fill-quaternary flex flex-wrap items-center gap-2 rounded-lg px-3 py-2.5" aria-label="Цепочка маршрута">
-                {values.stops.map((s, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && (
-                      <span className="text-tertiary-foreground" aria-hidden>
-                        →
-                      </span>
-                    )}
-                    <span className="inline-flex items-baseline gap-1 font-medium whitespace-nowrap">
-                      {s.city || countryName(s.country)}
-                      <span className="text-caption text-muted-foreground">{s.country}</span>
-                    </span>
-                  </React.Fragment>
-                ))}
-              </div>
-              {fields.map((f, i) => {
-                const isFirst = i === 0;
-                const isLast = i === fields.length - 1;
-                const country = values.stops[i]?.country;
+        <aside className="min-w-0 space-y-5 lg:sticky lg:top-24">
+          <div className="bg-card border-border rounded-2xl border p-3 shadow-sm">
+            <p className="text-caption text-muted-foreground mb-3 px-2 font-semibold tracking-[0.12em] uppercase">Новая заявка</p>
+            <ol className="grid grid-cols-2 gap-2 lg:grid-cols-1" aria-label="Шаги создания груза">
+              {STEPS.map((s, i) => {
+                const Icon = STEP_ICONS[i];
                 return (
-                  <fieldset key={f.id} className="bg-fill-quaternary rounded-lg p-4" data-testid={`stop-${i}`}>
-                    <legend className="text-body flex items-center gap-2 px-1 font-medium">
-                      <MapPin className="text-link size-4" aria-hidden />
-                      Точка {i + 1}: {label("StopType", values.stops[i]?.type)}
-                    </legend>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      {!isFirst && !isLast && (
-                        <Field id={`stops.${i}.type`} label="Тип точки">
-                          <NativeSelect {...form.register(`stops.${i}.type`)}>
-                            <option value="BORDER">Граница</option>
-                            <option value="TRANSIT">Транзит</option>
-                          </NativeSelect>
-                        </Field>
-                      )}
-                      <Field id={`stops.${i}.country`} label="Страна" error={err(`stops.${i}.country`)} required>
-                        <NativeSelect {...form.register(`stops.${i}.country`)}>
-                          {COUNTRIES.map((c) => (
-                            <option key={c.code} value={c.code}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                      </Field>
-                      <Field id={`stops.${i}.city`} label="Город" error={err(`stops.${i}.city`)} required>
-                        <Input list={`cities-${i}`} autoComplete="off" {...form.register(`stops.${i}.city`)} />
-                      </Field>
-                      <datalist id={`cities-${i}`}>
-                        {knownCities(country ?? "").map((c) => (
-                          <option key={c} value={c} />
-                        ))}
-                      </datalist>
-                      <Field id={`stops.${i}.fullAddress`} label="Адрес" className="sm:col-span-2" hint="Улица, дом, склад/терминал">
-                        <Input {...form.register(`stops.${i}.fullAddress`)} />
-                      </Field>
-                      <Field id={`stops.${i}.date`} label="Дата" error={err(`stops.${i}.date`)} required={isFirst}>
-                        <Controller
-                          control={form.control}
-                          name={`stops.${i}.date`}
-                          render={({ field }) => (
-                            <DateInput
-                              id={`stops.${i}.date`}
-                              value={(field.value as string) ?? ""}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                            />
-                          )}
-                        />
-                      </Field>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field id={`stops.${i}.timeFrom`} label="С">
-                          <Controller
-                            control={form.control}
-                            name={`stops.${i}.timeFrom`}
-                            render={({ field }) => (
-                              <TimeInput
-                                id={`stops.${i}.timeFrom`}
-                                value={(field.value as string) ?? ""}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                              />
-                            )}
-                          />
-                        </Field>
-                        <Field id={`stops.${i}.timeTo`} label="До" error={err(`stops.${i}.timeTo`)}>
-                          <Controller
-                            control={form.control}
-                            name={`stops.${i}.timeTo`}
-                            render={({ field }) => (
-                              <TimeInput
-                                id={`stops.${i}.timeTo`}
-                                value={(field.value as string) ?? ""}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                              />
-                            )}
-                          />
-                        </Field>
-                      </div>
-                      {(isFirst || isLast) && (
-                        <>
-                          <Field id={`stops.${i}.contactName`} label="Контактное лицо">
-                            <Input {...form.register(`stops.${i}.contactName`)} />
-                          </Field>
-                          <Field id={`stops.${i}.contactPhone`} label="Телефон контакта">
-                            <Input type="tel" {...form.register(`stops.${i}.contactPhone`)} />
-                          </Field>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-muted-foreground text-footnote mt-2 flex items-center justify-between">
-                      <span>Часовой пояс точки: {defaultTimezone(country)}</span>
-                      {!isFirst && !isLast && (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)} aria-label={`Удалить точку ${i + 1}`}>
-                          <Trash2 /> Удалить
-                        </Button>
-                      )}
-                    </div>
-                  </fieldset>
-                );
-              })}
-              {err("stops") && <p className="text-danger text-body">{err("stops")}</p>}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => insert(fields.length - 1, emptyStop("BORDER", "KZ"))}
-                disabled={fields.length >= 12}
-              >
-                <Plus /> Добавить точку
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {!preview && step === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Груз</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field id="title" label="Название груза" error={err("title")} required className="sm:col-span-2">
-                <Input placeholder="Например: Электроника, мониторы" {...form.register("title")} />
-              </Field>
-              {isForwarder && (
-                <Field
-                  id="clientName"
-                  label="Клиент (от чьего имени груз)"
-                  hint="Для экспедитора — заказчик перевозки"
-                  className="sm:col-span-2"
-                >
-                  <Input {...form.register("clientName")} />
-                </Field>
-              )}
-              <Field id="cargoType" label="Тип груза" error={err("cargoType")} required>
-                <NativeSelect {...form.register("cargoType")}>
-                  {enumOptions("CargoType").map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-              <Field id="packageType" label="Тип упаковки">
-                <Input placeholder="Паллеты, коробки, биг-бэги…" {...form.register("packageType")} />
-              </Field>
-              <Field id="weightKg" label="Вес, кг" error={err("weightKg")} required>
-                <Input type="number" inputMode="decimal" min={0} step="any" {...form.register("weightKg")} />
-              </Field>
-              <Field id="volumeM3" label="Объём, м³" error={err("volumeM3")}>
-                <Input type="number" inputMode="decimal" min={0} step="any" {...form.register("volumeM3")} />
-              </Field>
-              <Field id="packagesCount" label="Количество мест" error={err("packagesCount")}>
-                <Input type="number" inputMode="numeric" min={1} step={1} {...form.register("packagesCount")} />
-              </Field>
-              <Field id="cargoDescription" label="Описание" className="sm:col-span-2" hint="Особенности груза, условия обращения">
-                <Textarea rows={3} {...form.register("cargoDescription")} />
-              </Field>
-              <p className="text-muted-foreground text-footnote sm:col-span-2">
-                Опасные грузы (ADR) в MVP не поддерживаются отдельно — укажите особенности в описании.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {!preview && step === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Транспорт</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field id="vehicleType" label="Тип транспорта">
-                <NativeSelect {...form.register("vehicleType")}>
-                  <option value="">Любой</option>
-                  {enumOptions("VehicleType").map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-              <Field id="bodyType" label="Тип кузова">
-                <NativeSelect {...form.register("bodyType")}>
-                  <option value="">Любой</option>
-                  {enumOptions("BodyType").map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-              <Field id="temperatureFrom" label="Температура от, °C" error={err("temperatureFrom")} hint="Для рефрижератора">
-                <Input type="number" inputMode="decimal" step="any" {...form.register("temperatureFrom")} />
-              </Field>
-              <Field id="temperatureTo" label="Температура до, °C" error={err("temperatureTo")}>
-                <Input type="number" inputMode="decimal" step="any" {...form.register("temperatureTo")} />
-              </Field>
-              <div className="flex items-center gap-2 sm:col-span-2">
-                <Checkbox id="requiresGps" checked={values.requiresGps} onCheckedChange={(c) => form.setValue("requiresGps", c === true)} />
-                <Label htmlFor="requiresGps">Нужен GPS на автомобиле</Label>
-              </div>
-              <Field id="requirements" label="Требования" className="sm:col-span-2" hint="Ремни, коники, санобработка, документы водителя…">
-                <Textarea rows={3} {...form.register("requirements")} />
-              </Field>
-            </CardContent>
-          </Card>
-        )}
-
-        {!preview && step === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Цена и публикация</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field id="priceType" label="Тип цены" required>
-                <NativeSelect {...form.register("priceType")}>
-                  {enumOptions("PriceType").map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-              <Field
-                id="targetPrice"
-                label="Стоимость"
-                error={err("targetPrice")}
-                required={values.priceType === "FIXED"}
-                hint={values.priceType === "REQUEST_QUOTE" ? "Перевозчики предложат цену сами" : undefined}
-              >
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  disabled={values.priceType === "REQUEST_QUOTE"}
-                  {...form.register("targetPrice")}
-                />
-              </Field>
-              <Field id="currency" label="Валюта" required>
-                <NativeSelect {...form.register("currency")}>
-                  {CURRENCIES.map((c) => (
-                    <option key={c} value={c}>
-                      {label("Currency", c)}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-              <Field
-                id="additionalTerms"
-                label="Дополнительные условия"
-                className="sm:col-span-3"
-                hint="Попадут в договор: порядок оплаты, простой, страхование…"
-              >
-                <Textarea rows={3} {...form.register("additionalTerms")} />
-              </Field>
-              <fieldset className="sm:col-span-3">
-                <legend className="text-body mb-2 font-medium">Кто увидит груз</legend>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {(["MARKETPLACE", "INVITE_ONLY"] as const).map((v) => (
-                    <label
-                      key={v}
+                  <li key={s}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (i < step || (i > step && validate(i - 1))) {
+                          setStep(i);
+                          setPreview(false);
+                        }
+                      }}
+                      aria-current={i === step ? "step" : undefined}
                       className={cn(
-                        "flex cursor-pointer items-start gap-2 rounded-lg p-3 transition-colors duration-(--duration-micro)",
-                        values.visibility === v
-                          ? "bg-accent ring-primary/40 ring-1 ring-inset"
-                          : "bg-fill-quaternary hover:bg-fill-tertiary",
+                        "flex min-h-16 w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
+                        i === step ? "bg-accent border-primary/25" : "hover:bg-surface-secondary border-transparent",
                       )}
                     >
-                      <input type="radio" value={v} className="mt-0.5 accent-[var(--primary)]" {...form.register("visibility")} />
-                      <span>
-                        <span className="block font-medium">{label("LoadVisibility", v)}</span>
-                        <span className="text-muted-foreground">
-                          {v === "MARKETPLACE" ? "Груз увидят все перевозчики на бирже" : "Только выбранные перевозчики"}
-                        </span>
+                      <span
+                        className={cn(
+                          "grid size-8 shrink-0 place-items-center rounded-lg text-sm font-semibold transition-colors duration-(--duration-complex)",
+                          i < step
+                            ? "bg-success-bg text-success"
+                            : i === step
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-surface-secondary text-muted-foreground",
+                        )}
+                      >
+                        {i < step ? <Check className="size-4" aria-hidden /> : <Icon className="size-4" aria-hidden />}
                       </span>
-                    </label>
+                      <span className="min-w-0">
+                        <span
+                          className={cn(
+                            "text-footnote sm:text-body block leading-snug",
+                            i === step ? "text-foreground font-semibold" : "text-muted-foreground",
+                          )}
+                        >
+                          <span className="sr-only">Шаг {i + 1}. </span>
+                          {s}
+                        </span>
+                        <span className="text-caption text-muted-foreground mt-0.5 hidden lg:block">{STEP_DETAILS[i]}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+          <div className="bg-card border-border hidden space-y-4 rounded-2xl border p-5 lg:block">
+            <p className="text-caption text-muted-foreground font-semibold tracking-[0.1em] uppercase">Ваша заявка</p>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="border-primary mt-1 size-2.5 shrink-0 rounded-full border-2" />
+                <span className="text-body font-semibold">{values.stops[0]?.city || "Город загрузки"}</span>
+              </div>
+              <div className="border-border ml-1 h-5 border-l border-dashed" />
+              <div className="flex items-start gap-3">
+                <span className="bg-primary mt-1 size-2.5 shrink-0 rounded-sm" />
+                <span className="text-body font-semibold">{values.stops.at(-1)?.city || "Город доставки"}</span>
+              </div>
+            </div>
+            {values.title && <p className="text-body border-border border-t pt-4 font-medium">{values.title}</p>}
+            <p className="text-footnote text-muted-foreground flex items-start gap-2">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
+              Перед публикацией вы сможете проверить все условия.
+            </p>
+          </div>
+        </aside>
+
+        <div className="min-w-0 space-y-5">
+          <div className="flex items-center gap-3">
+            <span className="bg-primary text-primary-foreground grid size-10 shrink-0 place-items-center rounded-xl text-base font-semibold">
+              {preview ? <Check className="size-5" aria-hidden /> : String(step + 1).padStart(2, "0")}
+            </span>
+            <div>
+              <p className="text-caption text-muted-foreground font-medium">{preview ? "Перед публикацией" : `Шаг ${step + 1} из 4`}</p>
+              <p className="text-title2 font-semibold">{preview ? "Проверьте заявку" : STEP_DETAILS[step]}</p>
+            </div>
+          </div>
+
+          <FormError message={formError} />
+
+          {!preview && step === 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Маршрут</CardTitle>
+                <p className="text-muted-foreground text-body">
+                  Укажите точки загрузки, транзита/границы и доставки. Время — местное для каждой точки.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div
+                  className="bg-accent border-primary/15 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3.5"
+                  aria-label="Цепочка маршрута"
+                >
+                  {values.stops.map((s, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && (
+                        <span className="text-tertiary-foreground" aria-hidden>
+                          →
+                        </span>
+                      )}
+                      <span className="inline-flex items-baseline gap-1 font-medium whitespace-nowrap">
+                        {s.city || countryName(s.country)}
+                        <span className="text-caption text-muted-foreground">{s.country}</span>
+                      </span>
+                    </React.Fragment>
                   ))}
                 </div>
-                {values.visibility === "INVITE_ONLY" && (
-                  <div className="bg-fill-quaternary mt-3 max-h-56 space-y-1 overflow-y-auto rounded-lg p-2">
-                    {carriers.length === 0 && <p className="text-muted-foreground text-body p-2">Нет доступных перевозчиков</p>}
-                    {carriers.map((c) => {
-                      const checked = values.invitedCarrierIds.includes(c.id);
-                      return (
-                        <label key={c.id} className="hover:bg-muted text-body flex items-center gap-2 rounded-md px-2 py-1.5">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) =>
-                              form.setValue(
-                                "invitedCarrierIds",
-                                v ? [...values.invitedCarrierIds, c.id] : values.invitedCarrierIds.filter((x) => x !== c.id),
-                              )
-                            }
+                {fields.map((f, i) => {
+                  const isFirst = i === 0;
+                  const isLast = i === fields.length - 1;
+                  const country = values.stops[i]?.country;
+                  return (
+                    <fieldset key={f.id} className="bg-card border-border rounded-xl border p-4 sm:p-5" data-testid={`stop-${i}`}>
+                      <legend className="bg-card text-body flex items-center gap-2 px-2 font-semibold">
+                        <MapPin className="text-link size-4" aria-hidden />
+                        Точка {i + 1}: {label("StopType", values.stops[i]?.type)}
+                      </legend>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {!isFirst && !isLast && (
+                          <Field id={`stops.${i}.type`} label="Тип точки">
+                            <NativeSelect {...form.register(`stops.${i}.type`)}>
+                              <option value="BORDER">Граница</option>
+                              <option value="TRANSIT">Транзит</option>
+                            </NativeSelect>
+                          </Field>
+                        )}
+                        <Field id={`stops.${i}.country`} label="Страна" error={err(`stops.${i}.country`)} required>
+                          <NativeSelect {...form.register(`stops.${i}.country`)}>
+                            {COUNTRIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field id={`stops.${i}.city`} label="Город" error={err(`stops.${i}.city`)} required>
+                          <Input list={`cities-${i}`} autoComplete="off" {...form.register(`stops.${i}.city`)} />
+                        </Field>
+                        <datalist id={`cities-${i}`}>
+                          {knownCities(country ?? "").map((c) => (
+                            <option key={c} value={c} />
+                          ))}
+                        </datalist>
+                        <Field id={`stops.${i}.fullAddress`} label="Адрес" className="sm:col-span-2" hint="Улица, дом, склад/терминал">
+                          <Input {...form.register(`stops.${i}.fullAddress`)} />
+                        </Field>
+                        <Field id={`stops.${i}.date`} label="Дата" error={err(`stops.${i}.date`)} required={isFirst}>
+                          <Controller
+                            control={form.control}
+                            name={`stops.${i}.date`}
+                            render={({ field }) => (
+                              <DateInput
+                                id={`stops.${i}.date`}
+                                value={(field.value as string) ?? ""}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                              />
+                            )}
                           />
-                          <span className="flex-1">{c.legalName}</span>
-                          <span className="text-muted-foreground text-footnote">
-                            {c.city} · {label("VerificationStatus", c.verificationStatus)}
-                          </span>
-                        </label>
-                      );
-                    })}
-                    {err("invitedCarrierIds") && <p className="text-danger text-body p-2">{err("invitedCarrierIds")}</p>}
-                  </div>
-                )}
-              </fieldset>
-            </CardContent>
-          </Card>
-        )}
+                        </Field>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Field id={`stops.${i}.timeFrom`} label="С">
+                            <Controller
+                              control={form.control}
+                              name={`stops.${i}.timeFrom`}
+                              render={({ field }) => (
+                                <TimeInput
+                                  id={`stops.${i}.timeFrom`}
+                                  value={(field.value as string) ?? ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                />
+                              )}
+                            />
+                          </Field>
+                          <Field id={`stops.${i}.timeTo`} label="До" error={err(`stops.${i}.timeTo`)}>
+                            <Controller
+                              control={form.control}
+                              name={`stops.${i}.timeTo`}
+                              render={({ field }) => (
+                                <TimeInput
+                                  id={`stops.${i}.timeTo`}
+                                  value={(field.value as string) ?? ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                />
+                              )}
+                            />
+                          </Field>
+                        </div>
+                        {(isFirst || isLast) && (
+                          <>
+                            <Field id={`stops.${i}.contactName`} label="Контактное лицо">
+                              <Input {...form.register(`stops.${i}.contactName`)} />
+                            </Field>
+                            <Field id={`stops.${i}.contactPhone`} label="Телефон контакта">
+                              <Input type="tel" {...form.register(`stops.${i}.contactPhone`)} />
+                            </Field>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-muted-foreground text-footnote mt-2 flex items-center justify-between">
+                        <span>Часовой пояс точки: {defaultTimezone(country)}</span>
+                        {!isFirst && !isLast && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)} aria-label={`Удалить точку ${i + 1}`}>
+                            <Trash2 /> Удалить
+                          </Button>
+                        )}
+                      </div>
+                    </fieldset>
+                  );
+                })}
+                {err("stops") && <p className="text-danger text-body">{err("stops")}</p>}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => insert(fields.length - 1, emptyStop("BORDER", "KZ"))}
+                  disabled={fields.length >= 12}
+                >
+                  <Plus /> Добавить точку
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-        {preview && (
-          <Card data-testid="load-preview">
-            <CardHeader>
-              <CardTitle>Предпросмотр груза</CardTitle>
-              <p className="text-muted-foreground text-body">Проверьте данные перед публикацией.</p>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div>
-                <h3 className="text-body mb-3 font-semibold">Маршрут</h3>
-                <RouteTimeline
-                  stops={payloadPreview.stops.map((s) => ({
-                    type: s.type,
-                    country: s.country,
-                    city: s.city,
-                    fullAddress: (s.fullAddress as string) || null,
-                    plannedDateFrom: (s.plannedDateFrom as string) || null,
-                    plannedDateTo: (s.plannedDateTo as string) || null,
-                    timezone: (s.timezone as string) || null,
-                    contactName: (s.contactName as string) || null,
-                    contactPhone: (s.contactPhone as string) || null,
-                  }))}
-                />
-                <div className="mt-4">
-                  <RoutePreview
+          {!preview && step === 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Груз</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field id="title" label="Название груза" error={err("title")} required className="sm:col-span-2">
+                  <Input placeholder="Например: Электроника, мониторы" {...form.register("title")} />
+                </Field>
+                {isForwarder && (
+                  <Field
+                    id="clientName"
+                    label="Клиент (от чьего имени груз)"
+                    hint="Для экспедитора — заказчик перевозки"
+                    className="sm:col-span-2"
+                  >
+                    <Input {...form.register("clientName")} />
+                  </Field>
+                )}
+                <Field id="cargoType" label="Тип груза" error={err("cargoType")} required>
+                  <NativeSelect {...form.register("cargoType")}>
+                    {enumOptions("CargoType").map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field id="packageType" label="Тип упаковки">
+                  <Input placeholder="Паллеты, коробки, биг-бэги…" {...form.register("packageType")} />
+                </Field>
+                <Field id="weightKg" label="Вес, кг" error={err("weightKg")} required>
+                  <Input type="number" inputMode="decimal" min={0} step="any" {...form.register("weightKg")} />
+                </Field>
+                <Field id="volumeM3" label="Объём, м³" error={err("volumeM3")}>
+                  <Input type="number" inputMode="decimal" min={0} step="any" {...form.register("volumeM3")} />
+                </Field>
+                <Field id="packagesCount" label="Количество мест" error={err("packagesCount")}>
+                  <Input type="number" inputMode="numeric" min={1} step={1} {...form.register("packagesCount")} />
+                </Field>
+                <Field id="cargoDescription" label="Описание" className="sm:col-span-2" hint="Особенности груза, условия обращения">
+                  <Textarea rows={3} {...form.register("cargoDescription")} />
+                </Field>
+                <p className="bg-surface-secondary text-muted-foreground text-footnote rounded-xl px-4 py-3 sm:col-span-2">
+                  Особенности опасных грузов (ADR) укажите в описании. Отдельный сценарий ADR пока не предусмотрен.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {!preview && step === 2 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Транспорт</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field id="vehicleType" label="Тип транспорта">
+                  <NativeSelect {...form.register("vehicleType")}>
+                    <option value="">Любой</option>
+                    {enumOptions("VehicleType").map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field id="bodyType" label="Тип кузова">
+                  <NativeSelect {...form.register("bodyType")}>
+                    <option value="">Любой</option>
+                    {enumOptions("BodyType").map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field id="temperatureFrom" label="Температура от, °C" error={err("temperatureFrom")} hint="Для рефрижератора">
+                  <Input type="number" inputMode="decimal" step="any" {...form.register("temperatureFrom")} />
+                </Field>
+                <Field id="temperatureTo" label="Температура до, °C" error={err("temperatureTo")}>
+                  <Input type="number" inputMode="decimal" step="any" {...form.register("temperatureTo")} />
+                </Field>
+                <div className="bg-surface-secondary border-border flex items-center gap-3 rounded-xl border p-4 sm:col-span-2">
+                  <Checkbox
+                    id="requiresGps"
+                    checked={values.requiresGps}
+                    onCheckedChange={(c) => form.setValue("requiresGps", c === true)}
+                  />
+                  <Label htmlFor="requiresGps">Нужен GPS на автомобиле</Label>
+                </div>
+                <Field
+                  id="requirements"
+                  label="Требования"
+                  className="sm:col-span-2"
+                  hint="Ремни, коники, санобработка, документы водителя…"
+                >
+                  <Textarea rows={3} {...form.register("requirements")} />
+                </Field>
+              </CardContent>
+            </Card>
+          )}
+
+          {!preview && step === 3 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Цена и публикация</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field id="priceType" label="Тип цены" required>
+                  <NativeSelect {...form.register("priceType")}>
+                    {enumOptions("PriceType").map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field
+                  id="targetPrice"
+                  label="Стоимость"
+                  error={err("targetPrice")}
+                  required={values.priceType === "FIXED"}
+                  hint={values.priceType === "REQUEST_QUOTE" ? "Перевозчики предложат цену сами" : undefined}
+                >
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    disabled={values.priceType === "REQUEST_QUOTE"}
+                    {...form.register("targetPrice")}
+                  />
+                </Field>
+                <Field id="currency" label="Валюта" required>
+                  <NativeSelect {...form.register("currency")}>
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {label("Currency", c)}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field
+                  id="additionalTerms"
+                  label="Дополнительные условия"
+                  className="sm:col-span-3"
+                  hint="Попадут в договор: порядок оплаты, простой, страхование…"
+                >
+                  <Textarea rows={3} {...form.register("additionalTerms")} />
+                </Field>
+                <fieldset className="sm:col-span-3">
+                  <legend className="text-body mb-2 font-medium">Кто увидит груз</legend>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {(["MARKETPLACE", "INVITE_ONLY"] as const).map((v) => (
+                      <label
+                        key={v}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-2 rounded-lg p-3 transition-colors duration-(--duration-micro)",
+                          values.visibility === v
+                            ? "bg-accent ring-primary/40 ring-1 ring-inset"
+                            : "bg-fill-quaternary hover:bg-fill-tertiary",
+                        )}
+                      >
+                        <input type="radio" value={v} className="mt-0.5 accent-[var(--primary)]" {...form.register("visibility")} />
+                        <span>
+                          <span className="block font-medium">{label("LoadVisibility", v)}</span>
+                          <span className="text-muted-foreground">
+                            {v === "MARKETPLACE" ? "Груз увидят все перевозчики на бирже" : "Только выбранные перевозчики"}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {values.visibility === "INVITE_ONLY" && (
+                    <div className="bg-fill-quaternary mt-3 max-h-56 space-y-1 overflow-y-auto rounded-lg p-2">
+                      {carriers.length === 0 && <p className="text-muted-foreground text-body p-2">Нет доступных перевозчиков</p>}
+                      {carriers.map((c) => {
+                        const checked = values.invitedCarrierIds.includes(c.id);
+                        return (
+                          <label key={c.id} className="hover:bg-muted text-body flex items-center gap-2 rounded-md px-2 py-1.5">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) =>
+                                form.setValue(
+                                  "invitedCarrierIds",
+                                  v ? [...values.invitedCarrierIds, c.id] : values.invitedCarrierIds.filter((x) => x !== c.id),
+                                )
+                              }
+                            />
+                            <span className="flex-1">{c.legalName}</span>
+                            <span className="text-muted-foreground text-footnote">
+                              {c.city} · {label("VerificationStatus", c.verificationStatus)}
+                            </span>
+                          </label>
+                        );
+                      })}
+                      {err("invitedCarrierIds") && <p className="text-danger text-body p-2">{err("invitedCarrierIds")}</p>}
+                    </div>
+                  )}
+                </fieldset>
+              </CardContent>
+            </Card>
+          )}
+
+          {preview && (
+            <Card data-testid="load-preview">
+              <CardHeader>
+                <CardTitle>Предпросмотр груза</CardTitle>
+                <p className="text-muted-foreground text-body">Проверьте данные перед публикацией.</p>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div>
+                  <h3 className="text-body mb-3 font-semibold">Маршрут</h3>
+                  <RouteTimeline
                     stops={payloadPreview.stops.map((s) => ({
+                      type: s.type,
                       country: s.country,
                       city: s.city,
-                      street: (s.street as string) || null,
-                      building: (s.building as string) || null,
+                      fullAddress: (s.fullAddress as string) || null,
+                      plannedDateFrom: (s.plannedDateFrom as string) || null,
+                      plannedDateTo: (s.plannedDateTo as string) || null,
+                      timezone: (s.timezone as string) || null,
+                      contactName: (s.contactName as string) || null,
+                      contactPhone: (s.contactPhone as string) || null,
                     }))}
                   />
+                  <div className="mt-4">
+                    <RoutePreview
+                      stops={payloadPreview.stops.map((s) => ({
+                        country: s.country,
+                        city: s.city,
+                        street: (s.street as string) || null,
+                        building: (s.building as string) || null,
+                      }))}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-4">
-                <h3 className="text-body font-semibold">{values.title}</h3>
-                <DefinitionList
-                  items={[
-                    { label: "Тип груза", value: label("CargoType", values.cargoType) },
-                    { label: "Вес", value: formatWeight(Number(values.weightKg)) },
-                    { label: "Объём", value: values.volumeM3 ? formatVolume(Number(values.volumeM3)) : "—" },
-                    { label: "Мест", value: values.packagesCount ? `${values.packagesCount} ${values.packageType}` : "—" },
-                    {
-                      label: "Транспорт",
-                      value:
-                        [
-                          values.vehicleType && label("VehicleType", values.vehicleType),
-                          values.bodyType && label("BodyType", values.bodyType),
-                        ]
-                          .filter(Boolean)
-                          .join(", ") || "Любой",
-                    },
-                    { label: "GPS", value: values.requiresGps ? "Обязателен" : "Не требуется" },
-                    {
-                      label: "Цена",
-                      value:
-                        values.priceType === "REQUEST_QUOTE" || !values.targetPrice ? (
-                          "Запрос цены"
-                        ) : (
-                          <>
-                            <MoneyDisplay amount={Number(values.targetPrice)} currency={values.currency} /> ·{" "}
-                            {label("PriceType", values.priceType)}
-                          </>
-                        ),
-                    },
-                    { label: "Видимость", value: label("LoadVisibility", values.visibility) },
-                  ]}
-                />
-                {values.additionalTerms && <p className="text-muted-foreground text-body">Условия: {values.additionalTerms}</p>}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                <div className="space-y-4">
+                  <h3 className="text-body font-semibold">{values.title}</h3>
+                  <DefinitionList
+                    items={[
+                      { label: "Тип груза", value: label("CargoType", values.cargoType) },
+                      { label: "Вес", value: formatWeight(Number(values.weightKg)) },
+                      { label: "Объём", value: values.volumeM3 ? formatVolume(Number(values.volumeM3)) : "—" },
+                      { label: "Мест", value: values.packagesCount ? `${values.packagesCount} ${values.packageType}` : "—" },
+                      {
+                        label: "Транспорт",
+                        value:
+                          [
+                            values.vehicleType && label("VehicleType", values.vehicleType),
+                            values.bodyType && label("BodyType", values.bodyType),
+                          ]
+                            .filter(Boolean)
+                            .join(", ") || "Любой",
+                      },
+                      { label: "GPS", value: values.requiresGps ? "Обязателен" : "Не требуется" },
+                      {
+                        label: "Цена",
+                        value:
+                          values.priceType === "REQUEST_QUOTE" || !values.targetPrice ? (
+                            "Запрос цены"
+                          ) : (
+                            <>
+                              <MoneyDisplay amount={Number(values.targetPrice)} currency={values.currency} /> ·{" "}
+                              {label("PriceType", values.priceType)}
+                            </>
+                          ),
+                      },
+                      { label: "Видимость", value: label("LoadVisibility", values.visibility) },
+                    ]}
+                  />
+                  {values.additionalTerms && <p className="text-muted-foreground text-body">Условия: {values.additionalTerms}</p>}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-        <div className="material-bar shadow-menu sticky bottom-[calc(3.875rem+env(safe-area-inset-bottom))] z-10 flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5 lg:bottom-4">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => (preview ? setPreview(false) : setStep(Math.max(0, step - 1)))}
-            disabled={(!preview && step === 0) || submitting !== null}
-          >
-            {preview ? "Вернуться" : "Назад"}
-          </Button>
-          <div className="flex flex-wrap gap-2">
-            {preview ? (
-              <>
-                {(mode === "create" || loadStatus === "DRAFT") && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => submit("draft")}
-                    loading={submitting === "draft"}
-                    loadingText="Сохраняем..."
-                    disabled={submitting !== null}
-                  >
-                    Сохранить черновик
-                  </Button>
-                )}
-                {mode === "edit" && loadStatus !== "DRAFT" ? (
-                  <Button
-                    type="button"
-                    onClick={() => submit("save")}
-                    loading={submitting === "save"}
-                    loadingText="Сохраняем..."
-                    disabled={submitting !== null}
-                  >
-                    <Check /> Сохранить изменения
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={() => submit("publish")}
-                    loading={submitting === "publish"}
-                    loadingText="Публикуем..."
-                    disabled={submitting !== null}
-                  >
-                    <Check /> Опубликовать груз
-                  </Button>
-                )}
-              </>
-            ) : (
-              <Button type="button" onClick={goNext}>
-                {step === 3 ? "Предпросмотр" : "Продолжить"}
-              </Button>
-            )}
+          <div className="bg-card/95 border-border shadow-menu sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 backdrop-blur-xl sm:p-4 lg:bottom-5">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => (preview ? setPreview(false) : setStep(Math.max(0, step - 1)))}
+              disabled={(!preview && step === 0) || submitting !== null}
+            >
+              {preview ? "Вернуться" : "Назад"}
+            </Button>
+            <div className="flex flex-wrap gap-2">
+              {preview ? (
+                <>
+                  {(mode === "create" || loadStatus === "DRAFT") && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => submit("draft")}
+                      loading={submitting === "draft"}
+                      loadingText="Сохраняем..."
+                      disabled={submitting !== null}
+                    >
+                      Сохранить черновик
+                    </Button>
+                  )}
+                  {mode === "edit" && loadStatus !== "DRAFT" ? (
+                    <Button
+                      type="button"
+                      onClick={() => submit("save")}
+                      loading={submitting === "save"}
+                      loadingText="Сохраняем..."
+                      disabled={submitting !== null}
+                    >
+                      <Check /> Сохранить изменения
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => submit("publish")}
+                      loading={submitting === "publish"}
+                      loadingText="Публикуем..."
+                      disabled={submitting !== null}
+                    >
+                      <Check /> Опубликовать груз
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Button type="button" onClick={goNext}>
+                  {step === 3 ? "Предпросмотр" : "Продолжить"} <ArrowRight className="size-4" aria-hidden />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </fieldset>

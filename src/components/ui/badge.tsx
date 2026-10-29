@@ -2,19 +2,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Тонированная метка: мягкий фон своего тона, без рамки и без «таблетки». */
+/** Status labels use text, semantic color and a subtle boundary. */
 const badgeVariants = cva(
-  "text-footnote inline-flex h-5 items-center gap-1 rounded-xs px-1.5 font-medium whitespace-nowrap [&_svg]:size-3 [&_svg]:shrink-0",
+  "text-footnote inline-flex min-h-6 items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold whitespace-nowrap [&_svg]:size-3 [&_svg]:shrink-0",
   {
     variants: {
       tone: {
-        success: "bg-success-bg text-success",
-        warning: "bg-warning-bg text-warning",
-        info: "bg-info-bg text-info",
-        delayed: "bg-delayed-bg text-delayed",
-        danger: "bg-danger-bg text-danger",
-        neutral: "bg-neutral-bg text-neutral",
-        outline: "hairline border-border-strong text-muted-foreground",
+        success: "border-success-border bg-success-bg text-success",
+        warning: "border-warning-border bg-warning-bg text-warning",
+        info: "border-info-border bg-info-bg text-info",
+        delayed: "border-delayed-border bg-delayed-bg text-delayed",
+        danger: "border-danger-border bg-danger-bg text-danger",
+        neutral: "border-neutral-border bg-neutral-bg text-neutral",
+        outline: "border-border-strong text-muted-foreground",
       },
     },
     defaultVariants: { tone: "neutral" },

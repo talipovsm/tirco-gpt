@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Package, Truck } from "lucide-react";
 import Link from "next/link";
 import { CompanyBadge, MoneyDisplay } from "@/components/common/misc";
 import { RouteDistance, type RouteSummary } from "@/components/common/route-distance";
@@ -28,44 +28,41 @@ export type LoadCardData = {
   bids?: { status: string; amount: number; currency: string }[];
 } & Partial<RouteSummary>;
 
-/**
- * Строка груза в списке, как письмо в Mail: маршрут и цена — первой строкой, что везём — второй,
- * параметры, даты, заказчик и статус — третьей, вторичным цветом.
- * Статус «Опубликован» не показывается (на бирже он у всех), значимые статусы — «Идут торги», «Выбран» и т. п. — видны.
- */
+/** Маршрут, доступная ставка и условия загрузки читаются как отдельные группы. */
 export function LoadCard({ load, showCompany = true }: { load: LoadCardData; showCompany?: boolean }) {
   const myBid = load.bids?.find((b) => b.status === "PENDING" || b.status === "ACCEPTED");
   const quote = load.priceType === "REQUEST_QUOTE" || load.targetPrice === null;
   return (
     <Link
       href={`/loads/${load.id}`}
-      className="hover:bg-fill-quaternary active:bg-fill-tertiary flex items-center gap-2 pl-4 transition-colors duration-(--duration-micro)"
+      className="group border-border bg-card hover:border-primary/45 hover:shadow-control mx-3 my-3 block rounded-xl border p-4 transition-[border-color,box-shadow] duration-(--duration-standard) sm:p-5"
       data-testid="load-card"
     >
-      <div data-row-content className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-3">
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="flex items-baseline gap-3">
-            <RouteChain stops={load.stops} compact className="min-w-0 flex-1 font-semibold" />
-            {quote ? (
-              <span className="shrink-0 font-semibold">Запрос цены</span>
-            ) : (
-              <MoneyDisplay amount={load.targetPrice} currency={load.currency} className="text-title3 shrink-0 font-semibold" />
+      <div data-row-content className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-6">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="id-code text-footnote text-muted-foreground font-medium">{load.publicNumber}</span>
+            {load.status !== "PUBLISHED" && <StatusBadge kind="LoadStatus" value={load.status} />}
+            {load._count && load._count.bids > 0 && (
+              <span className="bg-accent text-link text-footnote rounded-full px-2.5 py-1 font-medium">
+                Предложений: {load._count.bids}
+              </span>
             )}
           </div>
-          <div className="flex items-baseline gap-3">
-            <p className="min-w-0 flex-1 truncate">
-              {load.title} <span className="id-code text-footnote text-muted-foreground">{load.publicNumber}</span>
-            </p>
-            <span className="text-footnote text-muted-foreground shrink-0">{label("PriceType", load.priceType)}</span>
-          </div>
-          <p className="text-footnote text-muted-foreground num flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-            <span>
+          <RouteChain stops={load.stops} compact className="text-title3 min-w-0 font-semibold" />
+          <p className="text-body text-muted-foreground flex min-w-0 items-center gap-2">
+            <Package className="size-4 shrink-0" aria-hidden />
+            <span className="truncate">{load.title}</span>
+          </p>
+          <div className="text-footnote text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="inline-flex items-center gap-1.5">
+              <Truck className="size-4 shrink-0" aria-hidden />
               {formatWeight(load.weightKg)}
               {load.volumeM3 ? ` · ${formatVolume(load.volumeM3)}` : ""} ·{" "}
               {load.bodyType ? label("BodyType", load.bodyType) : "любой кузов"}
             </span>
-            <span aria-hidden>·</span>
-            <span>
+            <span className="num inline-flex flex-wrap items-center gap-1.5">
+              <CalendarDays className="size-4 shrink-0" aria-hidden />
               <span className="sr-only">Загрузка: </span>
               {formatDateRange(load.loadingDateFrom, load.loadingDateTo)}
               {(load.deliveryDateFrom || load.deliveryDateTo) && (
@@ -77,33 +74,36 @@ export function LoadCard({ load, showCompany = true }: { load: LoadCardData; sho
               )}
             </span>
             {load.routeDistanceKm != null && (
-              <>
-                <span aria-hidden>·</span>
-                <RouteDistance
-                  compact
-                  route={{
-                    routeDistanceKm: load.routeDistanceKm,
-                    routeDurationMin: load.routeDurationMin ?? null,
-                    routeSource: load.routeSource ?? null,
-                  }}
-                />
-              </>
+              <RouteDistance
+                compact
+                route={{
+                  routeDistanceKm: load.routeDistanceKm,
+                  routeDurationMin: load.routeDurationMin ?? null,
+                  routeSource: load.routeSource ?? null,
+                }}
+              />
             )}
-          </p>
-          {(showCompany || load.status !== "PUBLISHED" || (load._count && load._count.bids > 0) || myBid) && (
-            <div className="text-footnote flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
-              {showCompany && <CompanyBadge name={load.company.legalName} verification={load.company.verificationStatus} link={false} />}
-              {load.status !== "PUBLISHED" && <StatusBadge kind="LoadStatus" value={load.status} />}
-              {load._count && load._count.bids > 0 && <span className="text-muted-foreground num">предложений: {load._count.bids}</span>}
-              {myBid && (
-                <span className={myBid.status === "ACCEPTED" ? "text-success" : "text-link"}>
-                  Ваше предложение: <MoneyDisplay amount={myBid.amount} currency={myBid.currency} />
-                </span>
-              )}
-            </div>
-          )}
+          </div>
+          {showCompany && <CompanyBadge name={load.company.legalName} verification={load.company.verificationStatus} link={false} />}
         </div>
-        <ChevronRight className="text-tertiary-foreground size-4 shrink-0" aria-hidden />
+        <div className="border-border flex shrink-0 items-center justify-between gap-3 border-t pt-3 sm:w-48 sm:flex-col sm:items-end sm:justify-between sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5">
+          <div className="min-w-0 sm:text-right">
+            <p className="text-footnote text-muted-foreground mb-1">{label("PriceType", load.priceType)}</p>
+            {quote ? (
+              <span className="text-title3 font-semibold">Запрос цены</span>
+            ) : (
+              <MoneyDisplay amount={load.targetPrice} currency={load.currency} className="text-title2 font-semibold tracking-tight" />
+            )}
+            {myBid && (
+              <p className={`text-footnote mt-2 ${myBid.status === "ACCEPTED" ? "text-success" : "text-link"}`}>
+                Ваше предложение: <MoneyDisplay amount={myBid.amount} currency={myBid.currency} />
+              </p>
+            )}
+          </div>
+          <span className="bg-accent text-link text-footnote group-hover:bg-primary group-hover:text-primary-foreground inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors">
+            Подробнее <ArrowUpRight className="size-4" aria-hidden />
+          </span>
+        </div>
       </div>
     </Link>
   );

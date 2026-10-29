@@ -32,7 +32,4 @@ if [ ! -f .env ] || ! grep -q '^LOCAL_SETUP_DONE="1"' .env; then
   echo 'LOCAL_SETUP_DONE="1"' >> .env
 fi
 
-( sleep 12
-  if command -v open >/dev/null 2>&1; then open http://localhost:3000; elif command -v xdg-open >/dev/null 2>&1; then xdg-open http://localhost:3000 >/dev/null 2>&1; fi
-) &
-npm run local
+npm run local -- --open

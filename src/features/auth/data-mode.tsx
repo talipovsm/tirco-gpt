@@ -17,8 +17,12 @@ export const DATA_MODE_META: Record<DataModeValue, { label: string; short: strin
 export function DataModeSelector({ value, onChange }: { value: DataModeValue; onChange: (v: DataModeValue) => void }) {
   return (
     <fieldset>
-      <legend className="text-section mb-1.5 px-4">Режим данных</legend>
-      <div className="bg-fill-tertiary grid grid-cols-2 gap-0.5 rounded-md p-0.5" role="radiogroup" aria-label="Режим данных">
+      <legend className="mb-2 text-sm font-semibold">Режим данных</legend>
+      <div
+        className="border-border bg-background grid grid-cols-2 gap-2 rounded-xl border p-1.5"
+        role="radiogroup"
+        aria-label="Режим данных"
+      >
         {(["demo", "real"] as const).map((mode) => {
           const meta = DATA_MODE_META[mode];
           const Icon = meta.icon;
@@ -27,8 +31,8 @@ export function DataModeSelector({ value, onChange }: { value: DataModeValue; on
             <label
               key={mode}
               className={cn(
-                "has-[:focus-visible]:outline-ring text-body flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-[0.4375rem] font-medium transition-[background-color,box-shadow] duration-(--duration-standard) has-[:focus-visible]:outline-3 lg:h-8",
-                checked ? "bg-segment-thumb shadow-control" : "text-foreground/75 hover:text-foreground",
+                "has-[:focus-visible]:outline-ring flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-colors has-[:focus-visible]:outline-3",
+                checked ? "bg-card text-foreground shadow-control" : "text-muted-foreground hover:text-foreground",
               )}
               data-testid={`data-mode-${mode}`}
             >
@@ -39,7 +43,7 @@ export function DataModeSelector({ value, onChange }: { value: DataModeValue; on
           );
         })}
       </div>
-      <p className="text-footnote text-muted-foreground mt-1.5 px-4">{DATA_MODE_META[value].hint}</p>
+      <p className="text-muted-foreground mt-2 text-xs">{DATA_MODE_META[value].hint}</p>
     </fieldset>
   );
 }
@@ -51,8 +55,8 @@ export function DataModeBadge({ mode, className }: { mode: DataModeValue; classN
   return (
     <span
       className={cn(
-        "text-footnote inline-flex h-6 items-center gap-1 rounded-full px-2 font-semibold whitespace-nowrap",
-        mode === "demo" ? "bg-warning-bg text-warning" : "bg-fill-tertiary text-muted-foreground",
+        "inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold whitespace-nowrap",
+        mode === "demo" ? "border-warning/25 bg-warning-bg text-warning" : "border-border bg-background text-muted-foreground",
         className,
       )}
       data-testid="data-mode-badge"

@@ -29,7 +29,7 @@ export type Column<T> = {
 };
 
 /**
- * Таблица в духе Finder на широком экране, сгруппированный список iOS на телефоне.
+ * Data grid on desktop, self-contained record cards on mobile.
  * Пагинация, поиск и фильтры управляются через URL (серверная выборка).
  */
 export function DataTable<T>({
@@ -55,11 +55,11 @@ export function DataTable<T>({
   const pairs = rest.filter((c) => c.mobile !== "full");
   return (
     <>
-      <div className="bg-card @container hidden overflow-hidden rounded-lg md:block">
+      <div className="bg-card shadow-panel border-border @container hidden overflow-hidden rounded-lg border md:block">
         <Table>
           {caption && <caption className="sr-only">{caption}</caption>}
           <TableHeader>
-            <TableRow className="hover:!bg-transparent">
+            <TableRow className="hover:bg-transparent">
               {columns.map((c) => (
                 <TableHead key={c.key} className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow], c.className)}>
                   {c.header}
@@ -89,7 +89,7 @@ export function DataTable<T>({
           </TableBody>
         </Table>
       </div>
-      <ul className="bg-card [&>li+li_[data-row-content]]:hairline-t overflow-hidden rounded-lg md:hidden">
+      <ul className="space-y-3 md:hidden">
         {rows.map((row) => {
           const content = (
             <div
@@ -126,7 +126,7 @@ export function DataTable<T>({
             </div>
           );
           return (
-            <li key={rowKey(row)}>
+            <li key={rowKey(row)} className="bg-card shadow-panel border-border overflow-hidden rounded-lg border">
               {rowHref ? (
                 <Link href={rowHref(row)} className="block">
                   {content}

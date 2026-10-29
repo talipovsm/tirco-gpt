@@ -55,25 +55,25 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
       label: "След. рейс",
       count: previews.length,
       content: (
-        <div className="space-y-3 px-2 pb-3" data-testid="next-load-previews">
+        <div className="space-y-4 px-4 pb-2" data-testid="next-load-previews">
           {previews.length === 0 ? (
             <p className="text-subheadline text-muted-foreground px-2 py-2">
               Когда машина будет подъезжать к точке разгрузки, здесь появятся грузы для следующего рейса — без порожнего пробега.
             </p>
           ) : (
-            <ul className="[&>li+li_[data-row-content]]:hairline-t">
+            <ul className="space-y-2.5">
               {previews.map((p) => (
                 <li key={p.vehicleId}>
                   <Link
                     href={p.movementId ? `/next-load?vehicle=${p.vehicleId}&movement=${p.movementId}` : `/next-load?vehicle=${p.vehicleId}`}
-                    className="hover:bg-fill-quaternary block rounded-md px-2.5 transition-colors duration-(--duration-micro)"
+                    className="border-border hover:border-primary/30 hover:bg-muted/40 block rounded-xl border px-4 transition-colors duration-200"
                   >
-                    <span data-row-content className="block py-2.5">
-                      <span className="text-footnote text-muted-foreground block">
+                    <span data-row-content className="block py-4">
+                      <span className="text-muted-foreground block text-xs">
                         <span className="id-code text-foreground font-medium">{p.plateNumber}</span> · рейс{" "}
                         <span className="id-code">{p.orderNumber}</span>
                       </span>
-                      <span className="mt-0.5 block">{p.message}</span>
+                      <span className="mt-2 block text-[13px] leading-relaxed">{p.message}</span>
                     </span>
                   </Link>
                 </li>
@@ -92,9 +92,9 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
 
   const actionsNode =
     kind === "carrier" ? (
-      <Button asChild size="sm" variant="secondary">
+      <Button asChild variant="secondary">
         <Link href="/marketplace">
-          <Search /> Биржа
+          <Search /> Найти груз
         </Link>
       </Button>
     ) : (
@@ -106,9 +106,9 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
             </Link>
           </Button>
         )}
-        <Button asChild size="sm">
+        <Button asChild>
           <Link href="/loads/new">
-            <PackagePlus /> Груз
+            <PackagePlus /> Создать груз
           </Link>
         </Button>
       </>

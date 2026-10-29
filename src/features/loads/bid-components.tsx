@@ -85,9 +85,9 @@ export function BidDialog({ loadId, currency, targetPrice }: { loadId: string; c
             <DialogTitle>Предложить цену</DialogTitle>
             <DialogDescription>Заказчик получит уведомление и сможет принять предложение или предложить другую цену.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={submit} className="space-y-3" noValidate>
+          <form onSubmit={submit} className="space-y-5" noValidate>
             <FormError message={error} />
-            <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
+            <div className="bg-accent border-primary/15 grid grid-cols-[minmax(0,1fr)_120px] gap-3 rounded-xl border p-4">
               <Field id="bid-amount" label="Цена" error={e.amount?.message} required>
                 <Input type="number" inputMode="decimal" min={0} step="any" {...form.register("amount")} />
               </Field>
@@ -249,9 +249,9 @@ export type BidView = {
 
 function NegotiationHistory({ messages }: { messages: BidView["messages"] }) {
   return (
-    <ol className="hairline-l border-border-strong space-y-2 pl-3" aria-label="История переговоров">
+    <ol className="border-border space-y-3 border-l-2 pl-4" aria-label="История переговоров">
       {messages.map((m) => (
-        <li key={m.id} className="text-body">
+        <li key={m.id} className="bg-surface-secondary text-body rounded-xl px-4 py-3">
           <div className="flex flex-wrap items-baseline gap-x-2">
             <span className={cn("font-medium", m.side === "CUSTOMER" ? "text-link" : "text-foreground")}>
               {m.side === "CUSTOMER" ? "Заказчик" : "Перевозчик"}
@@ -302,18 +302,32 @@ export function BidCard({
     });
 
   return (
-    <div className={cn("bg-card rounded-lg p-4", bid.status === "ACCEPTED" && "ring-success/45 ring-1 ring-inset")} data-testid="bid-card">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <CompanyBadge id={bid.carrier.id} name={bid.carrier.legalName} verification={bid.carrier.verificationStatus} rating={rating} />
-          <p className="text-muted-foreground text-footnote">
-            {bid.createdBy.firstName} {bid.createdBy.lastName} · {formatDateTime(bid.createdAt)}
-            {bid.readyDate && ` · готов с ${formatDate(bid.readyDate)}`}
-            {bid.validUntil && ` · действует до ${formatDate(bid.validUntil)}`}
-          </p>
+    <div
+      className={cn(
+        "bg-card border-border overflow-hidden rounded-2xl border p-5 shadow-sm sm:p-6",
+        active && "border-primary/25",
+        bid.status === "ACCEPTED" && "border-success/50",
+      )}
+      data-testid="bid-card"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="bg-accent text-link grid size-11 shrink-0 place-items-center rounded-xl text-base font-bold" aria-hidden>
+            {bid.carrier.legalName.slice(0, 2).toUpperCase()}
+          </span>
+          <div className="min-w-0 space-y-2">
+            <p className="text-caption text-muted-foreground font-semibold tracking-[0.1em] uppercase">Предложение перевозчика</p>
+            <CompanyBadge id={bid.carrier.id} name={bid.carrier.legalName} verification={bid.carrier.verificationStatus} rating={rating} />
+            <p className="text-muted-foreground text-footnote">
+              {bid.createdBy.firstName} {bid.createdBy.lastName} · {formatDateTime(bid.createdAt)}
+              {bid.readyDate && ` · готов с ${formatDate(bid.readyDate)}`}
+              {bid.validUntil && ` · действует до ${formatDate(bid.validUntil)}`}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <MoneyDisplay amount={bid.amount} currency={bid.currency} className="text-title2" />
+        <div className="bg-surface-secondary min-w-0 rounded-xl px-4 py-3 sm:min-w-48 sm:text-right">
+          <p className="text-caption text-muted-foreground mb-1">Стоимость перевозки</p>
+          <MoneyDisplay amount={bid.amount} currency={bid.currency} className="text-title1 font-bold" />
           {delta !== null && (
             <p className={cn("text-footnote", delta > 0 ? "text-warning" : "text-success")}>
               {delta > 0 ? "+" : ""}
@@ -325,10 +339,10 @@ export function BidCard({
           </div>
         </div>
       </div>
-      {bid.comment && <p className="text-body mt-2">{bid.comment}</p>}
-      {bid.terms && <p className="text-muted-foreground text-body mt-1">Условия: {bid.terms}</p>}
+      {bid.comment && <p className="text-body border-border mt-5 border-t pt-4 leading-relaxed">{bid.comment}</p>}
+      {bid.terms && <p className="text-muted-foreground text-body mt-2 leading-relaxed">Условия: {bid.terms}</p>}
       {active && bid.counterAmount !== null && (
-        <div className="bg-info-bg text-info text-body mt-3 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2">
+        <div className="bg-info-bg text-info border-info/20 text-body mt-4 flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3">
           <ArrowRightLeft className="size-4" aria-hidden />
           Встречное предложение заказчика: <MoneyDisplay amount={bid.counterAmount} currency={bid.currency} />
           <Badge tone="warning">{bid.awaitingSide === "CARRIER" ? "ожидает ответа перевозчика" : "ожидает заказчика"}</Badge>
@@ -336,10 +350,10 @@ export function BidCard({
       )}
 
       {bid.messages.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-4">
           <button
             type="button"
-            className="text-link text-footnote hover:underline"
+            className="text-link text-footnote rounded-md py-1 font-semibold hover:underline"
             onClick={() => setShowHistory((s) => !s)}
             aria-expanded={showHistory}
           >
@@ -354,7 +368,7 @@ export function BidCard({
       )}
 
       {active && canAct && perspective === "owner" && (
-        <div className="hairline-t mt-4 flex flex-wrap gap-2 pt-3">
+        <div className="border-border mt-5 flex flex-wrap gap-2 border-t pt-4">
           <ConfirmDialog
             title="Принять предложение?"
             description={
@@ -421,7 +435,7 @@ export function BidCard({
       )}
 
       {active && canAct && perspective === "carrier" && (
-        <div className="hairline-t mt-4 flex flex-wrap gap-2 pt-3">
+        <div className="border-border mt-5 flex flex-wrap gap-2 border-t pt-4">
           {bid.counterAmount !== null && bid.awaitingSide === "CARRIER" && (
             <>
               <Button

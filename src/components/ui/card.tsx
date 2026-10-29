@@ -1,27 +1,30 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Сгруппированный блок на сером фоне, как в iOS Settings: без рамки и тени. */
+/** Bounded work surface with a clear header, body and optional action footer. */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("bg-card text-card-foreground rounded-lg", className)} {...props} />;
+  return <div className={cn("bg-card text-card-foreground shadow-panel border-border rounded-lg border", className)} {...props} />;
 }
 /** Интерактивный блок (ссылка/кнопка): подсветка фона при наведении и нажатии. */
-const cardInteractive = "transition-colors duration-(--duration-micro) hover:bg-surface-secondary active:bg-muted";
+const cardInteractive =
+  "transition-[background-color,border-color,box-shadow] duration-(--duration-micro) hover:border-primary/35 hover:bg-surface-secondary active:bg-muted";
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex flex-col gap-0.5 px-4 pt-3.5 pb-2", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1.5 px-5 pt-5 pb-4", className)} {...props} />;
 }
 /** Заголовок блока — h2 (не пропускает уровень после h1 страницы). */
 function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
-  return <h2 className={cn("text-headline", className)} {...props} />;
+  return <h2 className={cn("text-title3", className)} {...props} />;
 }
 function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   return <p className={cn("text-muted-foreground text-subheadline", className)} {...props} />;
 }
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("px-4 pb-4", className)} {...props} />;
+  return <div className={cn("px-5 pb-5", className)} {...props} />;
 }
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("hairline-t flex items-center gap-2 px-4 py-2.5", className)} {...props} />;
+  return (
+    <div className={cn("bg-surface-secondary flex flex-wrap items-center gap-3 rounded-b-lg border-t px-5 py-4", className)} {...props} />
+  );
 }
 
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, cardInteractive, CardTitle };

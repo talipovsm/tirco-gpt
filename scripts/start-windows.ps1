@@ -34,5 +34,4 @@ if (-not (Test-Path $envFile) -or -not (Select-String -Path $envFile -Pattern '^
   Add-Content $envFile 'LOCAL_SETUP_DONE="1"'
 }
 
-Start-Job { Start-Sleep 12; Start-Process "http://localhost:3000" } | Out-Null
-npm run local
+npm run local -- --open

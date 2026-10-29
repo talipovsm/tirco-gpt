@@ -1,4 +1,15 @@
-import { AlertTriangle, CheckCircle2, Clock, Navigation, PauseCircle, Timer, Ban, type LucideIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Navigation,
+  PauseCircle,
+  Timer,
+  Ban,
+  Layers3,
+  ArrowUpRight,
+  type LucideIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { HEALTH_META, type Health } from "@/lib/operations";
 import { cn } from "@/lib/utils";
@@ -69,23 +80,32 @@ export function OperationalMetric({
   onClick?: () => void;
   testId?: string;
 }) {
+  const Icon = health ? ICONS[health] : Layers3;
   const content = (
     <>
-      <span className={cn("text-headline num flex items-center gap-1 leading-5", health === "delayed" && value > 0 && "text-delayed")}>
-        {health && <HealthDot health={health} className="size-1.5" />}
-        {value}
+      <span className="hidden w-full items-start justify-between gap-2 sm:flex">
+        <span className={cn("grid size-9 place-items-center rounded-xl", active ? "bg-black/5" : "bg-muted text-muted-foreground")}>
+          <Icon className="size-[1.125rem]" aria-hidden />
+        </span>
+        {onClick && <ArrowUpRight className={cn("mt-1 size-4", active ? "text-[#35462a]" : "text-muted-foreground")} aria-hidden />}
       </span>
       <span
-        className={cn("text-caption w-full leading-tight break-words hyphens-auto", active ? "text-foreground" : "text-muted-foreground")}
+        className={cn(
+          "num block text-[1.35rem] leading-none font-semibold tracking-[-.06em] sm:mt-4 sm:text-[1.9rem]",
+          !active && health === "delayed" && value > 0 && "text-delayed",
+        )}
       >
+        {value}
+      </span>
+      <span className={cn("mt-2 block text-[10px] font-medium sm:text-[13px]", active ? "text-[#35462a]" : "text-muted-foreground")}>
         {label}
       </span>
     </>
   );
   const cls = cn(
-    "flex min-w-0 flex-col items-center rounded-[0.4375rem] px-0.5 py-1 text-center transition-[background-color,box-shadow] duration-(--duration-standard)",
-    onClick && !active && "hover:bg-fill-quaternary",
-    active && "bg-segment-thumb shadow-control",
+    "min-w-0 rounded-2xl border px-1.5 py-3 text-center sm:text-left transition-[background-color,border-color,box-shadow] duration-200 sm:p-4",
+    active ? "border-[#cce66b] bg-[#dcf57b] text-[#1c2a19]" : "border-border bg-card text-foreground",
+    onClick && !active && "hover:border-primary/35 hover:shadow-sm",
   );
   return onClick ? (
     <button type="button" onClick={onClick} aria-pressed={active} className={cls} data-testid={testId}>

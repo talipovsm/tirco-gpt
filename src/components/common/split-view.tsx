@@ -41,13 +41,22 @@ export function SplitView({
   const [view, setView] = React.useState<"list" | "map">("list");
   const panelClass = "bg-card border-border min-h-0 min-w-0 overflow-hidden rounded-2xl border";
   return (
-    <div className="relative flex min-h-0 flex-col gap-3 lg:grid lg:h-full lg:grid-cols-[minmax(0,1.2fr)_minmax(0,.9fr)] lg:gap-5" data-testid={testId}>
+    <div
+      className="relative flex min-h-0 flex-col gap-3 lg:grid lg:h-full lg:grid-cols-[minmax(0,1.2fr)_minmax(0,.9fr)] lg:gap-5"
+      data-testid={testId}
+    >
       {!desktop && (
-        <div className="border-border bg-card grid grid-cols-2 gap-1 rounded-xl border p-1" role="group" aria-label="Вид рабочего пространства">
-          {([
-            ["list", "Список", List],
-            ["map", "Карта", MapPinned],
-          ] as const).map(([key, label, Icon]) => (
+        <div
+          className="border-border bg-card grid grid-cols-2 gap-1 rounded-xl border p-1"
+          role="group"
+          aria-label="Вид рабочего пространства"
+        >
+          {(
+            [
+              ["list", "Список", List],
+              ["map", "Карта", MapPinned],
+            ] as const
+          ).map(([key, label, Icon]) => (
             <button
               key={key}
               type="button"
@@ -70,14 +79,17 @@ export function SplitView({
       {(desktop || view === "map") && (
         <aside aria-label="Карта и детали" className={cn(panelClass, "flex flex-col", !desktop && "h-[28rem]")}>
           {mapHeader && <div className="border-border shrink-0 border-b px-5 py-4">{mapHeader}</div>}
-          <div className={cn("relative min-h-0", desktop && hasDetail ? "h-[30%] max-h-56 min-h-36 shrink-0" : "flex-1")}>
-            {map}
-          </div>
+          <div className={cn("relative min-h-0", desktop && hasDetail ? "h-[30%] max-h-56 min-h-36 shrink-0" : "flex-1")}>{map}</div>
           {desktop && hasDetail && <div className="border-border min-h-0 flex-1 border-t">{detail}</div>}
         </aside>
       )}
       {!desktop && (
-        <Sheet open={hasDetail} onOpenChange={(open) => { if (!open) onBack(); }}>
+        <Sheet
+          open={hasDetail}
+          onOpenChange={(open) => {
+            if (!open) onBack();
+          }}
+        >
           <SheetContent side="bottom" className="h-[92dvh] max-h-[92dvh]" data-testid="workspace-detail-sheet">
             <SheetHeader className="shrink-0 pt-2 pb-3">
               <SheetTitle>{detailTitle}</SheetTitle>

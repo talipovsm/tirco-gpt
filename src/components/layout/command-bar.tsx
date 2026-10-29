@@ -238,11 +238,18 @@ export function CommandBar({ kind, open, onOpenChange }: { kind: NavKind; open: 
               aria-label="Поиск и команды"
               data-testid="command-input"
             />
-            <DialogPrimitive.Close className="text-muted-foreground hover:bg-muted grid size-11 shrink-0 place-items-center rounded-lg" aria-label="Закрыть поиск">
+            <DialogPrimitive.Close
+              className="text-muted-foreground hover:bg-muted grid size-11 shrink-0 place-items-center rounded-lg"
+              aria-label="Закрыть поиск"
+            >
               <X className="size-5" aria-hidden />
             </DialogPrimitive.Close>
           </div>
-          {searchError && <p role="alert" className="text-danger px-4 py-3 text-sm">{searchError} Разделы приложения доступны ниже.</p>}
+          {searchError && (
+            <p role="alert" className="text-danger px-4 py-3 text-sm">
+              {searchError} Разделы приложения доступны ниже.
+            </p>
+          )}
           <div
             ref={listRef}
             id={listId}

@@ -272,7 +272,9 @@ export function LiveWorkspace({
     <div className="flex min-h-0 flex-col gap-3 p-4 sm:gap-5 sm:p-6 lg:h-full lg:overflow-hidden xl:p-7">
       <header className="flex shrink-0 flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-muted-foreground mb-1.5 hidden text-[10px] font-semibold tracking-[.14em] uppercase sm:block">Управление перевозками</p>
+          <p className="text-muted-foreground mb-1.5 hidden text-[10px] font-semibold tracking-[.14em] uppercase sm:block">
+            Управление перевозками
+          </p>
           <h1 className="text-[25px] leading-tight font-semibold tracking-[-.045em] sm:text-[29px]">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2 text-xs sm:text-[13px]">{subtitle}</p>}
         </div>

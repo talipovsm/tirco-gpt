@@ -16,7 +16,11 @@ export function UrlTabs({ tabs, defaultTab }: { tabs: TabDef[]; defaultTab: stri
   return (
     <Tabs
       value={value}
+      activationMode="manual"
       onValueChange={(v) => {
+        // Radix может запросить выбор и при нажатии, и при восстановлении фокуса.
+        // Одно действие должно создавать только одну запись в истории.
+        if (new URLSearchParams(window.location.search).get("tab") === v) return;
         const sp = new URLSearchParams(params.toString());
         sp.set("tab", v);
         // Всё содержимое вкладок уже передано сервером: не загружаем карточку заново.

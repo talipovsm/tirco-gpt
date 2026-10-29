@@ -47,7 +47,11 @@ for (const width of [360, 390, 768]) {
     await page.getByTestId("shipment-row").first().click();
     await sheet.getByTestId("panel-open-order").click();
     await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-    for (const [name, value] of [["Маршрут", "route"], ["Документы", "documents"], ["Чат", "chat"]]) {
+    for (const [name, value] of [
+      ["Маршрут", "route"],
+      ["Документы", "documents"],
+      ["Чат", "chat"],
+    ]) {
       const tab = page.getByRole("tab", { name: new RegExp(`^${name}`) });
       await tab.click();
       await expect(tab).toHaveAttribute("data-state", "active");
@@ -94,11 +98,13 @@ test("поиск на телефоне можно закрыть без клав
   await page.getByRole("button", { name: "Поиск и команды", exact: true }).click();
   await page.getByRole("button", { name: "Закрыть поиск" }).click();
   await expect(page.getByTestId("command-input")).toBeHidden();
-  await page.route("**/api/search?*", (route) => route.fulfill({
-    status: 503,
-    contentType: "application/json",
-    body: JSON.stringify({ success: false, error: { code: "SERVICE_UNAVAILABLE", message: "Поиск временно недоступен." } }),
-  }));
+  await page.route("**/api/search?*", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ success: false, error: { code: "SERVICE_UNAVAILABLE", message: "Поиск временно недоступен." } }),
+    }),
+  );
   await page.getByRole("button", { name: "Поиск и команды", exact: true }).click();
   await page.getByTestId("command-input").fill("Алматы");
   await expect(page.getByRole("alert")).toContainText("Поиск временно недоступен");

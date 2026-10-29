@@ -52,6 +52,19 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser journeys and mobile review
         run: npm run build && npx playwright test tests/e2e/workspace-mobile.spec.ts
+      - name: Mobile preview image
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          if (!fs.existsSync("test-results")) process.exit(0);
+          const file = fs.readdirSync("test-results", { recursive: true }).find((name) => name.endsWith("operations-390.png"));
+          if (file) {
+            console.log("TIRCO_PREVIEW_START");
+            console.log(fs.readFileSync("test-results/" + file).toString("base64").match(/.{1,100}/g).join("\n"));
+            console.log("TIRCO_PREVIEW_END");
+          }
+          NODE
       - name: Screenshots and browser report
         if: always()
         uses: actions/upload-artifact@v4

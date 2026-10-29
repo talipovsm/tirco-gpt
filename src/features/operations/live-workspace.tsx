@@ -117,7 +117,24 @@ export function LiveWorkspace({
   const [filter, setFilter] = React.useState<Filter>("all");
   const [q, setQ] = React.useState("");
   const [tab, setTab] = React.useState("objects");
+  const [clock, setClock] = React.useState({ base: now, elapsed: 0 });
+  const referenceTime = clock.base === now ? new Date(new Date(now).getTime() + clock.elapsed).toISOString() : now;
   const tabsId = React.useId();
+
+  // Возраст последней отметки растёт даже без новых координат и не зависит от часов устройства.
+  React.useEffect(() => {
+    const startedAt = Date.now();
+    const updateClock = () => setClock({ base: now, elapsed: Date.now() - startedAt });
+    const resumeClock = () => {
+      if (!document.hidden) updateClock();
+    };
+    const timer = setInterval(updateClock, 60_000);
+    document.addEventListener("visibilitychange", resumeClock);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", resumeClock);
+    };
+  }, [now]);
 
   const select = React.useCallback((id: string | null) => {
     setSelectedId(id);
@@ -237,7 +254,12 @@ export function LiveWorkspace({
                 </p>
               )
             ) : (
-              <ShipmentList objects={visible} selectedId={selectedId} onSelect={(id) => select(id === selectedId ? null : id)} />
+              <ShipmentList
+                objects={visible}
+                selectedId={selectedId}
+                onSelect={(id) => select(id === selectedId ? null : id)}
+                now={referenceTime}
+              />
             )}
             {listFooter}
           </>
@@ -259,13 +281,14 @@ export function LiveWorkspace({
       map={
         <MapWorkspace
           objects={mapObjects}
+          now={referenceTime}
           selectedId={selectedId}
           onSelect={(id) => select(id)}
           className="absolute inset-0"
           emptyLabel="Нет объектов с координатами"
         />
       }
-      detail={selected && <ShipmentDetailPanel key={selected.id} object={selected} now={now} onClose={() => select(null)} />}
+      detail={selected && <ShipmentDetailPanel key={selected.id} object={selected} now={referenceTime} onClose={() => select(null)} />}
     />
   );
 }

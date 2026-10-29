@@ -93,18 +93,18 @@ export default async function DriverHomePage() {
         lastLocationAt={lastLocation ? new Date(lastLocation.createdAt).toISOString() : null}
         documents={documents.map((d) => ({ ...d, createdAt: new Date(d.createdAt).toISOString() }))}
         carrierPhone={order.carrier.phone}
-      />
-
-      {showNext && (
-        <DriverNextStep
-          orderId={order.id}
-          deliveryCity={last.city}
-          returnCity={first.city !== last.city ? first.city : null}
-          plan={
-            plan ? { destinations: plan.movement.destinations.map((d: { label: string }) => d.label), matches: plan.matchesCount } : null
-          }
-        />
-      )}
+      >
+        {showNext && (
+          <DriverNextStep
+            orderId={order.id}
+            deliveryCity={last.city}
+            returnCity={first.city !== last.city ? first.city : null}
+            plan={
+              plan ? { destinations: plan.movement.destinations.map((d: { label: string }) => d.label), matches: plan.matchesCount } : null
+            }
+          />
+        )}
+      </DriverTripActions>
 
       <InsetGroup
         header="Маршрут"

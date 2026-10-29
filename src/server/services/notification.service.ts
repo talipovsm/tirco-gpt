@@ -3,7 +3,6 @@ import type { MemberRole, NotificationType } from "@/generated/prisma/enums";
 import type { Actor } from "@/lib/auth/actor";
 import { prisma, type Tx } from "@/lib/db/prisma";
 import { errors } from "@/lib/errors";
-import { logger } from "@/lib/logger";
 import { externalAdapters } from "@/lib/notifications/adapters";
 
 export type NotifyInput = {
@@ -20,8 +19,8 @@ export type NotifyInput = {
 
 /**
  * In-app уведомления создаются в той же транзакции, что и бизнес-операция.
- * Внешние каналы (email и др.) отправляются после фиксации транзакции:
- * если транзакция откатилась, записи не будет и внешняя отправка будет пропущена.
+ * Очередь внешней доставки создаётся в той же транзакции. Отдельная задача видит
+ * только зафиксированные записи; отправка переживает перезапуск процесса.
  */
 export async function notify(tx: Tx, input: NotifyInput) {
   const recipients = [...new Set(input.userIds)].filter((id) => id && id !== input.excludeUserId);
@@ -39,46 +38,14 @@ export async function notify(tx: Tx, input: NotifyInput) {
     })),
     select: { id: true },
   });
-  scheduleExternal(created.map((c) => c.id));
-}
-
-/**
- * Внешняя отправка после фиксации транзакции. Уведомления создаются внутри бизнес-транзакции, поэтому
- * отправка ждёт, пока записи станут видимы (коммит), с нарастающей задержкой до ~30 с.
- * Если записи так и не появились — транзакция откатилась, и отправлять нечего.
- */
-function scheduleExternal(ids: string[]) {
-  const enabled = externalAdapters.filter((a) => a.isEnabled());
-  if (enabled.length === 0 || process.env.NODE_ENV === "test") return;
-  const delays = [250, 1_000, 3_000, 8_000, 20_000];
-  const attempt = (i: number) =>
-    setTimeout(async () => {
-      try {
-        const rows = await prisma.notification.findMany({
-          where: { id: { in: ids } },
-          include: { user: { select: { email: true, phone: true } } },
-        });
-        if (rows.length < ids.length && i + 1 < delays.length) return attempt(i + 1);
-        for (const n of rows) {
-          for (const a of enabled) {
-            await a
-              .send({
-                userId: n.userId,
-                email: n.user.email,
-                phone: n.user.phone,
-                type: n.type,
-                title: n.title,
-                body: n.body,
-                link: n.link,
-              })
-              .catch((e) => logger.warn("notification.adapter_failed", { channel: a.channel, error: e }));
-          }
-        }
-      } catch (e) {
-        logger.warn("notification.dispatch_failed", { error: e });
-      }
-    }, delays[i]);
-  attempt(0);
+  const channels = externalAdapters.filter((adapter) => adapter.isEnabled()).map((adapter) => adapter.channel);
+  if (channels.length) {
+    // Same transaction as the business operation: rollback removes both in-app and external work.
+    await tx.notificationDelivery.createMany({
+      data: created.flatMap((notification) => channels.map((channel) => ({ notificationId: notification.id, channel }))),
+      skipDuplicates: true,
+    });
+  }
 }
 
 /** Пользователи компании (активные участники), опционально — только с указанными ролями. */

@@ -48,6 +48,7 @@ export default defineConfig({
           EMAIL_DRIVER: "none",
           // Плановую задачу в E2E запускают тесты явно
           JOB_SECURE_DEAL_INTERVAL_MIN: "0",
+          JOB_NOTIFICATION_INTERVAL_SEC: "0",
         },
       },
 });
